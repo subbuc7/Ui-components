@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ASTRAEA // Orbital Constellation Matrix</title>
+  <style>
+    /* ==========================================================================
+       RESET & BASE STYLES
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #05070c;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #e2e8f0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Monospace for telemetry and technical UI */
+    .font-mono {
+      font-family: "SF Mono", "Roboto Mono", "Consolas", "Courier New", monospace;
+    }
+
+    /* Background vignette & atmospheric glow */
+    .bg-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(12, 22, 44, 0.4) 0%, rgba(5, 7, 12, 0.95) 75%, #05070c 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Scanline effect */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+      opacity: 0.4;
+      z-index: 2;
+    }
+
+    /* Canvas styling */
+    #globe-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      cursor: grab;
+    }
+
+    #globe-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* ==========================================================================
+       GLASSMORPHISM & UI OVERLAYS
+       ========================================================================== */
+    .ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Glass Panel Utility */
+    .glass-panel {
+      background: rgba(10, 16, 30, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 243, 255, 0.12);
+      border-radius: 12px;
+      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-panel:hover {
+      border-color: rgba(0, 243, 255, 0.25);
+      box-shadow: 0 20px 50px -10px rgba(0, 243, 255, 0.1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    /* Accent Glows */
+    .glow-cyan {
+      color: #00f3ff;
+      text-shadow: 0 0 12px rgba(0, 243, 255, 0.5);
+    }
+
+    .glow-gold {
+      color: #ffc86b;
+      text-shadow: 0 0 12px rgba(255, 200, 107, 0.5);
+    }
+
+    /* ==========================================================================
+       HEADER HUD
+       ========================================================================== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+    }
+
+    .brand-icon {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #00f3ff;
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+    }
+
+    .brand-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px; height: 6px;
+      background: #ffc86b;
+      border-radius: 50%;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #f1f5f9;
+    }
+
+    .brand-subtitle {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 1px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 10px 20px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: #00f3ff;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00f3ff;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ==========================================================================
+       SIDE DETAILS PANEL (SELECTED NODE)
+       ========================================================================== */
+    .main-viewport {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      height: 100%;
+      padding-top: 20px;
+      padding-bottom: 20px;
+      pointer-events: none;
+    }
+
+    .side-panel {
+      width: 310px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .side-panel.active {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+    }
+
+    .node-tag {
+      font-size: 9px;
+      padding: 3px 6px;
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 4px;
+      color: #00f3ff;
+      letter-spacing: 0.1em;
+    }
+
+    .node-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #fff;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .telemetry-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .telemetry-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 4px;
+    }
+
+    .telemetry-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .signal-bar-wrap {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .signal-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00f3ff, #ffc86b);
+      width: 75%;
+      transition: width 0.5s ease;
+    }
+
+    /* ==========================================================================
+       BOTTOM CONTROLS HUD
+       ========================================================================== */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+    }
+
+    .controls-hint {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 0.08em;
+    }
+
+    .hint-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .key-cap {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 9px;
+      color: #fff;
+    }
+
+    .preset-selector {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+    }
+
+    .preset-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: rgba(255, 255, 255, 0.5);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .preset-btn.active {
+      color: #00f3ff;
+      background: rgba(0, 243, 255, 0.1);
+      border-color: rgba(0, 243, 255, 0.3);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.15);
+    }
+
+    /* Dynamic Node Label Overlay */
+    .node-hotspot-label {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      padding: 4px 8px;
+      background: rgba(5, 7, 12, 0.85);
+      border: 1px solid #00f3ff;
+      border-radius: 4px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: #00f3ff;
+      pointer-events: none;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 20;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
+    .node-hotspot-label::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 4px 4px 0;
+      border-style: solid;
+      border-color: #00f3ff transparent;
+      display: block;
+      width: 0;
+    }
+
+    /* Mobile Responsive Adjustments */
+    @media (max-width: 768px) {
+      .ui-layer { padding: 12px; }
+      .side-panel { width: 100%; max-width: 280px; }
+      .status-item.hide-mobile { display: none; }
+      .controls-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Atmospheric Background Overlays -->
+  <div class="bg-vignette"></div>
+  <div class="scanlines"></div>
+
+  <!-- Interactive 3D WebGL/Canvas -->
+  <canvas id="globe-canvas"></canvas>
+
+  <!-- Dynamic Hover Tooltip -->
+  <div id="hotspot-label" class="node-hotspot-label font-mono">TARGET_NODE</div>
+
+  <!-- UI Overlay -->
+  <div class="ui-layer">
+    
+    <!-- Top Header Navigation -->
+    <header class="header">
+      <div class="brand glass-panel interactive">
+        <div class="brand-icon"></div>
+        <div>
+          <div class="brand-title font-mono">ASTRAEA</div>
+          <div class="brand-subtitle font-mono">ORBITAL MATRIX v4.02</div>
+        </div>
+      </div>
+
+      <div class="status-bar glass-panel font-mono">
+        <div class="status-item">
+          <div class="status-dot"></div>
+          <span style="color: rgba(255,255,255,0.7);">LINK: <span class="glow-cyan">ACTIVE</span></span>
+        </div>
+        <div class="status-item hide-mobile">
+          <span style="color: rgba(255,255,255,0.4);">NODES:</span>
+          <span id="node-count-display" class="glow-gold">0</span>
+        </div>
+        <div class="status-item hide-mobile">
+          <span style="color: rgba(255,255,255,0.4);">FPS:</span>
+          <span id="fps-display">60</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Viewport for Selected Node Info -->
+    <div class="main-viewport">
+      <div></div><!-- Spacer -->
+
+      <!-- Side Data Card -->
+      <aside id="node-panel" class="side-panel glass-panel interactive">
+        <div class="panel-header">
+          <span id="panel-tag" class="node-tag font-mono">PRIMARY HOTSPOT</span>
+          <span id="panel-id" class="font-mono" style="font-size: 10px; color: rgba(255,255,255,0.4);">#772-DX</span>
+        </div>
+
+        <div>
+          <div id="panel-name" class="node-title">CYGNUS PRIME</div>
+          <div id="panel-sub" class="font-mono" style="font-size: 10px; color: #ffc86b; margin-top: 2px;">SECTOR 09 • DEEP TRANSMITTER</div>
+        </div>
+
+        <div class="telemetry-grid font-mono">
+          <div class="telemetry-card">
+            <div class="telemetry-label">LATITUDE</div>
+            <div id="telemetry-lat" class="telemetry-value">42.81° N</div>
+          </div>
+          <div class="telemetry-card">
+            <div class="telemetry-label">LONGITUDE</div>
+            <div id="telemetry-lon" class="telemetry-value">88.14° E</div>
+          </div>
+          <div class="telemetry-card">
+            <div class="telemetry-label">ALTITUDE</div>
+            <div id="telemetry-alt" class="telemetry-value">1,240 KM</div>
+          </div>
+          <div class="telemetry-card">
+            <div class="telemetry-label">LATENCY</div>
+            <div id="telemetry-ms" class="telemetry-value glow-cyan">12.4 MS</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 9px;" class="font-mono">
+            <span style="color: rgba(255,255,255,0.4);">SIGNAL INTEGRITY</span>
+            <span id="signal-pct" class="glow-cyan">94.8%</span>
+          </div>
+          <div class="signal-bar-wrap">
+            <div id="signal-bar" class="signal-bar-fill"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Controls HUD -->
+    <footer class="footer">
+      <div class="controls-hint glass-panel font-mono">
+        <div class="hint-item">
+          <span class="key-cap">DRAG</span>
+          <span>ROTATE</span>
+        </div>
+        <div class="hint-item">
+          <span class="key-cap">SCROLL</span>
+          <span>ZOOM</span>
+        </div>
+        <div class="hint-item">
+          <span class="key-cap">CLICK</span>
+          <span>TARGET</span>
+        </div>
+      </div>
+
+      <div class="preset-selector glass-panel interactive font-mono">
+        <button class="preset-btn active" data-mode="all">ALL NODES</button>
+        <button class="preset-btn" data-mode="relays">RELAYS</button>
+        <button class="preset-btn" data-mode="core">CORE HUB</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ==========================================================================
+     ENGINE & GRAPHICS SCRIPT
+     ========================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // --- CONFIGURATION & CONSTANTS ---
+      const CONFIG = {
+        nodeCount: 750,
+        globeRadius: 210,
+        connectionDistance: 78,
+        fieldOfView: 600,
+        rotationFriction: 0.94,
+        autoRotateSpeed: 0.0015,
+        colors: {
+          cyan: { r: 0, g: 243, b: 255 },
+          gold: { r: 255, g: 200, b: 107 },
+          dim: { r: 40, g: 60, b: 90 }
+        }
+      };
+
+      // --- GLOBALS & STATE ---
+      const canvas = document.getElementById('globe-canvas');
+      const ctx = canvas.getContext('2d', { alpha: false });
+      
+      let width, height, dpr, centerX, centerY;
+      let nodes = [];
+      let connections = [];
+      let majorNodes = [];
+      let activeFilter = 'all';
+
+      // Interaction State
+      let isDragging = false;
+      let previousMousePosition = { x: 0, y: 0 };
+      let rotation = { x: 0.3, y: 0.8 };
+      let velocity = { x: 0, y: 0 };
+      let targetScale = 1.0;
+      let currentScale = 1.0;
+      let hoveredNode = null;
+      let selectedNode = null;
+
+      // UI Elements
+      const fpsDisplay = document.getElementById('fps-display');
+      const nodeCountDisplay = document.getElementById('node-count-display');
+      const hotspotLabel = document.getElementById('hotspot-label');
+      const nodePanel = document.getElementById('node-panel');
+      const presetBtns = document.querySelectorAll('.preset-btn');
+
+      // Frame Rate Counter
+      let frameCount = 0;
+      let lastFpsUpdate = performance.now();
+
+      // --- MAJOR HOTSPOT DATA GENERATOR ---
+      const HOTSPOT_NAMES = [
+        { name: "CYGNUS PRIME", tag: "PRIMARY HUB", sector: "SECTOR 01", type: "core" },
+        { name: "AURA RELAY 09", tag: "QUANTUM LINK", sector: "SECTOR 04", type: "relays" },
+        { name: "HELIOS NODE", tag: "SOLAR MATRIX", sector: "SECTOR 02", type: "core" },
+        { name: "ZEPHYR TOWER", tag: "ATMOS RELAY", sector: "SECTOR 08", type: "relays" },
+        { name: "VANGUARD-7", tag: "DEFENSE ARRAY", sector: "SECTOR 05", type: "core" },
+        { name: "KRONOS LINK", tag: "DEEP SPACE", sector: "SECTOR 12", type: "relays" },
+        { name: "NEXUS ALPHA", tag: "CENTRAL CORE", sector: "SECTOR 00", type: "core" },
+        { name: "ORION BEACON", tag: "NAV STATION", sector: "SECTOR 07", type: "relays" }
+      ];
+
+      // --- MATHEMATICAL HELPERS ---
+      function fibonacciSphere(samples) {
+        const points = [];
+        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
+
+        for (let i = 0; i < samples; i++) {
+          const y = 1 - (i / (samples - 1)) * 2; // y goes from 1 to -1
+          const radius = Math.sqrt(1 - y * y);
+          const theta = phi * i;
+
+          const x = Math.cos(theta) * radius;
+          const z = Math.sin(theta) * radius;
+
+          // Assign metadata
+          const isMajor = (i % Math.floor(samples / 8) === 0) && (i / Math.floor(samples / 8)) < HOTSPOT_NAMES.length;
+          const hotspotData = isMajor ? HOTSPOT_NAMES[Math.floor(i / Math.floor(samples / 8))] : null;
+
+          points.push({
+            x: x * CONFIG.globeRadius,
+            y: y * CONFIG.globeRadius,
+            z: z * CONFIG.globeRadius,
+            baseX: x * CONFIG.globeRadius,
+            baseY: y * CONFIG.globeRadius,
+            baseZ: z * CONFIG.globeRadius,
+            size: isMajor ? 3.5 : (Math.random() * 1.2 + 0.8),
+            isMajor: isMajor,
+            data: hotspotData,
+            pulseOffset: Math.random() * Math.PI * 2,
+            type: isMajor ? hotspotData.type : (Math.random() > 0.5 ? 'relays' : 'core'),
+            // Projected properties
+            px: 0, py: 0, pScale: 0, visible: true
+          });
+        }
+        return points;
+      }
+
+      // Pre-calculate topology connections
+      function buildConnections() {
+        connections = [];
+        const maxDistSq = CONFIG.connectionDistance * CONFIG.connectionDistance;
+
+        for (let i = 0; i < nodes.length; i++) {
+          // Check connections against subset for performance
+          for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i].baseX - nodes[j].baseX;
+            const dy = nodes[i].baseY - nodes[j].baseY;
+            const dz = nodes[i].baseZ - nodes[j].baseZ;
+            const distSq = dx*dx + dy*dy + dz*dz;
+
+            if (distSq < maxDistSq) {
+              connections.push({
+                a: nodes[i],
+                b: nodes[j],
+                distRatio: 1 - (Math.sqrt(distSq) / CONFIG.connectionDistance)
+              });
+            }
+          }
+        }
+      }
+
+      // --- INITIALIZATION ---
+      function init() {
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Generate sphere nodes & topology
+        nodes = fibonacciSphere(CONFIG.nodeCount);
+        majorNodes = nodes.filter(n => n.isMajor);
+        buildConnections();
+
+        nodeCountDisplay.textContent = nodes.length;
+
+        // Select initial hotspot
+        if (majorNodes.length > 0) {
+          selectNode(majorNodes[0]);
+        }
+
+        // Setup Interaction Listeners
+        setupInteraction();
+
+        // Start Animation Loop
+        requestAnimationFrame(render);
+      }
+
+      // Handle Resize & High DPI
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+
+        ctx.scale(dpr, dpr);
+        centerX = width / 2;
+        centerY = height / 2;
+      }
+
+      // --- INTERACTION SYSTEM ---
+      function setupInteraction() {
+        // Drag Handling
+        window.addEventListener('pointerdown', (e) => {
+          if (e.target.closest('.interactive')) return;
+          isDragging = true;
+          previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('pointermove', (e) => {
+          // Calculate hover state
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          checkHover(mouseX, mouseY);
+
+          if (!isDragging) return;
+
+          const deltaX = e.clientX - previousMousePosition.x;
+          const deltaY = e.clientY - previousMousePosition.y;
+
+          velocity.y = deltaX * 0.003;
+          velocity.x = deltaY * 0.003;
+
+          rotation.y += velocity.y;
+          rotation.x += velocity.x;
+
+          previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('pointerup', () => { isDragging = false; });
+        window.addEventListener('pointercancel', () => { isDragging = false; });
+
+        // Scroll Zoom
+        window.addEventListener('wheel', (e) => {
+          if (e.target.closest('.interactive')) return;
+          e.preventDefault();
+          targetScale += e.deltaY * -0.0008;
+          targetScale = Math.min(Math.max(targetScale, 0.65), 1.8);
+        }, { passive: false });
+
+        // Node Selection Click
+        canvas.addEventListener('click', () => {
+          if (hoveredNode && hoveredNode.isMajor) {
+            selectNode(hoveredNode);
+          }
+        });
+
+        // Filter Preset Toggles
+        presetBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            presetBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            activeFilter = e.target.dataset.mode;
+          });
+        });
+      }
+
+      function checkHover(mx, my) {
+        let closest = null;
+        let minPointerDist = 18; // Hover radius threshold
+
+        for (let i = 0; i < majorNodes.length; i++) {
+          const node = majorNodes[i];
+          if (!node.visible) continue;
+
+          const dx = mx - node.px;
+          const dy = my - node.py;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < minPointerDist) {
+            minPointerDist = dist;
+            closest = node;
+          }
+        }
+
+        hoveredNode = closest;
+
+        if (hoveredNode) {
+          canvas.style.cursor = 'pointer';
+          hotspotLabel.style.opacity = '1';
+          hotspotLabel.style.left = hoveredNode.px + 'px';
+          hotspotLabel.style.top = (hoveredNode.py - 12) + 'px';
+          hotspotLabel.textContent = hoveredNode.data.name;
+        } else {
+          canvas.style.cursor = isDragging ? 'grabbing' : 'grab';
+          hotspotLabel.style.opacity = '0';
+        }
+      }
+
+      function selectNode(node) {
+        selectedNode = node;
+        nodePanel.classList.add('active');
+
+        // Update Panel Telemetry
+        document.getElementById('panel-tag').textContent = node.data.tag;
+        document.getElementById('panel-id').textContent = `#${Math.floor(Math.random()*899+100)}-NODE`;
+        document.getElementById('panel-name').textContent = node.data.name;
+        document.getElementById('panel-sub').textContent = `${node.data.sector} • ACTIVE NODE`;
+        
+        // Randomize technical telemetry for dynamic feel
+        const lat = (Math.sin(node.baseY) * 90).toFixed(2);
+        const lon = (Math.atan2(node.baseX, node.baseZ) * (180/Math.PI)).toFixed(2);
+        const alt = Math.floor(800 + Math.random() * 600);
+        const ms = (8 + Math.random() * 12).toFixed(1);
+        const signal = (88 + Math.random() * 11.9).toFixed(1);
+
+        document.getElementById('telemetry-lat').textContent = `${Math.abs(lat)}° ${lat >= 0 ? 'N' : 'S'}`;
+        document.getElementById('telemetry-lon').textContent = `${Math.abs(lon)}° ${lon >= 0 ? 'E' : 'W'}`;
+        document.getElementById('telemetry-alt').textContent = `${alt} KM`;
+        document.getElementById('telemetry-ms').textContent = `${ms} MS`;
+        document.getElementById('signal-pct').textContent = `${signal}%`;
+        document.getElementById('signal-bar').style.width = `${signal}%`;
+      }
+
+      // --- 3D PROJECTION ENGINE ---
+      function transform3D(x, y, z, rotX, rotY, scale) {
+        // Rotate around Y-axis
+        const cosY = Math.cos(rotY);
+        const sinY = Math.sin(rotY);
+        const x1 = x * cosY + z * sinY;
+        const z1 = -x * sinY + z * cosY;
+
+        // Rotate around X-axis
+        const cosX = Math.cos(rotX);
+        const sinX = Math.sin(rotX);
+        const y2 = y * cosX - z1 * sinX;
+        const z2 = y * sinX + z1 * cosX;
+
+        // Apply scale & perspective projection
+        const scaledFov = CONFIG.fieldOfView * scale;
+        const perspective = scaledFov / (scaledFov + z2 + 300);
+
+        return {
+          x: x1 * perspective + centerX,
+          y: y2 * perspective + centerY,
+          scale: perspective,
+          z: z2
+        };
+      }
+
+      // --- RENDERING LOOP ---
+      function render(time) {
+        // Calculate FPS
+        frameCount++;
+        if (time - lastFpsUpdate >= 1000) {
+          fpsDisplay.textContent = frameCount;
+          frameCount = 0;
+          lastFpsUpdate = time;
+        }
+
+        // Smooth Physics Damping & Auto Rotation
+        if (!isDragging) {
+          rotation.y += CONFIG.autoRotateSpeed;
+          rotation.x += velocity.x;
+          rotation.y += velocity.y;
+
+          velocity.x *= CONFIG.rotationFriction;
+          velocity.y *= CONFIG.rotationFriction;
+        }
+
+        // Interpolate Zoom
+        currentScale += (targetScale - currentScale) * 0.08;
+
+        // Clear Canvas
+        ctx.fillStyle = '#05070c';
+        ctx.fillRect(0, 0, width, height);
+
+        // Render Atmosphere / Outer Glow Behind Globe
+        const glowRadius = CONFIG.globeRadius * currentScale * 1.4;
+        const bgGlow = ctx.createRadialGradient(centerX, centerY, glowRadius * 0.2, centerX, centerY, glowRadius);
+        bgGlow.addColorStop(0, 'rgba(0, 243, 255, 0.06)');
+        bgGlow.addColorStop(0.6, 'rgba(12, 28, 56, 0.03)');
+        bgGlow.addColorStop(1, 'rgba(5, 7, 12, 0)');
+        ctx.fillStyle = bgGlow;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Step 1: Project All Points
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          const proj = transform3D(node.baseX, node.baseY, node.baseZ, rotation.x, rotation.y, currentScale);
+
+          node.px = proj.x;
+          node.py = proj.y;
+          node.pScale = proj.scale;
+          node.z = proj.z;
+          // Culled if behind center threshold (backface fading)
+          node.visible = proj.z < 80;
+        }
+
+        // Step 2: Draw Constellation Connections
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < connections.length; i++) {
+          const conn = connections[i];
+          const na = conn.a;
+          const nb = conn.b;
+
+          // Filter evaluation
+          if (activeFilter !== 'all') {
+            if (na.type !== activeFilter && nb.type !== activeFilter) continue;
+          }
+
+          // Render line only if both nodes are relatively forward-facing
+          if (na.visible && nb.visible) {
+            const alpha = conn.distRatio * (1 - (na.z + 150) / 300) * 0.45;
+            if (alpha <= 0) continue;
+
+            const isGold = na.isMajor || nb.isMajor;
+            ctx.strokeStyle = isGold
+              ? `rgba(255, 200, 107, ${alpha * 0.8})`
+              : `rgba(0, 243, 255, ${alpha * 0.5})`;
+
+            ctx.beginPath();
+            ctx.moveTo(na.px, na.py);
+            ctx.lineTo(nb.px, nb.py);
+            ctx.stroke();
+          }
+        }
+
+        // Step 3: Draw Outer Orbit Rings
+        drawOrbitRings(time);
+
+        // Step 4: Render Nodes (Sorted by Z for depth-sorting)
+        // Sort copies for clean rendering sequence
+        const renderQueue = nodes.slice().sort((a, b) => b.z - a.z);
+
+        for (let i = 0; i < renderQueue.length; i++) {
+          const node = renderQueue[i];
+
+          // Filter mode check
+          if (activeFilter !== 'all' && node.type !== activeFilter && !node.isMajor) {
+            continue;
+          }
+
+          const depthAlpha = Math.max(0.1, Math.min(1, (180 - node.z) / 260));
+          const size = node.size * node.pScale;
+
+          if (node.isMajor) {
+            // Hotspot Node Rendering
+            const isSelected = selectedNode === node;
+            const isHovered = hoveredNode === node;
+            const pulse = Math.sin(time * 0.004 + node.pulseOffset) * 0.3 + 1;
+
+            // Outer Pulse Ring
+            ctx.strokeStyle = isSelected ? '#ffc86b' : '#00f3ff';
+            ctx.lineWidth = isSelected ? 1.5 : 1.0;
+            ctx.beginPath();
+            ctx.arc(node.px, node.py, (size * 3.5 + (isSelected ? 4 : 2)) * pulse, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Core Solid Node
+            ctx.fillStyle = isSelected ? '#ffc86b' : (isHovered ? '#ffffff' : '#00f3ff');
+            ctx.beginPath();
+            ctx.arc(node.px, node.py, size * (isSelected ? 1.4 : 1.0), 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glow Aura for Major Nodes
+            const glow = ctx.createRadialGradient(node.px, node.py, 0, node.px, node.py, size * 6);
+            glow.addColorStop(0, isSelected ? 'rgba(255, 200, 107, 0.6)' : 'rgba(0, 243, 255, 0.4)');
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(node.px, node.py, size * 6, 0, Math.PI * 2);
+            ctx.fill();
+
+          } else {
+            // Standard Background/Foreground Particle
+            if (!node.visible && node.z > 120) continue;
+
+            ctx.fillStyle = `rgba(${CONFIG.colors.cyan.r}, ${CONFIG.colors.cyan.g}, ${CONFIG.colors.cyan.b}, ${depthAlpha * 0.7})`;
+            ctx.beginPath();
+            ctx.arc(node.px, node.py, Math.max(0.6, size), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Update Position of Hover Label Frame
+        if (hoveredNode) {
+          hotspotLabel.style.left = hoveredNode.px + 'px';
+          hotspotLabel.style.top = (hoveredNode.py - 14) + 'px';
+        }
+
+        requestAnimationFrame(render);
+      }
+
+      // Draw Orbiting Rings
+      function drawOrbitRings(time) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        
+        // Tilted Equatorial Orbit Ring
+        const ringSegments = 64;
+        const ringRadius = CONFIG.globeRadius * 1.28;
+        
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.12)';
+        ctx.beginPath();
+
+        for (let i = 0; i <= ringSegments; i++) {
+          const theta = (i / ringSegments) * Math.PI * 2;
+          const rx = Math.cos(theta) * ringRadius;
+          const ry = Math.sin(theta) * ringRadius * 0.25; // Tilt axis
+          const rz = Math.sin(theta) * ringRadius * 0.8;
+
+          const proj = transform3D(rx, ry, rz, rotation.x, rotation.y, currentScale);
+          if (i === 0) ctx.moveTo(proj.x, proj.y);
+          else ctx.lineTo(proj.x, proj.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Orbiting Satellite Beacon on the Ring
+        const beaconAngle = time * 0.0008;
+        const bx = Math.cos(beaconAngle) * ringRadius;
+        const by = Math.sin(beaconAngle) * ringRadius * 0.25;
+        const bz = Math.sin(beaconAngle) * ringRadius * 0.8;
+        const bProj = transform3D(bx, by, bz, rotation.x, rotation.y, currentScale);
+
+        if (bProj.z < 100) {
+          ctx.fillStyle = '#ffc86b';
+          ctx.shadowColor = '#ffc86b';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(bProj.x, bProj.y, 2.5 * bProj.scale, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0; // Reset
+        }
+
+        ctx.restore();
+      }
+
+      // Boot Engine
+      window.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
