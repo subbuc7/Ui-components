@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA // Nexus File Ingestion Vault</title>
+  <style>
+    /* -------------------------------------------------------------------------- */
+    /* DESIGN SYSTEM & CORE VARIABLES                                            */
+    /* -------------------------------------------------------------------------- */
+    :root {
+      --bg-base: #04060a;
+      --bg-card: rgba(10, 16, 28, 0.65);
+      --bg-card-hover: rgba(14, 22, 38, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-color-active: rgba(0, 240, 255, 0.4);
+      
+      --accent-cyan: #00F0FF;
+      --accent-cyan-glow: rgba(0, 240, 255, 0.35);
+      --accent-gold: #E5C158;
+      --accent-gold-glow: rgba(229, 193, 88, 0.3);
+      --accent-emerald: #00FF9D;
+      
+      --text-main: #F1F5F9;
+      --text-muted: #64748B;
+      --text-dim: #475569;
+      
+      --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out-back: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* RESET & BASE STYLES                                                        */
+    /* -------------------------------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 24px;
+    }
+
+    /* Ambient Background Mesh */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .ambient-glow-1 {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.06) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: ambientPulse 12s infinite alternate ease-in-out;
+    }
+
+    .ambient-glow-2 {
+      position: absolute;
+      bottom: 15%;
+      right: 20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(229, 193, 88, 0.04) 0%, transparent 70%);
+      filter: blur(100px);
+      animation: ambientPulse 16s infinite alternate-reverse ease-in-out;
+    }
+
+    @keyframes ambientPulse {
+      0% { transform: scale(1) translate(0, 0); }
+      100% { transform: scale(1.15) translate(30px, -20px); }
+    }
+
+    /* Grid Overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* UI APP CONTAINER                                                           */
+    /* -------------------------------------------------------------------------- */
+    .app-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Executive Header Bar */
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .brand-logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    .vault-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 20px;
+      color: var(--accent-cyan);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .status-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 0.4; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* VAULT UPLOAD ZONE CARD                                                     */
+    /* -------------------------------------------------------------------------- */
+    .upload-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 36px 28px;
+      backdrop-filter: blur(24px);
+      box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s var(--ease-out-expo);
+      overflow: hidden;
+    }
+
+    /* Background Dynamic Glow Pill (Strict Layering Rule: z-index 1 behind foreground) */
+    .glow-pill {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 220px;
+      height: 220px;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: radial-gradient(circle, var(--accent-cyan-glow) 0%, var(--accent-gold-glow) 50%, transparent 75%);
+      filter: blur(40px);
+      opacity: 0;
+      z-index: 1;
+      pointer-events: none;
+      transition: opacity 0.6s ease, transform 0.6s var(--ease-out-expo);
+    }
+
+    .upload-card.drag-over .glow-pill {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.4);
+    }
+
+    .upload-card.uploading .glow-pill {
+      opacity: 0.7;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .upload-card.success .glow-pill {
+      background: radial-gradient(circle, rgba(0, 255, 157, 0.25) 0%, rgba(0, 240, 255, 0.1) 70%, transparent 100%);
+      opacity: 0.9;
+      transform: translate(-50%, -50%) scale(1.3);
+    }
+
+    /* SVG Canvas Overlay for Particle Physics FX */
+    #fxCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Drop Perimeter Container */
+    .drop-perimeter {
+      position: relative;
+      z-index: 2; /* Foreground layer over glow-pill */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      border-radius: 16px;
+      transition: all 0.4s var(--ease-out-expo);
+    }
+
+    /* SVG Animated Dashed Border Overlay */
+    .dashed-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .dashed-rect {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-width: 1.5;
+      stroke-dasharray: 8 8;
+      rx: 16;
+      ry: 16;
+      transition: stroke 0.4s ease, stroke-width 0.4s ease, stroke-dasharray 0.4s ease;
+    }
+
+    .upload-card.drag-over .dashed-rect {
+      stroke: var(--accent-cyan);
+      stroke-width: 2;
+      stroke-dasharray: 12 6;
+      animation: dashWalk 1s linear infinite;
+    }
+
+    @keyframes dashWalk {
+      to { stroke-dashoffset: -36px; }
+    }
+
+    /* Input File Element Hidden */
+    #fileInput {
+      display: none;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* INTERACTIVE STAGES (IDLE, UPLOADING, SUCCESS)                              */
+    /* -------------------------------------------------------------------------- */
+    .stage-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+      padding: 20px;
+      transition: opacity 0.4s ease, transform 0.4s var(--ease-out-expo);
+    }
+
+    /* State visibility toggles */
+    .upload-card[data-state="idle"] .stage-uploading,
+    .upload-card[data-state="idle"] .stage-success {
+      display: none;
+    }
+
+    .upload-card[data-state="uploading"] .stage-idle,
+    .upload-card[data-state="uploading"] .stage-success {
+      display: none;
+    }
+
+    .upload-card[data-state="success"] .stage-idle,
+    .upload-card[data-state="success"] .stage-uploading {
+      display: none;
+    }
+
+    /* --- STAGE: IDLE --- */
+    .icon-wrapper {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      color: var(--text-main);
+      transition: transform 0.4s var(--ease-out-expo), border-color 0.4s ease, background 0.4s ease;
+    }
+
+    .upload-card.drag-over .icon-wrapper {
+      transform: translateY(-6px) scale(1.1);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--accent-cyan);
+    }
+
+    .icon-wrapper svg {
+      width: 28px;
+      height: 28px;
+      transition: transform 0.4s ease;
+    }
+
+    .title-primary {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .title-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      max-width: 320px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .btn-browse {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 30px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .btn-browse:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .file-tags {
+      display: flex;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--text-dim);
+    }
+
+    /* --- STAGE: UPLOADING & CIRCULAR PROGRESS RING --- */
+    .progress-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    .progress-ring-track {
+      stroke: rgba(255, 255, 255, 0.06);
+      stroke-width: 6;
+      fill: transparent;
+    }
+
+    .progress-ring-indicator {
+      stroke: var(--accent-cyan);
+      stroke-width: 6;
+      stroke-linecap: round;
+      fill: transparent;
+      stroke-dasharray: 377; /* 2 * PI * r (r=60) */
+      stroke-dashoffset: 377;
+      transition: stroke-dashoffset 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      filter: drop-shadow(0 0 6px var(--accent-cyan-glow));
+    }
+
+    .progress-text-group {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .progress-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .file-uploading-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .uploading-filename {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .uploading-stats {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 12px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-cancel {
+      margin-top: 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .btn-cancel:hover {
+      color: #EF4444;
+    }
+
+    /* --- STAGE: SUCCESS RESOLUTION --- */
+    .success-icon-box {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(0, 255, 157, 0.1);
+      border: 1px solid rgba(0, 255, 157, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-emerald);
+      margin-bottom: 16px;
+      box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
+      animation: checkPop 0.5s var(--ease-in-out-back) forwards;
+    }
+
+    @keyframes checkPop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .check-path {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      animation: checkDraw 0.6s 0.2s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    @keyframes checkDraw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .asset-card-preview {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-align: left;
+      margin: 16px 0 24px 0;
+    }
+
+    .preview-thumbnail {
+      width: 54px;
+      height: 54px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .preview-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .preview-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preview-details {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .badge-success {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent-emerald);
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25 ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-action-primary {
+      background: var(--text-main);
+      color: var(--bg-base);
+      border: none;
+    }
+
+    .btn-action-primary:hover {
+      background: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-action-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-action-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* FOOTER STATUS                                                              */
+    /* -------------------------------------------------------------------------- */
+    .vault-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .security-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Backdrop Glows -->
+  <div class="ambient-bg">
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
+  <!-- Main Application Container -->
+  <div class="app-container">
+    
+    <!-- Top Executive Header -->
+    <header class="header-bar">
+      <div class="brand-title">
+        <span class="brand-logo-dot"></span>
+        <span>AURA // Asset Vault</span>
+      </div>
+      <div class="vault-status">
+        <div class="status-pill">
+          <span class="status-pulse"></span>
+          <span>SYSTEM READY</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Upload Zone Card Container -->
+    <main class="upload-card" id="uploadCard" data-state="idle">
+      
+      <!-- Glow Layer (z-index 1, behind content) -->
+      <div class="glow-pill"></div>
+
+      <!-- Particle FX Canvas (z-index 1) -->
+      <canvas id="fxCanvas"></canvas>
+
+      <!-- Drop Perimeter Container -->
+      <div class="drop-perimeter" id="dropZone">
+        
+        <!-- Animated Dashed Border Overlay -->
+        <svg class="dashed-frame">
+          <rect class="dashed-rect" x="0" y="0" width="100%" height="100%" />
+        </svg>
+
+        <!-- Hidden File Input -->
+        <input type="file" id="fileInput" accept="image/*,video/*,.pdf,.zip,.exr,.raw">
+
+        <!-- STAGE 1: IDLE STATE -->
+        <div class="stage-content stage-idle">
+          <div class="icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h2 class="title-primary">Drag and drop asset here</h2>
+          <p class="title-sub">High-bitrate video, RAW sequences, or 3D asset archives up to 5GB</p>
+          
+          <button class="btn-browse" onclick="document.getElementById('fileInput').click()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="16"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+            <span>Browse Machine</span>
+          </button>
+
+          <div class="file-tags">
+            <span class="tag">PRORES</span>
+            <span class="tag">EXR</span>
+            <span class="tag">RAW</span>
+            <span class="tag">PNG</span>
+            <span class="tag">ZIP</span>
+          </div>
+        </div>
+
+        <!-- STAGE 2: UPLOADING STATE (IN-FLIGHT INTERACTION) -->
+        <div class="stage-content stage-uploading">
+          <div class="progress-container">
+            <svg class="progress-ring" width="130" height="130">
+              <circle class="progress-ring-track" cx="65" cy="65" r="60" />
+              <circle class="progress-ring-indicator" id="progressRing" cx="65" cy="65" r="60" />
+            </svg>
+            <div class="progress-text-group">
+              <span class="progress-value" id="progressPercent">0%</span>
+              <span class="progress-label">Vaulting</span>
+            </div>
+          </div>
+
+          <div class="file-uploading-meta">
+            <div class="uploading-filename" id="uploadingFileName">studio_render_v01.exr</div>
+            <div class="uploading-stats">
+              <span class="stat-item" id="uploadedSize">0 MB</span>
+              <span>/</span>
+              <span class="stat-item" id="totalSize">0 MB</span>
+              <span>•</span>
+              <span class="stat-item" id="uploadSpeed" style="color: var(--accent-cyan);">0 MB/s</span>
+            </div>
+          </div>
+
+          <button class="btn-cancel" id="btnCancel">Cancel Ingestion</button>
+        </div>
+
+        <!-- STAGE 3: SUCCESS RESOLUTION -->
+        <div class="stage-content stage-success">
+          <div class="success-icon-box">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline class="check-path" points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+
+          <h2 class="title-primary">Ingestion Complete</h2>
+          <p class="title-sub" style="margin-bottom: 0;">Asset encrypted and synchronized to cluster node.</p>
+
+          <div class="asset-card-preview">
+            <div class="preview-thumbnail" id="previewContainer">
+              <!-- Dynamically populated thumbnail or fallback icon -->
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+            <div class="preview-info">
+              <div class="preview-name" id="successFileName">render_final.exr</div>
+              <div class="preview-details" id="successFileDetails">42.8 MB • AES-256 Verified</div>
+              <div class="badge-success">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Ready for distribution
+              </div>
+            </div>
+          </div>
+
+          <div class="action-group">
+            <button class="btn-action btn-action-secondary" id="btnReset">Upload Another</button>
+            <button class="btn-action btn-action-primary" id="btnCopyLink">Copy Vault URI</button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Security & Status Footer -->
+    <footer class="vault-footer">
+      <div class="security-tag">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span>End-to-End Encrypted Tunnel</span>
+      </div>
+      <div>Node: FRA-04 // 10 Gbps</div>
+    </footer>
+
+  </div>
+
+  <!-- ------------------------------------------------------------------------ -->
+  <!-- COMPONENT LOGIC & INTERACTION ENGINE                                     -->
+  <!-- ------------------------------------------------------------------------ -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Elements Configuration
+      const uploadCard = document.getElementById('uploadCard');
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+      const progressRing = document.getElementById('progressRing');
+      const progressPercent = document.getElementById('progressPercent');
+      const uploadingFileName = document.getElementById('uploadingFileName');
+      const uploadedSize = document.getElementById('uploadedSize');
+      const totalSize = document.getElementById('totalSize');
+      const uploadSpeed = document.getElementById('uploadSpeed');
+      const btnCancel = document.getElementById('btnCancel');
+      const btnReset = document.getElementById('btnReset');
+      const btnCopyLink = document.getElementById('btnCopyLink');
+      const previewContainer = document.getElementById('previewContainer');
+      const successFileName = document.getElementById('successFileName');
+      const successFileDetails = document.getElementById('successFileDetails');
+
+      // Circular Ring Calculations
+      const RING_RADIUS = 60;
+      const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ~376.99
+      progressRing.style.strokeDasharray = `${RING_CIRCUMFERENCE}`;
+      progressRing.style.strokeDashoffset = `${RING_CIRCUMFERENCE}`;
+
+      // Upload Simulation Variables
+      let uploadInterval = null;
+      let currentProgress = 0;
+      let activeFile = null;
+
+      // Canvas Micro-Particle System
+      const canvas = document.getElementById('fxCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let animationFrameId = null;
+
+      function resizeCanvas() {
+        canvas.width = uploadCard.clientWidth;
+        canvas.height = uploadCard.clientHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      class Particle {
+        constructor(x, y, color) {
+          this.x = x;
+          this.y = y;
+          this.color = color;
+          this.radius = Math.random() * 2.5 + 1;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 4 + 1.5;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.alpha = 1;
+          this.decay = Math.random() * 0.02 + 0.015;
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vx *= 0.96;
+          this.vy *= 0.96;
+          this.alpha -= this.decay;
+        }
+
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = Math.max(this.alpha, 0);
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.shadowColor = this.color;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function triggerBurst(x, y, colorCount = 35) {
+        const colors = ['#00F0FF', '#00FF9D', '#FFFFFF', '#E5C158'];
+        for (let i = 0; i < colorCount; i++) {
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          particles.push(new Particle(x, y, color));
+        }
+        if (!animationFrameId) {
+          animateParticles();
+        }
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles = particles.filter(p => p.alpha > 0);
+        
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+
+        if (particles.length > 0) {
+          animationFrameId = requestAnimationFrame(animateParticles);
+        } else {
+          animationFrameId = null;
+        }
+      }
+
+      // ----------------------------------------------------------------------
+      // DRAG & DROP EVENT HANDLERS
+      // ----------------------------------------------------------------------
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (uploadCard.getAttribute('data-state') === 'idle') {
+            uploadCard.classList.add('drag-over');
+          }
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadCard.classList.remove('drag-over');
+        }, false);
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && uploadCard.getAttribute('data-state') === 'idle') {
+          handleFileSelection(files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFileSelection(e.target.files[0]);
+        }
+      });
+
+      // ----------------------------------------------------------------------
+      // FILE HANDLING & STATE TRANSITIONS
+      // ----------------------------------------------------------------------
+      function handleFileSelection(file) {
+        activeFile = file;
+        uploadingFileName.textContent = file.name;
+        
+        const sizeInMB = (file.size / (1024 * 1024)).toFixed(1);
+        totalSize.textContent = `${sizeInMB > 0 ? sizeInMB : '0.8'} MB`;
+
+        // Switch State to Uploading
+        setCardState('uploading');
+        startUploadSimulation(parseFloat(sizeInMB) || 12.5);
+      }
+
+      function setCardState(state) {
+        uploadCard.setAttribute('data-state', state);
+      }
+
+      function setProgress(percent) {
+        currentProgress = percent;
+        const offset = RING_CIRCUMFERENCE - (percent / 100) * RING_CIRCUMFERENCE;
+        progressRing.style.strokeDashoffset = offset;
+        progressPercent.textContent = `${Math.round(percent)}%`;
+      }
+
+      function startUploadSimulation(fileMB) {
+        setProgress(0);
+        let currentMB = 0;
+        const startTime = Date.now();
+
+        uploadInterval = setInterval(() => {
+          // Realistic non-linear progress step calculation
+          const increment = Math.random() * 12 + 4;
+          currentProgress += increment;
+
+          if (currentProgress >= 100) {
+            currentProgress = 100;
+            setProgress(100);
+            clearInterval(uploadInterval);
+
+            // Transition to Success Stage after slight delay
+            setTimeout(() => {
+              completeUpload(fileMB);
+            }, 400);
+          } else {
+            setProgress(currentProgress);
+            
+            // Dynamic stats calculation
+            currentMB = ((currentProgress / 100) * fileMB).toFixed(1);
+            uploadedSize.textContent = `${currentMB} MB`;
+            
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const speed = (currentMB / (elapsedTime || 1)).toFixed(1);
+            uploadSpeed.textContent = `${Math.max(speed, 14.2)} MB/s`;
+          }
+        }, 180);
+      }
+
+      function completeUpload(fileMB) {
+        // Set Preview Card Data
+        successFileName.textContent = activeFile ? activeFile.name : 'rendered_asset.exr';
+        successFileDetails.textContent = `${fileMB || '42.8'} MB • AES-256 Encrypted`;
+
+        // Image Preview logic if target is image
+        if (activeFile && activeFile.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            previewContainer.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+          };
+          reader.readAsDataURL(activeFile);
+        } else {
+          // Default Ultra High-End Studio Icon Fallback
+          previewContainer.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${getComputedStyle(document.documentElement).getPropertyValue('--accent-cyan')}" stroke-width="1.8">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>`;
+        }
+
+        setCardState('success');
+
+        // Trigger Celebration Particle Physics Burst
+        const rect = uploadCard.getBoundingClientRect();
+        triggerBurst(rect.width / 2, 120, 45);
+      }
+
+      // ----------------------------------------------------------------------
+      // RESET & CANCEL ACTIONS
+      // ----------------------------------------------------------------------
+      btnCancel.addEventListener('click', () => {
+        clearInterval(uploadInterval);
+        setProgress(0);
+        setCardState('idle');
+        fileInput.value = '';
+      });
+
+      btnReset.addEventListener('click', () => {
+        fileInput.value = '';
+        activeFile = null;
+        setProgress(0);
+        setCardState('idle');
+      });
+
+      btnCopyLink.addEventListener('click', () => {
+        const originalText = btnCopyLink.innerText;
+        btnCopyLink.innerText = "URI Copied!";
+        btnCopyLink.style.borderColor = "var(--accent-emerald)";
+        btnCopyLink.style.color = "var(--accent-emerald)";
+        
+        // Trigger small particle pop
+        const rect = btnCopyLink.getBoundingClientRect();
+        const cardRect = uploadCard.getBoundingClientRect();
+        triggerBurst(rect.left - cardRect.left + rect.width / 2, rect.top - cardRect.top + rect.height / 2, 15);
+
+        setTimeout(() => {
+          btnCopyLink.innerText = originalText;
+          btnCopyLink.style.borderColor = "";
+          btnCopyLink.style.color = "";
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

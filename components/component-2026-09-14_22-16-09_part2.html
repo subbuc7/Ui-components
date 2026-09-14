@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHERIS - Ultra-Luxury Cybernetics & Interface Engine</title>
+    <style>
+        /* ==========================================================================
+           1. DESIGN SYSTEM & CORE VARIABLES
+           ========================================================================== */
+        :root {
+            --bg-deep: #04060a;
+            --bg-surface: rgba(12, 18, 28, 0.65);
+            --bg-surface-active: rgba(20, 30, 48, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-glow: rgba(0, 240, 255, 0.3);
+            
+            --gold-primary: #dfb15b;
+            --gold-glow: rgba(223, 177, 91, 0.4);
+            --cyan-primary: #00f2fe;
+            --cyan-glow: rgba(0, 242, 254, 0.35);
+            --emerald-primary: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.4);
+            --crimson-primary: #f43f5e;
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+            
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --radius-full: 9999px;
+            
+            --transition-fast: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --transition-bounce: 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(223, 177, 91, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(10, 15, 26, 1) 0%, var(--bg-deep) 100%);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 120px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient Noise Overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Glass Panel Base */
+        .glass-panel {
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--gold-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--gold-primary);
+        }
+
+        /* Utility Micro-Typography */
+        .mono-text {
+            font-family: var(--font-mono);
+            letter-spacing: -0.5px;
+        }
+
+        /* Page Layout Grid */
+        .dashboard-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .grid-3col { grid-template-columns: 1fr; }
+        }
+
+        /* ==========================================================================
+           2. COMPONENT 1: FLOATING DYNAMIC ISLAND DOCK & STEPPER
+           ========================================================================== */
+        .top-nav-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            z-index: 100;
+        }
+
+        .dynamic-island {
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-full);
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(0,242,254,0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .island-item {
+            position: relative;
+            z-index: 2;
+            padding: 8px 16px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .island-item.active {
+            color: #fff;
+        }
+
+        .island-item svg {
+            width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;
+        }
+
+        .island-pill-bg {
+            position: absolute;
+            top: 6px; bottom: 6px; left: 0; width: 0;
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(223, 177, 91, 0.25));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-full);
+            z-index: 1;
+            transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+        }
+
+        .liquid-dot {
+            width: 8px; height: 8px;
+            background: var(--cyan-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--cyan-primary);
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.6; }
+        }
+
+        /* Stepper Node Progress */
+        .stepper-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .step-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .step-node.active { color: var(--gold-primary); }
+        .step-node.completed { color: var(--emerald-primary); }
+
+        .step-circle {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--border-glass);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.02);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .step-node.active .step-circle {
+            border-color: var(--gold-primary);
+            color: var(--gold-primary);
+            box-shadow: 0 0 12px var(--gold-glow);
+        }
+
+        .step-node.active .step-circle::after {
+            content: ''; position: absolute; inset: -4px;
+            border: 1px dashed var(--gold-primary);
+            border-radius: 50%;
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .step-line {
+            width: 24px; height: 2px;
+            background: var(--border-glass);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-line-fill {
+            position: absolute; top:0; left:0; height:100%; width:0%;
+            background: var(--emerald-primary);
+            transition: width 0.4s ease;
+        }
+
+        /* ==========================================================================
+           3. COMPONENT 2: 3D AUTH PORTAL & PASSWORD ENTROPY & BIOMETRIC SCANNER
+           ========================================================================== */
+        .auth-perspective-container {
+            perspective: 1200px;
+        }
+
+        .auth-card-3d {
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        .auth-card-3d.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .auth-front, .auth-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            width: 100%;
+            padding: 32px;
+        }
+
+        .auth-back {
+            position: absolute;
+            top: 0; left: 0; height: 100%;
+            transform: rotateY(180deg);
+        }
+
+        /* Floating Label Laser Form Inputs */
+        .laser-input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .laser-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 16px 16px 12px 16px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .laser-label {
+            position: absolute;
+            left: 16px;
+            top: 14px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .laser-input:focus ~ .laser-label,
+        .laser-input:not(:placeholder-shown) ~ .laser-label {
+            top: 6px;
+            font-size: 0.68rem;
+            color: var(--cyan-primary);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .laser-border-line {
+            position: absolute;
+            bottom: 0; left: 50%; width: 0%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan-primary), transparent);
+            transition: all 0.4s ease;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px var(--cyan-primary);
+        }
+
+        .laser-input:focus ~ .laser-border-line {
+            width: 100%;
+        }
+
+        /* Entropy Cipher Bar */
+        .entropy-container {
+            margin-top: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .entropy-bars {
+            display: flex; gap: 4px; height: 4px; margin-top: 6px;
+        }
+
+        .entropy-segment {
+            flex: 1; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        /* Biometric Scanner Widget */
+        .biometric-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            border: 1px dashed rgba(255,255,255,0.15);
+            border-radius: var(--radius-md);
+            background: rgba(0,0,0,0.2);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .bio-fingerprint {
+            width: 64px; height: 64px;
+            stroke: var(--text-dim);
+            fill: none;
+            stroke-width: 1.5;
+            transition: all 0.3s;
+        }
+
+        .scanner-laser-line {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--cyan-primary);
+            box-shadow: 0 0 15px 2px var(--cyan-primary);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .biometric-box.scanning .scanner-laser-line {
+            opacity: 1;
+            animation: laser-sweep 1.5s ease-in-out infinite alternate;
+        }
+
+        .biometric-box.scanning .bio-fingerprint {
+            stroke: var(--cyan-primary);
+            filter: drop-shadow(0 0 8px var(--cyan-glow));
+        }
+
+        .biometric-box.unlocked {
+            border-color: var(--emerald-primary);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .biometric-box.unlocked .bio-fingerprint {
+            stroke: var(--emerald-primary);
+            filter: drop-shadow(0 0 10px var(--emerald-glow));
+        }
+
+        @keyframes laser-sweep {
+            0% { top: 10%; }
+            100% { top: 90%; }
+        }
+
+        /* OTP Grid System */
+        .otp-grid {
+            display: flex; gap: 8px; justify-content: space-between; margin: 16px 0;
+        }
+
+        .otp-input {
+            width: 44px; height: 52px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-sm);
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .otp-input:focus {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 12px var(--gold-glow);
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================================================
+           4. COMPONENT 3: MECHANICAL ROTARY DIAL & TACTILE SWITCHER
+           ========================================================================== */
+        .rotary-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .rotary-dial {
+            width: 180px; height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #1e293b, #090d16);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 15px 35px rgba(0,0,0,0.8),
+                inset 0 2px 4px rgba(255,255,255,0.15),
+                inset 0 -4px 8px rgba(0,0,0,0.9);
+            position: relative;
+            cursor: grab;
+            touch-action: none;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .rotary-dial:active { cursor: grabbing; }
+
+        .rotary-ring-ticks {
+            position: absolute; inset: -12px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .rotary-knob-indicator {
+            position: absolute;
+            top: 16px; width: 6px; height: 24px;
+            background: var(--gold-primary);
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--gold-primary);
+        }
+
+        .rotary-center-cap {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #0f172a 0%, #04060a 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        /* Tactile Segmented Tab Switcher */
+        .tactile-tabs {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            display: flex;
+            position: relative;
+            gap: 4px;
+        }
+
+        .tactile-tab {
+            flex: 1;
+            padding: 10px 16px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            z-index: 2;
+            transition: color 0.3s;
+        }
+
+        .tactile-tab.active { color: #fff; }
+
+        .tactile-pill {
+            position: absolute;
+            top: 4px; bottom: 4px; left: 4px; width: 33.33%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 100%);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: calc(var(--radius-md) - 4px);
+            z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Slide to Confirm Switch */
+        .slide-confirm-track {
+            width: 100%; height: 56px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-full);
+            position: relative;
+            overflow: hidden;
+            padding: 4px;
+            display: flex; align-items: center;
+        }
+
+        .slide-confirm-thumb {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, var(--gold-primary), #b8860b);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: grab;
+            position: absolute; left: 4px;
+            z-index: 3;
+            box-shadow: 0 0 15px var(--gold-glow);
+            transition: background 0.3s;
+        }
+
+        .slide-confirm-thumb:active { cursor: grabbing; }
+
+        .slide-confirm-text {
+            width: 100%; text-align: center;
+            font-size: 0.8rem; font-weight: 700;
+            letter-spacing: 1px; color: var(--text-muted);
+            z-index: 1; pointer-events: none;
+        }
+
+        .slide-progress-fill {
+            position: absolute; top:0; left:0; height:100%; width: 48px;
+            background: rgba(223, 177, 91, 0.15);
+            border-radius: var(--radius-full);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ==========================================================================
+           5. COMPONENT 4: MULTI-STAGE MORPHING BUTTON & CART SPARK BURST
+           ========================================================================== */
+        .morph-btn {
+            width: 100%; height: 52px;
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(0, 242, 254, 0.05));
+            border: 1px solid var(--cyan-primary);
+            border-radius: var(--radius-md);
+            color: var(--cyan-primary);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+        }
+
+        .morph-btn:hover {
+            background: var(--cyan-primary);
+            color: #000;
+            box-shadow: 0 0 25px var(--cyan-glow);
+        }
+
+        .morph-btn.processing {
+            width: 52px;
+            border-radius: 50%;
+            color: transparent;
+            margin: 0 auto;
+        }
+
+        .morph-btn.success {
+            width: 100%;
+            border-color: var(--emerald-primary);
+            background: var(--emerald-primary);
+            color: #000;
+        }
+
+        .spark-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+
+        /* Add to Cart Physical Drop Button */
+        .cart-btn {
+            width: 100%; height: 52px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: #fff; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            cursor: pointer; position: relative; overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .cart-btn:hover {
+            border-color: var(--gold-primary);
+            background: rgba(223, 177, 91, 0.08);
+        }
+
+        .cart-box-icon {
+            width: 18px; height: 18px; fill: none; stroke: var(--gold-primary); stroke-width: 2;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .cart-btn.animating .cart-box-icon {
+            animation: box-drop 0.8s forwards;
+        }
+
+        @keyframes box-drop {
+            0% { transform: translateY(-30px) scale(0.5); opacity: 0; }
+            50% { transform: translateY(0) scale(1.2); opacity: 1; }
+            75% { transform: translateY(-5px) scale(0.9); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        /* ==========================================================================
+           6. COMPONENT 5: 3D CYLINDRICAL DECK CAROUSEL
+           ========================================================================== */
+        .carousel-viewport {
+            height: 280px;
+            perspective: 1000px;
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        .carousel-deck {
+            width: 220px; height: 220px;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        .carousel-card {
+            position: absolute;
+            width: 200px; height: 220px;
+            left: 10px; top: 0;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-glass);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; justify-content: flex-end;
+            padding: 16px;
+            backface-visibility: hidden;
+        }
+
+        .carousel-card img {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            object-fit: cover; opacity: 0.5; z-index: 0;
+            transition: opacity 0.3s;
+        }
+
+        .carousel-card:hover img { opacity: 0.8; }
+
+        .carousel-card-content {
+            position: relative; z-index: 1;
+            background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 100%);
+            margin: -16px; padding: 16px;
+        }
+
+        /* ==========================================================================
+           7. COMPONENT 6: HOLOGRAPHIC 3D ASSET VAULT CARD
+           ========================================================================== */
+        .holo-card-container {
+            perspective: 1000px;
+        }
+
+        .holo-card {
+            width: 100%; height: 200px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+            border: 1px solid var(--border-glass);
+            position: relative;
+            overflow: hidden;
+            padding: 24px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        .holo-sheen {
+            position: absolute; inset: 0;
+            background: linear-gradient(
+                115deg,
+                transparent 20%,
+                rgba(0, 242, 254, 0.15) 40%,
+                rgba(223, 177, 91, 0.2) 60%,
+                transparent 80%
+            );
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            mix-blend-mode: color-dodge;
+        }
+
+        .holo-card:hover .holo-sheen { opacity: 1; }
+
+        .chip-icon {
+            width: 36px; height: 26px;
+            background: linear-gradient(135deg, #d4af37, #8a6d1c);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .chip-icon::after {
+            content: ''; position: absolute; inset: 4px;
+            border: 1px solid rgba(0,0,0,0.4);
+        }
+
+        /* ==========================================================================
+           8. COMPONENT 7: INTERACTIVE BENTO GRID WITH SPECULAR GLARE
+           ========================================================================== */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .bento-tile {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bento-glare {
+            position: absolute; inset: 0;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.06), transparent 40%);
+            pointer-events: none;
+        }
+
+        /* ==========================================================================
+           9. COMPONENT 8: DRAG & DROP FILE VAULT & PRICING MATRIX
+           ========================================================================== */
+        .drop-zone {
+            border: 2px dashed rgba(255,255,255,0.15);
+            border-radius: var(--radius-md);
+            padding: 32px 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--cyan-primary);
+            background: rgba(0, 242, 254, 0.05);
+            box-shadow: inset 0 0 20px rgba(0,242,254,0.1);
+        }
+
+        .progress-ring-svg {
+            width: 60px; height: 60px;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            stroke: var(--cyan-primary);
+            stroke-dasharray: 175;
+            stroke-dashoffset: 175;
+            transition: stroke-dashoffset 0.3s ease;
+        }
+
+        /* Pricing Matrix Tier Cards */
+        .pricing-toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 20px;
+        }
+
+        .switch-track {
+            width: 50px; height: 26px;
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--radius-full);
+            padding: 3px; cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .switch-track.active { background: var(--gold-primary); }
+
+        .switch-handle {
+            width: 20px; height: 20px;
+            background: #fff; border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .switch-track.active .switch-handle {
+            transform: translateX(24px);
+        }
+
+        .pricing-cards {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+        }
+
+        .price-card {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            transition: all 0.3s;
+        }
+
+        .price-card.featured {
+            border-color: var(--gold-primary);
+            background: rgba(223, 177, 91, 0.05);
+        }
+
+        /* ==========================================================================
+           10. COMPONENT 9: AUDIO TELEMETRY & ORBITAL FAB & TOASTS
+           ========================================================================== */
+        .eq-container {
+            display: flex; align-items: flex-end; gap: 4px; height: 40px; padding: 8px 0;
+        }
+
+        .eq-bar {
+            flex: 1; background: var(--cyan-primary); border-radius: 2px;
+            height: 20%; transition: height 0.1s ease;
+            box-shadow: 0 0 8px var(--cyan-glow);
+        }
+
+        /* Orbital Floating Action Button */
+        .orbital-fab-wrapper {
+            position: fixed; bottom: 32px; right: 32px; z-index: 500;
+        }
+
+        .fab-main-btn {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold-primary), #b8860b);
+            border: none; color: #000;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(223, 177, 91, 0.4);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .fab-main-btn:hover { transform: scale(1.1) rotate(45deg); }
+
+        .satellite-node {
+            position: absolute;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-glass);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            opacity: 0; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .orbital-fab-wrapper.active .satellite-node {
+            opacity: 1; pointer-events: auto;
+        }
+
+        /* Dynamic Satellite Positions */
+        .orbital-fab-wrapper.active .node-1 { transform: translate(-65px, -20px); }
+        .orbital-fab-wrapper.active .node-2 { transform: translate(-50px, -65px); }
+        .orbital-fab-wrapper.active .node-3 { transform: translate(-20px, -95px); }
+
+        /* Phone Auth Drawer */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 800; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .drawer-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .phone-drawer {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+            width: 100%; max-width: 500px;
+            background: rgba(10, 14, 23, 0.95);
+            border-top: 1px solid var(--border-glass);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            padding: 32px; z-index: 801;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .drawer-overlay.active .phone-drawer {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Floating Toast Container */
+        .toast-container {
+            position: fixed; top: 24px; right: 24px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .toast-banner {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-glass);
+            border-left: 4px solid var(--cyan-primary);
+            backdrop-filter: blur(16px);
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            min-width: 300px;
+            animation: toast-in 0.3s ease-out forwards;
+            position: relative; overflow: hidden;
+        }
+
+        @keyframes toast-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast-progress {
+            position: absolute; bottom: 0; left: 0; height: 2px;
+            background: var(--cyan-primary); width: 100%;
+            animation: toast-decay 4s linear forwards;
+        }
+
+        @keyframes toast-decay { to { width: 0%; } }
+
+        /* SVG Micro Icons Utility */
+        .icon-sm { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    </style>
+</head>
+<body>
+
+    <!-- TOAST NOTIFICATION SYSTEM CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- MAIN DASHBOARD ARCHITECTURE -->
+    <div class="dashboard-container">
+
+        <!-- TOP BAR: DYNAMIC ISLAND DOCK & BREADCRUMB STEPPER -->
+        <header class="glass-panel top-nav-bar">
+            <!-- Breadcrumb Stepper -->
+            <div class="stepper-container">
+                <div class="step-node completed" id="step1">
+                    <div class="step-circle">✓</div>
+                    <span>AUTH</span>
+                </div>
+                <div class="step-line"><div class="step-line-fill" style="width: 100%;"></div></div>
+                <div class="step-node active" id="step2">
+                    <div class="step-circle">2</div>
+                    <span>VAULT</span>
+                </div>
+                <div class="step-line"><div class="step-line-fill" id="line2"></div></div>
+                <div class="step-node" id="step3">
+                    <div class="step-circle">3</div>
+                    <span>TELEMETRY</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Island Floating Dock -->
+            <div class="dynamic-island" id="dynamicIsland">
+                <div class="island-pill-bg" id="islandPill"></div>
+                <div class="island-item active" onclick="switchIslandTab(this, 0)">
+                    <div class="liquid-dot"></div>
+                    <span>Overview</span>
+                </div>
+                <div class="island-item" onclick="switchIslandTab(this, 1)">
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span>Security</span>
+                </div>
+                <div class="island-item" onclick="switchIslandTab(this, 2)">
+                    <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+                    <span>Assets</span>
+                </div>
+            </div>
+
+            <div style="font-size: 0.8rem;" class="mono-text">
+                <span style="color: var(--text-dim);">SYS_STATUS:</span> <span style="color: var(--emerald-primary);">ONLINE</span>
+            </div>
+        </header>
+
+        <!-- MAIN 3-COLUMN CONTENT GRID -->
+        <main class="grid-3col">
+
+            <!-- ================= COLUMN 1: SECURITY & AUTHENTICATION ================= -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <!-- 3D Glassmorphic Auth Portal -->
+                <div class="glass-panel auth-perspective-container">
+                    <div class="auth-card-3d" id="authCard">
+                        <!-- LOGIN SIDE -->
+                        <div class="auth-front">
+                            <div class="section-header">
+                                <span class="section-title">Identity Gateway</span>
+                                <span style="font-size: 0.75rem; color: var(--gold-primary); cursor: pointer;" onclick="toggleAuthFlip()">Create Account →</span>
+                            </div>
+
+                            <form onsubmit="event.preventDefault(); triggerAuthProcess();">
+                                <div class="laser-input-group">
+                                    <input type="text" class="laser-input" placeholder=" " required id="loginUser">
+                                    <label class="laser-label">ACCESS IDENTITY (EMAIL)</label>
+                                    <div class="laser-border-line"></div>
+                                </div>
+
+                                <div class="laser-input-group">
+                                    <input type="password" class="laser-input" placeholder=" " required id="loginPass" oninput="calculateEntropy(this.value)">
+                                    <label class="laser-label">CIPHER KEY (PASSWORD)</label>
+                                    <div class="laser-border-line"></div>
+                                </div>
+
+                                <!-- Password Entropy Cipher Meter -->
+                                <div class="entropy-container">
+                                    <div style="display:flex; justify-between; font-size: 0.7rem;" class="mono-text">
+                                        <span style="color: var(--text-muted);">ENTROPY CIPHER:</span>
+                                        <span id="entropyBits" style="color: var(--cyan-primary);">0 BITS (NULL)</span>
+                                    </div>
+                                    <div class="entropy-bars">
+                                        <div class="entropy-segment" id="eBar1"></div>
+                                        <div class="entropy-segment" id="eBar2"></div>
+                                        <div class="entropy-segment" id="eBar3"></div>
+                                        <div class="entropy-segment" id="eBar4"></div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="morph-btn" id="loginSubmitBtn" style="margin-top: 20px;">
+                                    <span>INITIALIZE AUTHENTICATION</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- SIGNUP SIDE (Rotated 180deg) -->
+                        <div class="auth-back">
+                            <div class="section-header">
+                                <span class="section-title">Register Identity</span>
+                                <span style="font-size: 0.75rem; color: var(--cyan-primary); cursor: pointer;" onclick="toggleAuthFlip()">← Back to Login</span>
+                            </div>
+                            <div class="laser-input-group">
+                                <input type="text" class="laser-input" placeholder=" ">
+                                <label class="laser-label">FULL LEGAL NAME</label>
+                                <div class="laser-border-line"></div>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Verification method required.</div>
+                            <button class="morph-btn" onclick="openPhoneDrawer()">TRIGGER SMS PROTOCOL</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biometric Passkey Scanner -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <div class="section-header">
+                        <span class="section-title">Biometric Passkey</span>
+                        <span class="mono-text" style="font-size: 0.7rem; color: var(--text-dim);" id="bioStatus">READY</span>
+                    </div>
+
+                    <div class="biometric-box" id="bioScannerBox" onmousedown="startBioScan()" onmouseup="endBioScan()" onmouseleave="endBioScan()">
+                        <div class="scanner-laser-line"></div>
+                        <svg class="bio-fingerprint" viewBox="0 0 24 24">
+                            <path d="M12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-4c-3.3 0-6 2.7-6 6 0 2.2 1.2 4.1 3 5.2M12 3C6.5 3 2 7.5 2 13c0 3.7 2 7 5.1 8.8m9.8-17.6C15 3.4 13.5 3 12 3m6.9 4.8C20.2 9.2 21 11 21 13c0 3.7-2 7-5.1 8.8"/>
+                        </svg>
+                        <div style="font-size: 0.75rem; margin-top: 12px; color: var(--text-muted);" id="bioPrompt">PRESS & HOLD FINGERPRINT TO VERIFY</div>
+                    </div>
+                </div>
+
+                <!-- 6-Digit OTP Verification Grid -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <div class="section-header">
+                        <span class="section-title">6-Digit Security OTP</span>
+                        <span class="mono-text" style="font-size: 0.7rem; color: var(--gold-primary);" id="otpTimer">00:45</span>
+                    </div>
+
+                    <div class="otp-grid" id="otpGrid">
+                        <input type="text" maxlength="1" class="otp-input" oninput="handleOtpInput(this, 0)" onkeydown="handleOtpKey(event, 0)">
+                        <input type="text" maxlength="1" class="otp-input" oninput="handleOtpInput(this, 1)" onkeydown="handleOtpKey(event, 1)">
+                        <input type="text" maxlength="1" class="otp-input" oninput="handleOtpInput(this, 2)" onkeydown="handleOtpKey(event, 2)">
+                        <input type="text" maxlength="1" class="otp-input" oninput="handleOtpInput(this, 3)" onkeydown="handleOtpKey(event, 3)">
+                        <input type="text" maxlength="1" class="otp-input" oninput="handleOtpInput(this, 4)" onkeydown="handleOtpKey(event, 4)">
+                        <input type="text" maxlength="1" class="otp-input" oninput="handleOtpInput(this, 5)" onkeydown="handleOtpKey(event, 5)">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= COLUMN 2: HARDWARE CONTROLS & TACTILE INTERACTION ================= -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <!-- Mechanical High-Horology Rotary Dial & Slider -->
+                <div class="glass-panel rotary-container">
+                    <div class="section-header" style="width: 100%;">
+                        <span class="section-title">Horology Calibration Dial</span>
+                        <span class="mono-text" style="font-size: 0.85rem; color: var(--gold-primary);" id="dialAngleReadout">045°</span>
+                    </div>
+
+                    <div class="rotary-dial" id="rotaryDial">
+                        <div class="rotary-knob-indicator"></div>
+                        <div class="rotary-center-cap">
+                            <span style="font-size: 0.65rem; color: var(--text-dim);" class="mono-text">FREQ</span>
+                            <span style="font-size: 1rem; font-weight: 700; color: #fff;" class="mono-text" id="dialValueText">45.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tactile Segmented Tab Switcher & Slide-to-Confirm -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <div class="section-header">
+                        <span class="section-title">Tactile Mode Selector</span>
+                    </div>
+
+                    <!-- Tactile Segmented Switcher -->
+                    <div class="tactile-tabs" id="tactileTabs">
+                        <div class="tactile-pill" id="tactilePill"></div>
+                        <div class="tactile-tab active" onclick="setTactileTab(this, 0)">STANDARD</div>
+                        <div class="tactile-tab" onclick="setTactileTab(this, 1)">HYPERDRIVE</div>
+                        <div class="tactile-tab" onclick="setTactileTab(this, 2)">OVERCLOCK</div>
+                    </div>
+
+                    <div style="margin-top: 24px;">
+                        <div class="section-header">
+                            <span class="section-title">Actuator Lock</span>
+                        </div>
+
+                        <!-- Slide-to-Confirm Actuator Switch -->
+                        <div class="slide-confirm-track" id="slideTrack">
+                            <div class="slide-progress-fill" id="slideProgress"></div>
+                            <div class="slide-confirm-text">SLIDE TO CONFIRM LAUNCH</div>
+                            <div class="slide-confirm-thumb" id="slideThumb">
+                                <svg class="icon-sm" viewBox="0 0 24 24" style="stroke: #000;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Physical Add-To-Cart & Audio Equalizer Widget -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <div class="section-header">
+                        <span class="section-title">Physical Interaction Engine</span>
+                    </div>
+
+                    <button class="cart-btn" id="cartBtn" onclick="triggerCartDrop(event)">
+                        <canvas class="spark-canvas" id="sparkCanvas"></canvas>
+                        <svg class="cart-box-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        <span id="cartText">DISPATCH QUANTUM MODULE ($1,250)</span>
+                    </button>
+
+                    <!-- Audio Telemetry Equalizer -->
+                    <div style="margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);" class="mono-text">AUDIO TELEMETRY FREQ</span>
+                            <span style="font-size: 0.7rem; color: var(--cyan-primary);" class="mono-text">LIVE FEED</span>
+                        </div>
+                        <div class="eq-container" id="eqContainer">
+                            <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                            <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                            <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                            <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= COLUMN 3: VISUAL TELEMETRY & DATA SPACES ================= -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <!-- 3D Cylindrical Arc Deck Carousel -->
+                <div class="glass-panel" style="padding: 20px 0;">
+                    <div class="section-header" style="padding: 0 20px;">
+                        <span class="section-title">Architectural Vault Carousel</span>
+                        <span style="font-size: 0.7rem; color: var(--text-dim);" class="mono-text">DRAG TO ROTATE</span>
+                    </div>
+
+                    <div class="carousel-viewport" id="carouselViewport">
+                        <div class="carousel-deck" id="carouselDeck">
+                            <div class="carousel-card" style="transform: rotateY(0deg) translateZ(180px);">
+                                <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=400&q=80" alt="Arch 1">
+                                <div class="carousel-card-content">
+                                    <div style="font-weight: 700; font-size: 0.85rem;">NEO-TOKYO TOWER</div>
+                                    <div style="font-size: 0.7rem; color: var(--gold-primary);" class="mono-text">SECTOR 01</div>
+                                </div>
+                            </div>
+                            <div class="carousel-card" style="transform: rotateY(72deg) translateZ(180px);">
+                                <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=400&q=80" alt="Arch 2">
+                                <div class="carousel-card-content">
+                                    <div style="font-weight: 700; font-size: 0.85rem;">CYBER VILLA</div>
+                                    <div style="font-size: 0.7rem; color: var(--cyan-primary);" class="mono-text">SECTOR 02</div>
+                                </div>
+                            </div>
+                            <div class="carousel-card" style="transform: rotateY(144deg) translateZ(180px);">
+                                <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=400&q=80" alt="Arch 3">
+                                <div class="carousel-card-content">
+                                    <div style="font-weight: 700; font-size: 0.85rem;">ORBITAL COMPLEX</div>
+                                    <div style="font-size: 0.7rem; color: var(--emerald-primary);" class="mono-text">SECTOR 03</div>
+                                </div>
+                            </div>
+                            <div class="carousel-card" style="transform: rotateY(216deg) translateZ(180px);">
+                                <img src="https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=400&q=80" alt="Arch 4">
+                                <div class="carousel-card-content">
+                                    <div style="font-weight: 700; font-size: 0.85rem;">GLASS HORIZON</div>
+                                    <div style="font-size: 0.7rem; color: var(--gold-primary);" class="mono-text">SECTOR 04</div>
+                                </div>
+                            </div>
+                            <div class="carousel-card" style="transform: rotateY(288deg) translateZ(180px);">
+                                <img src="https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=400&q=80" alt="Arch 5">
+                                <div class="carousel-card-content">
+                                    <div style="font-weight: 700; font-size: 0.85rem;">AETHER VOID</div>
+                                    <div style="font-size: 0.7rem; color: var(--cyan-primary);" class="mono-text">SECTOR 05</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Holographic 3D Asset Vault Card -->
+                <div class="holo-card-container">
+                    <div class="holo-card" id="holoCard">
+                        <div class="holo-sheen" id="holoSheen"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-size: 0.65rem; color: var(--gold-primary);" class="mono-text">AETHERIS BLACK VAULT</div>
+                                <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: 1px;">PREMIUM ASSET</div>
+                            </div>
+                            <div class="chip-icon"></div>
+                        </div>
+
+                        <div style="font-size: 1.1rem; letter-spacing: 3px;" class="mono-text">
+                            4892 •••• •••• 1092
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div>
+                                <div style="font-size: 0.6rem; color: var(--text-dim);">HOLDER</div>
+                                <div style="font-size: 0.8rem; font-weight: 600;">VALERIAN DRAKE</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.6rem; color: var(--text-dim);">VALiDTIL</div>
+                                <div style="font-size: 0.8rem; font-weight: 600;" class="mono-text">12/28</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bento Feature Grid & Drag & Drop Upload Zone -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <div class="section-header">
+                        <span class="section-title">Encrypted Storage Vault</span>
+                    </div>
+
+                    <!-- Drag and Drop Zone -->
+                    <div class="drop-zone" id="dropZone">
+                        <svg class="progress-ring-svg" viewBox="0 0 60 60" style="position: absolute; top: calc(50% - 30px); left: calc(50% - 30px); opacity: 0;" id="dropRing">
+                            <circle class="progress-ring-circle" id="dropRingCircle" cx="30" cy="30" r="28" stroke-width="4" fill="none"/>
+                        </svg>
+                        <div id="dropContent">
+                            <svg class="icon-sm" viewBox="0 0 24 24" style="width:32px; height:32px; stroke: var(--cyan-primary); margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                            <div style="font-size: 0.85rem; font-weight: 600;">DRAG & DROP ASSETS HERE</div>
+                            <div style="font-size: 0.7rem; color: var(--text-dim);" class="mono-text">MAX PAYLOAD: 50MB (AES-256)</div>
+                        </div>
+                    </div>
+
+                    <!-- Bento Specular Tile Grid -->
+                    <div class="bento-grid" style="margin-top: 16px;">
+                        <div class="bento-tile">
+                            <div class="bento-glare"></div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">HASH RATE</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--gold-primary);" class="mono-text">142.8 TH/s</div>
+                        </div>
+                        <div class="bento-tile">
+                            <div class="bento-glare"></div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">LATENCY</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--emerald-primary);" class="mono-text">1.2ms</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing Matrix Cards with Toggle -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <div class="pricing-toggle-container">
+                        <span style="font-size: 0.8rem; font-weight: 600;">MONTHLY</span>
+                        <div class="switch-track" id="pricingSwitch" onclick="togglePricing(this)">
+                            <div class="switch-handle"></div>
+                        </div>
+                        <span style="font-size: 0.8rem; font-weight: 600;">ANNUAL <span style="color: var(--gold-primary); font-size: 0.7rem;">(-30%)</span></span>
+                    </div>
+
+                    <div class="pricing-cards">
+                        <div class="price-card">
+                            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">CORE</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; margin: 8px 0;" class="mono-text" id="priceCore">$49</div>
+                            <div style="font-size: 0.65rem; color: var(--text-dim);">PER MONTH</div>
+                        </div>
+                        <div class="price-card featured">
+                            <div style="font-size: 0.8rem; font-weight: 700; color: var(--gold-primary);">APEX</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; margin: 8px 0; color: var(--gold-primary);" class="mono-text" id="priceApex">$149</div>
+                            <div style="font-size: 0.65rem; color: var(--gold-primary);">PER MONTH</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- PHONE NUMBER AUTHENTICATION DRAWER -->
+    <div class="drawer-overlay" id="phoneDrawerOverlay" onclick="closePhoneDrawer(event)">
+        <div class="phone-drawer" onclick="event.stopPropagation()">
+            <div class="section-header">
+                <span class="section-title">SMS Cellular Gateway</span>
+                <span style="cursor: pointer; font-size: 1.2rem;" onclick="closePhoneDrawer()">✕</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">Enter mobile device telemetry to dispatch verification code.</p>
+            
+            <div class="laser-input-group">
+                <input type="tel" class="laser-input" placeholder=" " value="+1 (555) 019-2834">
+                <label class="laser-label">PHONE NUMBER</label>
+                <div class="laser-border-line"></div>
+            </div>
+
+            <button class="morph-btn" onclick="dispatchSmsCode()" style="margin-top: 10px;">
+                <span>DISPATCH ENCRYPTED CODE</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ORBITAL FLOATING ACTION BUTTON (FAB) -->
+    <div class="orbital-fab-wrapper" id="orbitalFab">
+        <div class="satellite-node node-1" onclick="showToast('Node 1 Activated', 'info')">⚡</div>
+        <div class="satellite-node node-2" onclick="showToast('Security Pulse Fired', 'success')">🛡️</div>
+        <div class="satellite-node node-3" onclick="showToast('Telemetry Synced', 'gold')">📡</div>
+        <button class="fab-main-btn" onclick="toggleOrbitalFab()">
+            <svg class="icon-sm" viewBox="0 0 24 24" style="stroke: #000; width: 24px; height: 24px;"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+    </div>
+
+    <!-- ==========================================================================
+       JAVASCRIPT LOGIC & SYNTHESIZER ENGINE
+       ========================================================================== -->
+    <script>
+        /* --------------------------------------------------------------------------
+           1. SYNTHETIC AUDIO ENGINE (Web Audio API Haptics)
+           -------------------------------------------------------------------------- */
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playClick(freq = 800, duration = 0.03) {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            playSuccess() {
+                try {
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(now + 0.25);
+                } catch(e) {}
+            }
+        };
+
+        /* --------------------------------------------------------------------------
+           2. TOAST NOTIFICATION SYSTEM
+           -------------------------------------------------------------------------- */
+        function showToast(message, type = 'info') {
+            AudioEngine.playClick(1000, 0.05);
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast-banner';
+            
+            let color = 'var(--cyan-primary)';
+            if(type === 'success') color = 'var(--emerald-primary)';
+            if(type === 'gold') color = 'var(--gold-primary)';
+
+            toast.style.borderLeftColor = color;
+
+            toast.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:8px; height:8px; border-radius:50%; background:${color};"></div>
+                    <span style="font-size:0.85rem; font-weight:600;">${message}</span>
+                </div>
+                <span style="cursor:pointer; color:var(--text-dim);" onclick="this.parentElement.remove()">✕</span>
+                <div class="toast-progress" style="background:${color};"></div>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                if(toast.parentElement) toast.remove();
+            }, 4000);
+        }
+
+        /* --------------------------------------------------------------------------
+           3. DYNAMIC ISLAND DOCK & STEPPER
+           -------------------------------------------------------------------------- */
+        function switchIslandTab(el, index) {
+            AudioEngine.playClick(600);
+            document.querySelectorAll('.island-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+
+            const pill = document.getElementById('islandPill');
+            pill.style.left = `${el.offsetLeft}px`;
+            pill.style.width = `${el.offsetWidth}px`;
+
+            // Update Breadcrumb Step Fill
+            const line2 = document.getElementById('line2');
+            const step3 = document.getElementById('step3');
+            if(index >= 1) {
+                line2.style.width = '100%';
+                step3.classList.add('active');
+            } else {
+                line2.style.width = '0%';
+                step3.classList.remove('active');
+            }
+        }
+
+        // Initialize Dynamic Island Pill Position
+        window.addEventListener('load', () => {
+            const activeTab = document.querySelector('.island-item.active');
+            if(activeTab) {
+                const pill = document.getElementById('islandPill');
+                pill.style.left = `${activeTab.offsetLeft}px`;
+                pill.style.width = `${activeTab.offsetWidth}px`;
+            }
+        });
+
+        /* --------------------------------------------------------------------------
+           4. 3D GLASSMORPHIC AUTH PORTAL & PASSWORD ENTROPY
+           -------------------------------------------------------------------------- */
+        function toggleAuthFlip() {
+            AudioEngine.playClick(500);
+            document.getElementById('authCard').classList.toggle('flipped');
+        }
+
+        function calculateEntropy(pass) {
+            let pool = 0;
+            if (/[a-z]/.test(pass)) pool += 26;
+            if (/[A-Z]/.test(pass)) pool += 26;
+            if (/[0-9]/.test(pass)) pool += 10;
+            if (/[^a-zA-Z0-9]/.test(pass)) pool += 32;
+
+            const bits = Math.floor(pass.length * (pool > 0 ? Math.log2(pool) : 0));
+            const text = document.getElementById('entropyBits');
+            text.innerText = `${bits} BITS (${bits < 28 ? 'WEAK' : bits < 60 ? 'MEDIUM' : 'STRONG'})`;
+
+            const bars = [document.getElementById('eBar1'), document.getElementById('eBar2'), document.getElementById('eBar3'), document.getElementById('eBar4')];
+            bars.forEach(b => b.style.background = 'rgba(255,255,255,0.1)');
+
+            if(bits > 0) bars[0].style.background = 'var(--crimson-primary)';
+            if(bits >= 28) bars[1].style.background = 'var(--gold-primary)';
+            if(bits >= 60) bars[2].style.background = 'var(--cyan-primary)';
+            if(bits >= 80) bars[3].style.background = 'var(--emerald-primary)';
+        }
+
+        function triggerAuthProcess() {
+            const btn = document.getElementById('loginSubmitBtn');
+            btn.classList.add('processing');
+            AudioEngine.playClick(700);
+
+            setTimeout(() => {
+                btn.classList.remove('processing');
+                btn.classList.add('success');
+                btn.innerHTML = '<span>AUTHENTICATED ✓</span>';
+                AudioEngine.playSuccess();
+                showToast('Identity Verified Successfully', 'success');
+
+                setTimeout(() => {
+                    btn.classList.remove('success');
+                    btn.innerHTML = '<span>INITIALIZE AUTHENTICATION</span>';
+                }, 3000);
+            }, 1800);
+        }
+
+        /* --------------------------------------------------------------------------
+           5. BIOMETRIC SCANNER
+           -------------------------------------------------------------------------- */
+        let bioTimer = null;
+        function startBioScan() {
+            const box = document.getElementById('bioScannerBox');
+            const status = document.getElementById('bioStatus');
+            const prompt = document.getElementById('bioPrompt');
+            box.classList.add('scanning');
+            status.innerText = 'SCANNING...';
+            status.style.color = 'var(--cyan-primary)';
+            AudioEngine.playClick(400);
+
+            bioTimer = setTimeout(() => {
+                box.classList.remove('scanning');
+                box.classList.add('unlocked');
+                status.innerText = 'GRANTED';
+                status.style.color = 'var(--emerald-primary)';
+                prompt.innerText = 'PASSKEY ACCESS UNLOCKED';
+                AudioEngine.playSuccess();
+                showToast('Biometric Match Confirmed', 'success');
+            }, 1500);
+        }
+
+        function endBioScan() {
+            if(bioTimer) clearTimeout(bioTimer);
+            const box = document.getElementById('bioScannerBox');
+            if(!box.classList.contains('unlocked')) {
+                box.classList.remove('scanning');
+                document.getElementById('bioStatus').innerText = 'READY';
+                document.getElementById('bioStatus').style.color = 'var(--text-dim)';
+            }
+        }
+
+        /* --------------------------------------------------------------------------
+           6. 6-DIGIT OTP VERIFICATION GRID
+           -------------------------------------------------------------------------- */
+        function handleOtpInput(el, index) {
+            AudioEngine.playClick(900);
+            if(el.value.length === 1 && index < 5) {
+                const next = document.querySelectorAll('.otp-input')[index + 1];
+                next.focus();
+            }
+            // Check if full OTP is filled
+            const inputs = Array.from(document.querySelectorAll('.otp-input'));
+            const code = inputs.map(i => i.value).join('');
+            if(code.length === 6) {
+                AudioEngine.playSuccess();
+                showToast(`OTP Code ${code} Verified`, 'success');
+            }
+        }
+
+        function handleOtpKey(e, index) {
+            if(e.key === 'Backspace' && !e.target.value && index > 0) {
+                const prev = document.querySelectorAll('.otp-input')[index - 1];
+                prev.focus();
+            }
+        }
+
+        /* --------------------------------------------------------------------------
+           7. MECHANICAL HIGH-HOROLOGY ROTARY DIAL
+           -------------------------------------------------------------------------- */
+        const dial = document.getElementById('rotaryDial');
+        let isDraggingDial = false;
+        let dialAngle = 45;
+
+        function updateDialRotation(e) {
+            const rect = dial.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const x = (e.clientX || e.touches[0].clientX) - centerX;
+            const y = (e.clientY || e.touches[0].clientY) - centerY;
+            
+            let deg = Math.atan2(y, x) * (180 / Math.PI) + 90;
+            if (deg < 0) deg += 360;
+
+            dialAngle = Math.round(deg);
+            dial.style.transform = `rotate(${dialAngle}deg)`;
+            document.getElementById('dialAngleReadout').innerText = `${String(dialAngle).padStart(3, '0')}°`;
+            document.getElementById('dialValueText').innerText = (dialAngle / 3.6).toFixed(1);
+
+            if(dialAngle % 15 === 0) AudioEngine.playClick(1200, 0.01);
+        }
+
+        dial.addEventListener('pointerdown', (e) => {
+            isDraggingDial = true;
+            dial.setPointerCapture(e.pointerId);
+            updateDialRotation(e);
+        });
+
+        dial.addEventListener('pointermove', (e) => {
+            if(isDraggingDial) updateDialRotation(e);
+        });
+
+        dial.addEventListener('pointerup', (e) => {
+            isDraggingDial = false;
+            dial.releasePointerCapture(e.pointerId);
+        });
+
+        /* --------------------------------------------------------------------------
+           8. TACTILE SEGMENTED TAB SWITCHER & SLIDE ACTUATOR
+           -------------------------------------------------------------------------- */
+        function setTactileTab(el, index) {
+            AudioEngine.playClick(700);
+            document.querySelectorAll('.tactile-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            const pill = document.getElementById('tactilePill');
+            pill.style.transform = `translateX(${index * 100}%)`;
+        }
+
+        // Slide-to-Confirm Physics
+        const slideThumb = document.getElementById('slideThumb');
+        const slideTrack = document.getElementById('slideTrack');
+        const slideProgress = document.getElementById('slideProgress');
+        let isSliding = false;
+
+        slideThumb.addEventListener('pointerdown', (e) => {
+            isSliding = true;
+            slideThumb.setPointerCapture(e.pointerId);
+        });
+
+        slideThumb.addEventListener('pointermove', (e) => {
+            if(!isSliding) return;
+            const rect = slideTrack.getBoundingClientRect();
+            let offsetX = (e.clientX || e.touches[0].clientX) - rect.left - 24;
+            const maxTrack = rect.width - 56;
+
+            if(offsetX < 4) offsetX = 4;
+            if(offsetX > maxTrack) offsetX = maxTrack;
+
+            slideThumb.style.left = `${offsetX}px`;
+            slideProgress.style.width = `${offsetX + 24}px`;
+
+            if(offsetX >= maxTrack) {
+                isSliding = false;
+                slideThumb.releasePointerCapture(e.pointerId);
+                AudioEngine.playSuccess();
+                showToast('Actuator Lock Engaged!', 'gold');
+                slideThumb.style.background = 'var(--emerald-primary)';
+            }
+        });
+
+        slideThumb.addEventListener('pointerup', (e) => {
+            if(!isSliding) return;
+            isSliding = false;
+            const rect = slideTrack.getBoundingClientRect();
+            const currentLeft = parseFloat(slideThumb.style.left) || 4;
+            if(currentLeft < rect.width - 60) {
+                slideThumb.style.transition = 'left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                slideProgress.style.transition = 'width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                slideThumb.style.left = '4px';
+                slideProgress.style.width = '48px';
+                setTimeout(() => {
+                    slideThumb.style.transition = '';
+                    slideProgress.style.transition = '';
+                }, 300);
+            }
+        });
+
+        /* --------------------------------------------------------------------------
+           9. PHYSICAL ADD-TO-CART & SPARK CANVAS
+           -------------------------------------------------------------------------- */
+        function triggerCartDrop(e) {
+            AudioEngine.playClick(500);
+            const btn = document.getElementById('cartBtn');
+            btn.classList.add('animating');
+
+            // Spawn Spark Particles on Canvas
+            const canvas = document.getElementById('sparkCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = btn.offsetWidth;
+            canvas.height = btn.offsetHeight;
+
+            let particles = [];
+            for(let i = 0; i < 30; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    alpha: 1,
+                    size: Math.random() * 3 + 1
+                });
+            }
+
+            function drawSparks() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, index) => {
+                    p.x += p.vx; p.y += p.vy;
+                    p.alpha -= 0.03;
+                    ctx.fillStyle = `rgba(223, 177, 91, ${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    if(p.alpha <= 0) particles.splice(index, 1);
+                });
+                if(particles.length > 0) requestAnimationFrame(drawSparks);
+            }
+            drawSparks();
+
+            setTimeout(() => {
+                btn.classList.remove('animating');
+                AudioEngine.playSuccess();
+                showToast('Quantum Module Dispatched to Cart', 'success');
+            }, 800);
+        }
+
+        /* --------------------------------------------------------------------------
+           10. 3D CYLINDRICAL DECK CAROUSEL DRAG PHYSICS
+           -------------------------------------------------------------------------- */
+        const carouselViewport = document.getElementById('carouselViewport');
+        const carouselDeck = document.getElementById('carouselDeck');
+        let deckAngle = 0;
+        let isDraggingDeck = false;
+        let startX = 0;
+
+        carouselViewport.addEventListener('pointerdown', (e) => {
+            isDraggingDeck = true;
+            startX = e.clientX;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if(!isDraggingDeck) return;
+            const deltaX = e.clientX - startX;
+            deckAngle += deltaX * 0.4;
+            carouselDeck.style.transform = `rotateY(${deckAngle}deg)`;
+            startX = e.clientX;
+        });
+
+        window.addEventListener('pointerup', () => { isDraggingDeck = false; });
+
+        /* --------------------------------------------------------------------------
+           11. HOLOGRAPHIC 3D ASSET VAULT CARD TILT & BENTO GLARE
+           -------------------------------------------------------------------------- */
+        const holoCard = document.getElementById('holoCard');
+        holoCard.addEventListener('mousemove', (e) => {
+            const rect = holoCard.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+
+            holoCard.style.transform = `rotateY(${x * 0.08}deg) rotateX(${-y * 0.08}deg)`;
+            const sheen = document.getElementById('holoSheen');
+            sheen.style.backgroundPosition = `${x * 2}px ${y * 2}px`;
+        });
+
+        holoCard.addEventListener('mouseleave', () => {
+            holoCard.style.transform = 'rotateY(0deg) rotateX(0deg)';
+        });
+
+        // Bento Mouse Specular Glare
+        document.querySelectorAll('.bento-tile').forEach(tile => {
+            tile.addEventListener('mousemove', (e) => {
+                const rect = tile.getBoundingClientRect();
+                tile.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                tile.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+            });
+        });
+
+        /* --------------------------------------------------------------------------
+           12. DRAG & DROP FILE VAULT
+           -------------------------------------------------------------------------- */
+        const dropZone = document.getElementById('dropZone');
+        const dropRing = document.getElementById('dropRing');
+        const dropRingCircle = document.getElementById('dropRingCircle');
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            AudioEngine.playClick(600);
+            dropRing.style.opacity = '1';
+            let offset = 175;
+            const interval = setInterval(() => {
+                offset -= 10;
+                dropRingCircle.style.strokeDashoffset = offset;
+                if(offset <= 0) {
+                    clearInterval(interval);
+                    AudioEngine.playSuccess();
+                    showToast('Encrypted Payload Stored in Vault', 'cyan');
+                    dropRing.style.opacity = '0';
+                    dropRingCircle.style.strokeDashoffset = 175;
+                }
+            }, 30);
+        });
+
+        /* --------------------------------------------------------------------------
+           13. PRICING MATRIX DISCOUNT TOGGLE
+           -------------------------------------------------------------------------- */
+        function togglePricing(el) {
+            AudioEngine.playClick(700);
+            el.classList.toggle('active');
+            const isAnnual = el.classList.contains('active');
+
+            const core = document.getElementById('priceCore');
+            const apex = document.getElementById('priceApex');
+
+            if(isAnnual) {
+                core.innerText = '$34';
+                apex.innerText = '$104';
+                showToast('Annual Discount Applied (-30%)', 'gold');
+            } else {
+                core.innerText = '$49';
+                apex.innerText = '$149';
+            }
+        }
+
+        /* --------------------------------------------------------------------------
+           14. AUDIO EQUALIZER SIMULATOR
+           -------------------------------------------------------------------------- */
+        setInterval(() => {
+            document.querySelectorAll('.eq-bar').forEach(bar => {
+                const randomHeight = Math.floor(Math.random() * 85) + 15;
+                bar.style.height = `${randomHeight}%`;
+            });
+        }, 150);
+
+        /* --------------------------------------------------------------------------
+           15. PHONE AUTH DRAWER & ORBITAL FAB
+           -------------------------------------------------------------------------- */
+        function openPhoneDrawer() {
+            AudioEngine.playClick(600);
+            document.getElementById('phoneDrawerOverlay').classList.add('active');
+        }
+
+        function closePhoneDrawer() {
+            document.getElementById('phoneDrawerOverlay').classList.remove('active');
+        }
+
+        function dispatchSmsCode() {
+            closePhoneDrawer();
+            AudioEngine.playSuccess();
+            showToast('Encrypted SMS Dispatched to Device', 'success');
+        }
+
+        function toggleOrbitalFab() {
+            AudioEngine.playClick(800);
+            document.getElementById('orbitalFab').classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
