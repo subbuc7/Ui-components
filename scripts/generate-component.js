@@ -8,7 +8,7 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Complete Master Library of 20 Practical & Cinematic UI Components
+// Master Library of 20 Practical & Cinematic UI Components
 const COMPONENT_LIBRARY = [
   // 1. Navigation & Flow
   "Floating dynamic island dock with magnetic icon pull and liquid indicator",
@@ -109,9 +109,17 @@ async function runBatch() {
   const time = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0') + "-" + String(now.getSeconds()).padStart(2, '0');
   const timeStr = `${date}_${time}`;
 
-  // Pick 2 random, distinct categories from the 20 components
+  // Shuffle and pick 2 distinct categories
   const shuffled = [...COMPONENT_LIBRARY].sort(() => 0.5 - Math.random());
+
+  // 1. Generate Part 1
   await generateSingle(shuffled[0], 1, timeStr);
+
+  // 2. Pause 15 seconds to stay safely within Google API rate limits
+  console.log("Waiting 15 seconds to prevent rate limits before part 2...");
+  await new Promise(resolve => setTimeout(resolve, 15000));
+
+  // 3. Generate Part 2
   await generateSingle(shuffled, 2, timeStr);
 }
 
