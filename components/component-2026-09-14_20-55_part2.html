@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHER // Cinematic 3D Interface System</title>
+  <style>
+    /* ==========================================================================
+       RESET & CORE THEME SYSTEM
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg-void: #05070c;
+      --bg-surface: rgba(13, 18, 28, 0.65);
+      --bg-card: rgba(18, 24, 38, 0.45);
+      --accent-cyan: #00f3ff;
+      --accent-cyan-glow: rgba(0, 243, 255, 0.35);
+      --accent-gold: #e6c687;
+      --accent-gold-glow: rgba(230, 198, 135, 0.3);
+      --text-main: #f0f4f8;
+      --text-muted: #7a8b9e;
+      --text-dim: #414d5c;
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-border-light: rgba(255, 255, 255, 0.18);
+      --glass-shine: rgba(255, 255, 255, 0.12);
+      --font-stack: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+    }
+
+    html {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(0, 243, 255, 0.03) 0%, transparent 45%),
+        radial-gradient(circle at 85% 70%, rgba(230, 198, 135, 0.025) 0%, transparent 50%),
+        var(--bg-void);
+      perspective: 1200px;
+      padding-bottom: 120px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-void); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+    /* Utility Micro-Typography */
+    .micro-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .micro-label::before {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      background-color: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-top: 6px;
+    }
+    .section-title span {
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Layout Wrapper */
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 30px;
+    }
+
+    /* Header */
+    header {
+      padding: 40px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      margin-bottom: 60px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--accent-cyan);
+      transform: rotate(45deg);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 12px var(--accent-cyan-glow);
+    }
+    .brand-icon::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: var(--accent-cyan);
+    }
+    .sys-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+    .status-pill {
+      padding: 4px 12px;
+      background: rgba(0, 243, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      border-radius: 20px;
+      color: var(--accent-cyan);
+    }
+
+    /* Section Component Containers */
+    .component-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 60px;
+      margin-bottom: 90px;
+    }
+    @media (min-width: 992px) {
+      .component-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+      }
+    }
+
+    .card-shell {
+      background: var(--bg-surface);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 35px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ==========================================================================
+       1. 3D MAGNETIC FLOATING HALO CTA BUTTON
+       ========================================================================== */
+    .halo-btn-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      position: relative;
+    }
+
+    .magnetic-area {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .halo-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s, box-shadow 0.4s;
+    }
+
+    .halo-ring-1 {
+      width: 220px;
+      height: 220px;
+      border: 1px dashed rgba(0, 243, 255, 0.25);
+      animation: spinClockwise 25s linear infinite;
+    }
+
+    .halo-ring-2 {
+      width: 180px;
+      height: 180px;
+      border: 1px solid rgba(230, 198, 135, 0.2);
+      animation: spinCounter 18s linear infinite;
+    }
+
+    .halo-ring-3 {
+      width: 140px;
+      height: 140px;
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      box-shadow: 0 0 15px var(--accent-cyan-glow);
+    }
+
+    .magnetic-core-btn {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1a2638, #090e17);
+      border: 1px solid var(--glass-border-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255,255,255,0.2);
+      transition: transform 0.15s ease-out, box-shadow 0.3s, border-color 0.3s;
+      transform-style: preserve-3d;
+      z-index: 10;
+    }
+
+    .magnetic-core-btn span {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      transform: translateZ(15px);
+      text-shadow: 0 0 8px rgba(255,255,255,0.5);
+    }
+
+    .magnetic-core-btn .sub-text {
+      font-size: 0.55rem;
+      color: var(--accent-gold);
+      margin-top: 2px;
+      letter-spacing: 0.1em;
+      transform: translateZ(10px);
+    }
+
+    .magnetic-area:hover .halo-ring-3 {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 30px var(--accent-cyan);
+      scale: 1.08;
+    }
+
+    .magnetic-area:hover .magnetic-core-btn {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 20px 45px rgba(0, 243, 255, 0.3), inset 0 2px 6px rgba(255,255,255,0.4);
+    }
+
+    @keyframes spinClockwise { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes spinCounter { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+
+
+    /* ==========================================================================
+       2. CINEMATIC LIQUID GRADIENT CARD WITH GLASS REFRACTION
+       ========================================================================== */
+    .liquid-card-container {
+      position: relative;
+      height: 380px;
+      border-radius: 20px;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+
+    .liquid-bg-layer {
+      position: absolute;
+      inset: -50%;
+      background: radial-gradient(circle at 50% 50%, #00f3ff 0%, #7928ca 35%, #000 70%);
+      filter: blur(50px);
+      opacity: 0.45;
+      animation: liquidMorph 12s ease-in-out infinite alternate;
+      transition: opacity 0.5s;
+    }
+
+    @keyframes liquidMorph {
+      0% { transform: translate(-10%, -10%) rotate(0deg) scale(1); }
+      50% { transform: translate(10%, 15%) rotate(180deg) scale(1.2); }
+      100% { transform: translate(-5%, -15%) rotate(360deg) scale(0.9); }
+    }
+
+    .liquid-glass-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.01) 100%);
+      backdrop-filter: blur(24px) saturate(190%);
+      border: 1px solid var(--glass-border-light);
+      border-radius: 20px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-style: preserve-3d;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.3);
+    }
+
+    .liquid-card-content {
+      transform: translateZ(40px);
+      transition: transform 0.3s ease-out;
+    }
+
+    .liquid-card-content h3 {
+      font-size: 2rem;
+      font-weight: 300;
+      line-height: 1.1;
+      margin-top: 10px;
+    }
+    .liquid-card-content h3 strong {
+      font-weight: 800;
+      color: #fff;
+      display: block;
+    }
+
+    .liquid-card-footer {
+      transform: translateZ(30px);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .refraction-badge {
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border-light);
+      border-radius: 30px;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      color: var(--accent-gold);
+    }
+
+    /* ==========================================================================
+       3. INTERACTIVE BENTO FEATURE CARD WITH SPECULAR GLOW
+       ========================================================================== */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 768px) {
+      .bento-grid {
+        grid-template-columns: 1.6fr 1fr;
+      }
+    }
+
+    .bento-card {
+      position: relative;
+      background: rgba(12, 16, 26, 0.7);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 30px;
+      overflow: hidden;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: border-color 0.3s;
+    }
+
+    .bento-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.08), transparent 40%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .bento-card-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.25;
+      filter: saturate(0.5) contrast(1.2);
+      transition: opacity 0.4s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bento-card:hover .bento-card-img {
+      opacity: 0.45;
+      transform: scale(1.05);
+    }
+
+    .bento-content {
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 220px;
+    }
+
+    .bento-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 8px;
+    }
+
+    .specular-border {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 1px;
+      background: radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--accent-cyan), transparent 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .bento-card:hover .specular-border {
+      opacity: 1;
+    }
+
+    /* ==========================================================================
+       4. 3D CYLINDRICAL ARC CAROUSEL WITH INERTIA
+       ========================================================================== */
+    .carousel-stage-shell {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+    .carousel-stage-shell:active { cursor: grabbing; }
+
+    .carousel-3d-viewport {
+      width: 100%;
+      height: 100%;
+      perspective: 1000px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .carousel-cylinder {
+      position: relative;
+      width: 280px;
+      height: 360px;
+      transform-style: preserve-3d;
+    }
+
+    .carousel-card {
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      background: rgba(15, 20, 32, 0.85);
+      border: 1px solid var(--glass-border-light);
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      backface-visibility: hidden;
+      transition: filter 0.3s, border-color 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .carousel-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+
+    .carousel-card-body {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(180deg, rgba(15, 20, 32, 0.9) 0%, rgba(8, 11, 18, 0.95) 100%);
+    }
+
+    .carousel-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .spotlight-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.15) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .carousel-card.active-spotlight .spotlight-overlay {
+      opacity: 1;
+    }
+
+    .carousel-card.active-spotlight {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.25);
+    }
+
+    /* Carousel Instructions */
+    .drag-hint {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      pointer-events: none;
+      background: rgba(5, 7, 12, 0.8);
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+    }
+
+    /* ==========================================================================
+       5. INTERACTIVE 3D PARTICLE CONSTELLATION GLOBE
+       ========================================================================== */
+    .globe-stage {
+      position: relative;
+      height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+    .globe-stage:active { cursor: grabbing; }
+
+    #globeCanvas {
+      width: 100%;
+      height: 100%;
+      max-width: 450px;
+      max-height: 450px;
+    }
+
+    .globe-hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       6. 3D CARD FAN-DECK SELECTOR
+       ========================================================================== */
+    .fandeck-container {
+      position: relative;
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    .fandeck-wrapper {
+      position: relative;
+      width: 220px;
+      height: 300px;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .fan-card {
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      background: #0d121d;
+      border: 1px solid var(--glass-border-light);
+      overflow: hidden;
+      box-shadow: -10px 15px 30px rgba(0, 0, 0, 0.5);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+      transform-origin: bottom center;
+    }
+
+    .fan-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.85) contrast(1.1);
+      transition: filter 0.3s;
+    }
+
+    .fan-card-info {
+      position: absolute;
+      bottom: 0;
+      inset-x: 0;
+      padding: 20px;
+      background: linear-gradient(0deg, rgba(5,7,12,0.95) 0%, transparent 100%);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    .fan-card:hover .fan-card-info {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .fan-card:hover img {
+      filter: brightness(1.1);
+    }
+
+    /* Default Fan Stack Transformations */
+    .fandeck-wrapper .fan-card:nth-child(1) { transform: rotateZ(-16deg) translateX(-60px) translateZ(-40px); }
+    .fandeck-wrapper .fan-card:nth-child(2) { transform: rotateZ(-8deg) translateX(-30px) translateZ(-20px); }
+    .fandeck-wrapper .fan-card:nth-child(3) { transform: rotateZ(0deg) translateX(0) translateZ(0); }
+    .fandeck-wrapper .fan-card:nth-child(4) { transform: rotateZ(8deg) translateX(30px) translateZ(20px); }
+    .fandeck-wrapper .fan-card:nth-child(5) { transform: rotateZ(16deg) translateX(60px) translateZ(40px); }
+
+    /* Expanded Hover State for Fan */
+    .fandeck-container:hover .fan-card:nth-child(1) { transform: rotateZ(-28deg) translateX(-140px) translateZ(0); }
+    .fandeck-container:hover .fan-card:nth-child(2) { transform: rotateZ(-14deg) translateX(-70px) translateZ(20px); }
+    .fandeck-container:hover .fan-card:nth-child(3) { transform: rotateZ(0deg) translateX(0) translateZ(40px); }
+    .fandeck-container:hover .fan-card:nth-child(4) { transform: rotateZ(14deg) translateX(70px) translateZ(20px); }
+    .fandeck-container:hover .fan-card:nth-child(5) { transform: rotateZ(28deg) translateX(140px) translateZ(0); }
+
+    .fandeck-wrapper .fan-card:hover {
+      transform: scale(1.12) translateZ(100px) rotateZ(0deg) !important;
+      z-index: 50;
+      border-color: var(--accent-gold);
+      box-shadow: 0 25px 50px rgba(230, 198, 135, 0.25);
+    }
+
+
+    /* ==========================================================================
+       7. 3D ACCORDION MEDIA FOLDER EXPANDER
+       ========================================================================== */
+    .accordion-3d-group {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      perspective: 1000px;
+    }
+
+    .folder-item {
+      background: rgba(12, 17, 28, 0.7);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s, box-shadow 0.3s;
+      transform-style: preserve-3d;
+    }
+
+    .folder-header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+    }
+
+    .folder-title-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .folder-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      display: grid;
+      place-items: center;
+      color: var(--accent-cyan);
+    }
+
+    .folder-toggle-icon {
+      width: 24px;
+      height: 24px;
+      transition: transform 0.4s ease;
+      color: var(--text-muted);
+    }
+
+    .folder-content-tray {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transform: rotateX(-15deg) translateZ(-20px);
+      transform-origin: top center;
+      transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 0 24px;
+    }
+
+    .folder-item.expanded {
+      border-color: var(--glass-border-light);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      transform: translateZ(20px);
+    }
+
+    .folder-item.expanded .folder-toggle-icon {
+      transform: rotate(180deg);
+      color: var(--accent-cyan);
+    }
+
+    .folder-item.expanded .folder-content-tray {
+      max-height: 240px;
+      opacity: 1;
+      transform: rotateX(0deg) translateZ(0);
+      padding: 0 24px 24px 24px;
+    }
+
+    .media-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .media-thumb {
+      height: 100px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--glass-border);
+    }
+
+    .media-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+
+    /* ==========================================================================
+       8. SCROLL-REACTIVE 3D TELEMETRY METER
+       ========================================================================== */
+    .telemetry-stage {
+      position: relative;
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-style: preserve-3d;
+    }
+
+    .telemetry-chassis {
+      width: 100%;
+      max-width: 480px;
+      background: radial-gradient(circle at 50% 50%, rgba(18, 26, 42, 0.9), rgba(8, 12, 20, 0.95));
+      border: 1px solid var(--glass-border-light);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,243,255,0.05);
+      transform-style: preserve-3d;
+      transition: transform 0.1s linear;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .telemetry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 12px;
+    }
+
+    .telemetry-body {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .gauge-circle-wrap {
+      position: relative;
+      width: 110px;
+      height: 110px;
+    }
+
+    .gauge-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 8;
+      fill: none;
+    }
+
+    .gauge-bar {
+      stroke: url(#cyan-gold-grad);
+      stroke-width: 8;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      fill: none;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    .gauge-val-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .gauge-val-text span {
+      font-size: 0.55rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    .telemetry-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .metric-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-gold));
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* Fixed Floating HUD Mini Telemetry Badge */
+    .fixed-hud-tracker {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      z-index: 1000;
+      background: rgba(8, 12, 20, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border-light);
+      border-radius: 40px;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .hud-pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulseGlow 1.8s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Floating HUD Telemetry Sync Tracker -->
+  <div class="fixed-hud-tracker">
+    <div class="hud-pulse-dot"></div>
+    <div style="font-size: 0.7rem; letter-spacing: 0.12em; color: var(--text-muted);">
+      SYNC <span id="hudSyncVal" style="color: #fff; font-weight: 700;">0.0%</span>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Top Branding Header -->
+    <header>
+      <div class="brand-logo">
+        <div class="brand-icon"></div>
+        AETHER // 3D
+      </div>
+      <div class="sys-status">
+        <span>ENGINE: ACTIVE</span>
+        <span class="status-pill">60 FPS // HYPER-SPATIAL</span>
+      </div>
+    </header>
+
+    <!-- SECTION 1: HERO & CORE 3D INTERACTIVES -->
+    <div class="component-row component-grid-2">
+      
+      <!-- Component 1: 3D Magnetic Floating Halo CTA -->
+      <div class="card-shell">
+        <div class="micro-label">Component // 01</div>
+        <h2 class="section-title">Magnetic <span>Halo Core</span></h2>
+        
+        <div class="halo-btn-wrapper">
+          <div class="magnetic-area" id="magneticArea">
+            <div class="halo-ring halo-ring-1" id="halo1"></div>
+            <div class="halo-ring halo-ring-2" id="halo2"></div>
+            <div class="halo-ring halo-ring-3" id="halo3"></div>
+            
+            <button class="magnetic-core-btn" id="magneticBtn">
+              <span>ENGAGE</span>
+              <span class="sub-text">SPATIAL 3D</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Component 5: Interactive 3D Particle Constellation Globe -->
+      <div class="card-shell">
+        <div class="micro-label">Component // 02</div>
+        <h2 class="section-title">Constellation <span>Sphere</span></h2>
+        
+        <div class="globe-stage" id="globeStage">
+          <div class="globe-hud">
+            <div style="font-size: 0.65rem; color: var(--accent-cyan); letter-spacing: 0.15em;">DRAG TO ROTATE</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: #fff;" id="globeCoords">LAT: 0° | LON: 0°</div>
+          </div>
+          <canvas id="globeCanvas"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 2: CAROUSEL SHOWCASE -->
+    <div class="component-row">
+      <div class="card-shell" style="padding: 40px 20px;">
+        <div style="padding: 0 20px;">
+          <div class="micro-label">Component // 03</div>
+          <h2 class="section-title">Cylindrical Arc <span>3D Carousel</span></h2>
+        </div>
+
+        <div class="carousel-stage-shell" id="carouselStage">
+          <div class="carousel-3d-viewport">
+            <div class="carousel-cylinder" id="carouselCylinder">
+              <!-- Carousel cards injected dynamically via JS -->
+            </div>
+          </div>
+          <div class="drag-hint">↔ Drag horizontally to orbit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: LIQUID GRADIENT & BENTO GLOW -->
+    <div class="component-row component-grid-2">
+      
+      <!-- Component 2: Liquid Gradient Glass Refraction Card -->
+      <div class="card-shell" style="padding: 0; background: transparent; border: none;">
+        <div class="liquid-card-container" id="liquidCard">
+          <div class="liquid-bg-layer" id="liquidBg"></div>
+          <div class="liquid-glass-overlay">
+            <div class="micro-label">Component // 04</div>
+            
+            <div class="liquid-card-content">
+              <h3 class="section-title">Liquid Refraction <strong>Glass Medium</strong></h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 12px; max-width: 80%; line-height: 1.5;">
+                Dynamic multi-layered chromatic glow with interactive tilt depth and backdrop refraction physics.
+              </p>
+            </div>
+
+            <div class="liquid-card-footer">
+              <div class="refraction-badge">REFRACTIVE INDEX // 1.52</div>
+              <div style="font-weight: 700; font-size: 0.8rem; letter-spacing: 0.1em; color: #fff;">01 / 08</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Component 3: Bento Grid Card with Specular Glow -->
+      <div class="card-shell">
+        <div class="micro-label">Component // 05</div>
+        <h2 class="section-title" style="margin-bottom: 20px;">Specular <span>Bento Feature</span></h2>
+        
+        <div class="bento-grid">
+          <div class="bento-card specular-track">
+            <div class="specular-border"></div>
+            <img class="bento-card-img" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="Architecture">
+            <div class="bento-content">
+              <div class="micro-label">PRIMARY ARCHITECTURE</div>
+              <div>
+                <div class="bento-title">Monolithic Void</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Mouse-tracked specular glare border & ambient backdrop.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bento-card specular-track">
+            <div class="specular-border"></div>
+            <img class="bento-card-img" src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" alt="Villa">
+            <div class="bento-content">
+              <div class="micro-label" style="color: var(--accent-gold);">SPECTRA</div>
+              <div>
+                <div class="bento-title">Glass Facade</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Light-reactive surface tracking.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 4: FAN DECK & ACCORDION EXPANDER -->
+    <div class="component-row component-grid-2">
+      
+      <!-- Component 6: 3D Card Fan-Deck Selector -->
+      <div class="card-shell">
+        <div class="micro-label">Component // 06</div>
+        <h2 class="section-title">Fan-Deck <span>3D Selector</span></h2>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Hover deck to fan out architecture cards</div>
+
+        <div class="fandeck-container">
+          <div class="fandeck-wrapper" id="fanDeck">
+            
+            <div class="fan-card">
+              <img src="https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80" alt="Card 1">
+              <div class="fan-card-info">
+                <div style="font-size: 0.8rem; font-weight: 700;">OBSIDIAN TOWER</div>
+                <div style="font-size: 0.65rem; color: var(--accent-gold);">SECTOR 01</div>
+              </div>
+            </div>
+
+            <div class="fan-card">
+              <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80" alt="Card 2">
+              <div class="fan-card-info">
+                <div style="font-size: 0.8rem; font-weight: 700;">AETHER HELIX</div>
+                <div style="font-size: 0.65rem; color: var(--accent-cyan);">SECTOR 02</div>
+              </div>
+            </div>
+
+            <div class="fan-card">
+              <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80" alt="Card 3">
+              <div class="fan-card-info">
+                <div style="font-size: 0.8rem; font-weight: 700;">PRISM MATRIX</div>
+                <div style="font-size: 0.65rem; color: #fff;">CENTER DECK</div>
+              </div>
+            </div>
+
+            <div class="fan-card">
+              <img src="https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=600&q=80" alt="Card 4">
+              <div class="fan-card-info">
+                <div style="font-size: 0.8rem; font-weight: 700;">NEON SPIRE</div>
+                <div style="font-size: 0.65rem; color: var(--accent-cyan);">SECTOR 04</div>
+              </div>
+            </div>
+
+            <div class="fan-card">
+              <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80" alt="Card 5">
+              <div class="fan-card-info">
+                <div style="font-size: 0.8rem; font-weight: 700;">SOLARIS VILLA</div>
+                <div style="font-size: 0.65rem; color: var(--accent-gold);">SECTOR 05</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Component 7: 3D Accordion Media Folder Expander -->
+      <div class="card-shell">
+        <div class="micro-label">Component // 07</div>
+        <h2 class="section-title" style="margin-bottom: 25px;">Mechanical <span>Depth Accordion</span></h2>
+
+        <div class="accordion-3d-group">
+          
+          <div class="folder-item expanded">
+            <div class="folder-header">
+              <div class="folder-title-area">
+                <div class="folder-icon">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                </div>
+                <div>
+                  <div style="font-size: 0.9rem; font-weight: 700; color: #fff;">ARCHITECTURAL_VAULT</div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted);">3 HIGH-RES ASSETS // 48.2 MB</div>
+                </div>
+              </div>
+              <svg class="folder-toggle-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div class="folder-content-tray">
+              <div class="media-preview-grid">
+                <div class="media-thumb"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=300&q=80" alt="Thumb"></div>
+                <div class="media-thumb"><img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=300&q=80" alt="Thumb"></div>
+                <div class="media-thumb"><img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=300&q=80" alt="Thumb"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="folder-item">
+            <div class="folder-header">
+              <div class="folder-title-area">
+                <div class="folder-icon" style="color: var(--accent-gold); border-color: rgba(230,198,135,0.3); background: rgba(230,198,135,0.1);">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <div>
+                  <div style="font-size: 0.9rem; font-weight: 700; color: #fff;">CHROMATIC_LIGHT_SCHEMATICS</div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted);">2 VECTOR FILES // 12.8 MB</div>
+                </div>
+              </div>
+              <svg class="folder-toggle-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div class="folder-content-tray">
+              <div class="media-preview-grid">
+                <div class="media-thumb"><img src="https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=300&q=80" alt="Thumb"></div>
+                <div class="media-thumb"><img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=300&q=80" alt="Thumb"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 5: SCROLL-REACTIVE TELEMETRY METER -->
+    <div class="component-row">
+      <div class="card-shell" style="display: flex; flex-direction: column; align-items: center;">
+        <div style="width: 100%; max-width: 800px; text-align: left; margin-bottom: 25px;">
+          <div class="micro-label">Component // 08</div>
+          <h2 class="section-title">Scroll-Reactive <span>3D Telemetry Meter</span></h2>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Scroll the webpage to physically tilt and actuate the telemetry engine in real-time.</div>
+        </div>
+
+        <div class="telemetry-stage">
+          <div class="telemetry-chassis" id="telemetryChassis">
+            
+            <div class="telemetry-header">
+              <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.15em; color: var(--accent-cyan);">HUD // SPATIAL MONITOR</div>
+              <div style="font-size: 0.65rem; color: var(--accent-gold); letter-spacing: 0.1em;" id="telemetryState">STATUS: NOMINAL</div>
+            </div>
+
+            <div class="telemetry-body">
+              
+              <!-- Circular Gauge Arc -->
+              <div class="gauge-circle-wrap">
+                <svg class="gauge-svg" viewBox="0 0 100 100">
+                  <defs>
+                    <linearGradient id="cyan-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#00f3ff" />
+                      <stop offset="100%" stop-color="#e6c687" />
+                    </linearGradient>
+                  </defs>
+                  <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                  <circle class="gauge-bar" id="gaugeBar" cx="50" cy="50" r="45"></circle>
+                </svg>
+                <div class="gauge-val-text">
+                  <div id="gaugePercentText">0%</div>
+                  <span>SCROLL</span>
+                </div>
+              </div>
+
+              <!-- Linear Progress Indicators -->
+              <div class="telemetry-metrics">
+                <div>
+                  <div class="metric-row">
+                    <span style="color: var(--text-muted); font-size: 0.7rem;">ALTITUDE ROTATION</span>
+                    <span id="altValText" style="color: #fff; font-weight: 700; font-size: 0.75rem;">0°</span>
+                  </div>
+                  <div class="metric-bar-bg"><div class="metric-bar-fill" id="altBarFill"></div></div>
+                </div>
+
+                <div>
+                  <div class="metric-row">
+                    <span style="color: var(--text-muted); font-size: 0.7rem;">VELOCITY DAMPING</span>
+                    <span id="velValText" style="color: var(--accent-cyan); font-weight: 700; font-size: 0.75rem;">0.00 LERP</span>
+                  </div>
+                  <div class="metric-bar-bg"><div class="metric-bar-fill" id="velBarFill" style="background: var(--accent-cyan);"></div></div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==========================================================================
+     INTERACTIVE ENGINES & PHYSICS SCRIPTS
+     ========================================================================== -->
+  <script>
+    // Utility Math & Lerp Functions
+    const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+
+    /* -------------------------------------------------------------------------- */
+    /* 1. 3D MAGNETIC FLOATING HALO CTA BUTTON                                    */
+    /* -------------------------------------------------------------------------- */
+    const magArea = document.getElementById('magneticArea');
+    const magBtn = document.getElementById('magneticBtn');
+    const halo1 = document.getElementById('halo1');
+    const halo2 = document.getElementById('halo2');
+    const halo3 = document.getElementById('halo3');
+
+    let btnTargetX = 0, btnTargetY = 0;
+    let btnCurrX = 0, btnCurrY = 0;
+
+    magArea.addEventListener('mousemove', (e) => {
+      const rect = magArea.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      // Calculate delta from center
+      btnTargetX = (e.clientX - centerX) * 0.4;
+      btnTargetY = (e.clientY - centerY) * 0.4;
+    });
+
+    magArea.addEventListener('mouseleave', () => {
+      btnTargetX = 0;
+      btnTargetY = 0;
+    });
+
+    function animateMagneticBtn() {
+      btnCurrX = lerp(btnCurrX, btnTargetX, 0.1);
+      btnCurrY = lerp(btnCurrY, btnTargetY, 0.1);
+
+      // Core button displacement
+      magBtn.style.transform = `translate3d(${btnCurrX}px, ${btnCurrY}px, 20px) rotateX(${-btnCurrY * 0.3}deg) rotateY(${btnCurrX * 0.3}deg)`;
+      
+      // Parallax inner/outer halo rings
+      halo3.style.transform = `translate3d(${btnCurrX * 0.6}px, ${btnCurrY * 0.6}px, 0)`;
+      halo2.style.transform = `translate3d(${btnCurrX * 0.35}px, ${btnCurrY * 0.35}px, 0) rotate(${btnCurrX}deg)`;
+      halo1.style.transform = `translate3d(${btnCurrX * 0.15}px, ${btnCurrY * 0.15}px, 0)`;
+
+      requestAnimationFrame(animateMagneticBtn);
+    }
+    animateMagneticBtn();
+
+
+    /* -------------------------------------------------------------------------- */
+    /* 2. INTERACTIVE 3D PARTICLE CONSTELLATION GLOBE                             */
+    /* -------------------------------------------------------------------------- */
+    const globeCanvas = document.getElementById('globeCanvas');
+    const ctx = globeCanvas.getContext('2d');
+    const coordsText = document.getElementById('globeCoords');
+
+    // Canvas Retina Resizing
+    function resizeCanvas() {
+      const rect = globeCanvas.parentElement.getBoundingClientRect();
+      const size = Math.min(rect.width, 420);
+      globeCanvas.width = size * window.devicePixelRatio;
+      globeCanvas.height = size * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Particle Sphere Parameters
+    const numParticles = 160;
+    const globeRadius = 130;
+    const particles = [];
+
+    for (let i = 0; i < numParticles; i++) {
+      const theta = Math.acos(2 * Math.random() - 1);
+      const phi = Math.PI * 2 * Math.random();
+      particles.push({
+        x: globeRadius * Math.sin(theta) * Math.cos(phi),
+        y: globeRadius * Math.sin(theta) * Math.sin(phi),
+        z: globeRadius * Math.cos(theta),
+        baseX: 0, baseY: 0, baseZ: 0
+      });
+    }
+
+    let rotX = 0, rotY = 0;
+    let targetRotX = 0.005, targetRotY = 0.005;
+    let isDraggingGlobe = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    const globeStage = document.getElementById('globeStage');
+
+    globeStage.addEventListener('pointerdown', (e) => {
+      isDraggingGlobe = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDraggingGlobe) return;
+      const deltaX = e.clientX - lastMouseX;
+      const deltaY = e.clientY - lastMouseY;
+      
+      targetRotY = deltaX * 0.005;
+      targetRotX = -deltaY * 0.005;
+
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+
+    window.addEventListener('pointerup', () => { isDraggingGlobe = false; });
+
+    function renderGlobe() {
+      const width = globeCanvas.width / window.devicePixelRatio;
+      const height = globeCanvas.height / window.devicePixelRatio;
+      const cx = width / 2;
+      const cy = height / 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Dampen rotation velocity
+      if (!isDraggingGlobe) {
+        targetRotX = lerp(targetRotX, 0.002, 0.05);
+        targetRotY = lerp(targetRotY, 0.003, 0.05);
+      }
+
+      rotX += targetRotX;
+      rotY += targetRotY;
+
+      // Update Coords Display
+      coordsText.innerText = `LAT: ${(rotX * 57.29 % 90).toFixed(1)}° | LON: ${(rotY * 57.29 % 180).toFixed(1)}°`;
+
+      const cosX = Math.cos(targetRotX), sinX = Math.sin(targetRotX);
+      const cosY = Math.cos(targetRotY), sinY = Math.sin(targetRotY);
+
+      const projected = [];
+
+      for (let i = 0; i < particles.length; i++) {
+        let p = particles[i];
+
+        // Y-axis rotation
+        let x1 = p.x * cosY - p.z * sinY;
+        let z1 = p.z * cosY + p.x * sinY;
+
+        // X-axis rotation
+        let y1 = p.y * cosX - z1 * sinX;
+        let z2 = z1 * cosX + p.y * sinX;
+
+        p.x = x1; p.y = y1; p.z = z2;
+
+        // Perspective 3D Projection
+        const fov = 300;
+        const scale = fov / (fov + z2 + 180);
+        const sx = p.x * scale + cx;
+        const sy = p.y * scale + cy;
+
+        projected.push({ x: sx, y: sy, z: z2, scale: scale });
+      }
+
+      // Draw Constellation Connecting Lines
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < projected.length; i++) {
+        for (let j = i + 1; j < projected.length; j++) {
+          const p1 = projected[i];
+          const p2 = projected[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 42 && p1.z > -50 && p2.z > -50) {
+            const alpha = (1 - dist / 42) * 0.25 * ((p1.z + 130) / 260);
+            ctx.strokeStyle = `rgba(0, 243, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw Particles
+      for (let i = 0; i < projected.length; i++) {
+        const p = projected[i];
+        const alpha = Math.max(0.1, (p.z + 130) / 260);
+        const radius = Math.max(0.8, 2 * p.scale);
+
+        ctx.fillStyle = p.z > 50 ? `#ffffff` : `rgba(0, 243, 255, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      requestAnimationFrame(renderGlobe);
+    }
+    renderGlobe();
+
+
+    /* -------------------------------------------------------------------------- */
+    /* 3. 3D CYLINDRICAL ARC CAROUSEL WITH INERTIA DRAG                          */
+    /* -------------------------------------------------------------------------- */
+    const carouselCylinder = document.getElementById('carouselCylinder');
+    const carouselStage = document.getElementById('carouselStage');
+
+    const cardData = [
+      { title: "Neo Sanctuary", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80", tag: "ARCHITECTURE" },
+      { title: "Glass Pavilion", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80", tag: "STRUCTURE" },
+      { title: "Obsidian Complex", img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80", tag: "MINIMALISM" },
+      { title: "Cyber Apex", img: "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=600&q=80", tag: "FUTURE" },
+      { title: "Monolith Loft", img: "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80", tag: "INTERIOR" },
+      { title: "Aether Tower", img: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80", tag: "CONCEPT" }
+    ];
+
+    const numCards = cardData.length;
+    const radius = 380; // Cylinder radius in px
+    const angleStep = 360 / numCards;
+
+    let carouselCards = [];
+    let currentAngle = 0;
+    let targetAngle = 0;
+    let isDraggingCarousel = false;
+    let startX = 0;
+    let velocity = 0;
+
+    // Create Cards
+    cardData.forEach((data, index) => {
+      const card = document.createElement('div');
+      card.className = 'carousel-card';
+      card.innerHTML = `
+        <img src="${data.img}" alt="${data.title}">
+        <div class="carousel-card-body">
+          <div class="micro-label">${data.tag}</div>
+          <div class="carousel-card-title">${data.title}</div>
+        </div>
+        <div class="spotlight-overlay"></div>
+      `;
+      carouselCylinder.appendChild(card);
+      carouselCards.push(card);
+    });
+
+    carouselStage.addEventListener('pointerdown', (e) => {
+      isDraggingCarousel = true;
+      startX = e.clientX;
+      velocity = 0;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDraggingCarousel) return;
+      const dx = e.clientX - startX;
+      velocity = dx * 0.18;
+      targetAngle += velocity;
+      startX = e.clientX;
+    });
+
+    window.addEventListener('pointerup', () => { isDraggingCarousel = false; });
+
+    function updateCarousel() {
+      if (!isDraggingCarousel) {
+        targetAngle += velocity;
+        velocity *= 0.92; // Friction damping
+      }
+
+      currentAngle = lerp(currentAngle, targetAngle, 0.1);
+
+      carouselCards.forEach((card, i) => {
+        const cardAngle = i * angleStep + currentAngle;
+        const rad = (cardAngle * Math.PI) / 180;
+        
+        // Z-depth & spotlight calculated based on angle cosine
+        const cosVal = Math.cos(rad);
+        const isFront = cosVal > 0.85;
+
+        card.style.transform = `rotateY(${cardAngle}deg) translateZ(${radius}px)`;
+        
+        // Dynamic opacity & focus lighting
+        const opacity = Math.max(0.2, (cosVal + 1) / 2);
+        card.style.opacity = opacity.toFixed(2);
+        
+        if (isFront) {
+          card.classList.add('active-spotlight');
+        } else {
+          card.classList.remove('active-spotlight');
+        }
+      });
+
+      requestAnimationFrame(updateCarousel);
+    }
+    updateCarousel();
+
+
+    /* -------------------------------------------------------------------------- */
+    /* 4. LIQUID GRADIENT CARD & BENTO SPECULAR MOUSE TRACKING                    */
+    /* -------------------------------------------------------------------------- */
+    const liquidCard = document.getElementById('liquidCard');
+    const liquidBg = document.getElementById('liquidBg');
+
+    liquidCard.addEventListener('mousemove', (e) => {
+      const rect = liquidCard.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const rotX = ((y - rect.height / 2) / rect.height) * -20;
+      const rotY = ((x - rect.width / 2) / rect.width) * 20;
+
+      liquidCard.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+      liquidBg.style.opacity = '0.85';
+    });
+
+    liquidCard.addEventListener('mouseleave', () => {
+      liquidCard.style.transform = `rotateX(0deg) rotateY(0deg)`;
+      liquidBg.style.opacity = '0.45';
+    });
+
+    // Bento Specular Mouse-Track Glow
+    document.querySelectorAll('.specular-track').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+
+        const tiltX = ((y - rect.height / 2) / rect.height) * -10;
+        const tiltY = ((x - rect.width / 2) / rect.width) * 10;
+        card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+      });
+
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+      });
+    });
+
+
+    /* -------------------------------------------------------------------------- */
+    /* 5. 3D ACCORDION EXPANDER                                                  */
+    /* -------------------------------------------------------------------------- */
+    const folderItems = document.querySelectorAll('.folder-item');
+
+    folderItems.forEach(item => {
+      const header = item.querySelector('.folder-header');
+      header.addEventListener('click', () => {
+        const isExpanded = item.classList.contains('expanded');
+
+        // Close other items
+        folderItems.forEach(f => f.classList.remove('expanded'));
+
+        if (!isExpanded) {
+          item.classList.add('expanded');
+        }
+      });
+    });
+
+
+    /* -------------------------------------------------------------------------- */
+    /* 6. SCROLL-REACTIVE 3D TELEMETRY METER                                      */
+    /* -------------------------------------------------------------------------- */
+    const telemetryChassis = document.getElementById('telemetryChassis');
+    const gaugeBar = document.getElementById('gaugeBar');
+    const gaugePercentText = document.getElementById('gaugePercentText');
+    const hudSyncVal = document.getElementById('hudSyncVal');
+    const altValText = document.getElementById('altValText');
+    const altBarFill = document.getElementById('altBarFill');
+    const velValText = document.getElementById('velValText');
+    const velBarFill = document.getElementById('velBarFill');
+    const telemetryState = document.getElementById('telemetryState');
+
+    let scrollProgress = 0;
+    let smoothScroll = 0;
+
+    window.addEventListener('scroll', () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      scrollProgress = Math.min(1, Math.max(0, window.scrollY / totalScroll));
+    });
+
+    function updateTelemetry() {
+      // Damped smooth physics lerp
+      smoothScroll = lerp(smoothScroll, scrollProgress, 0.08);
+
+      const percent = Math.round(smoothScroll * 100);
+      const dashOffset = 283 - (283 * smoothScroll);
+
+      // Gauge Arc Update
+      gaugeBar.style.strokeDashoffset = dashOffset;
+      gaugePercentText.innerText = `${percent}%`;
+      hudSyncVal.innerText = `${(smoothScroll * 100).toFixed(1)}%`;
+
+      // 3D Chassis Tilt Transformation
+      const chassisRotX = (smoothScroll - 0.5) * 28;
+      const chassisRotY = Math.sin(smoothScroll * Math.PI * 2) * 12;
+      telemetryChassis.style.transform = `rotateX(${chassisRotX}deg) rotateY(${chassisRotY}deg) translateZ(30px)`;
+
+      // Metric Readouts Update
+      const altDeg = Math.round(smoothScroll * 360);
+      altValText.innerText = `${altDeg}°`;
+      altBarFill.style.width = `${percent}%`;
+
+      const velocityVal = Math.abs(scrollProgress - smoothScroll) * 50;
+      velValText.innerText = `${velocityVal.toFixed(2)} LERP`;
+      velBarFill.style.width = `${Math.min(100, velocityVal * 100)}%`;
+
+      if (velocityVal > 0.8) {
+        telemetryState.innerText = "STATUS: HIGH VELOCITY";
+        telemetryState.style.color = "#00f3ff";
+      } else {
+        telemetryState.innerText = "STATUS: NOMINAL";
+        telemetryState.style.color = "#e6c687";
+      }
+
+      requestAnimationFrame(updateTelemetry);
+    }
+    updateTelemetry();
+
+  </script>
+</body>
+</html>

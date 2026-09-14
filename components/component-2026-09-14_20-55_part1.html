@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinematic 3D Magnetic Halo CTA</title>
+  <style>
+    /* ==========================================================================
+       RESET & BASE STYLES
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg-dark: #05070c;
+      --gold-primary: #d4af37;
+      --gold-light: #fef08a;
+      --gold-glow: rgba(212, 175, 55, 0.4);
+      --cyan-primary: #00e5ff;
+      --cyan-glow: rgba(0, 229, 255, 0.35);
+      --glass-bg: rgba(10, 15, 26, 0.55);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --font-main: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-dark);
+      color: #ffffff;
+      font-family: var(--font-main);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 1200px;
+    }
+
+    /* ==========================================================================
+       BACKGROUND CINEMATIC SCENE
+       ========================================================================== */
+    .viewport-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(11, 20, 38, 0.8) 0%, rgba(5, 7, 12, 0.98) 75%),
+        url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=2000&q=80');
+      background-size: cover;
+      background-position: center;
+      filter: contrast(110%) brightness(85%);
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    #ambientCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       TOP & BOTTOM EDITORIAL UI OVERLAYS
+       ========================================================================== */
+    .ui-header {
+      position: absolute;
+      top: 40px;
+      left: 50px;
+      right: 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .brand-tag {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 600;
+    }
+
+    .brand-status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--cyan-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--cyan-primary);
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+
+    .system-coords {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .ui-footer {
+      position: absolute;
+      bottom: 40px;
+      left: 50px;
+      right: 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 10;
+      pointer-events: none;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.1em;
+    }
+
+    .telemetry-group {
+      display: flex;
+      gap: 30px;
+    }
+
+    .telemetry-val {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* ==========================================================================
+       3D MAGNETIC HALO CONTAINER & STAGING
+       ========================================================================== */
+    .stage-container {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 600px;
+      height: 600px;
+      transform-style: preserve-3d;
+    }
+
+    /* The outer magnetic pull capture zone */
+    .magnetic-zone {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+
+    /* Interactive Dynamic Multi-Ring Canvas Halo */
+    #haloCanvas {
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      pointer-events: none;
+      transform-style: preserve-3d;
+      transition: opacity 0.5s ease;
+    }
+
+    /* ==========================================================================
+       CTA BUTTON & GLASSMORPHISM CORE
+       ========================================================================== */
+    .cta-wrapper {
+      position: relative;
+      width: 260px;
+      height: 84px;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .cta-button {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 42px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.7),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px 0 32px;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    /* Specular Reflection & Cursor Follow Highlight */
+    .specular-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: 42px;
+      background: radial-gradient(
+        220px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        transparent 80%
+      );
+      pointer-events: none;
+      z-index: 2;
+      mix-blend-mode: overlay;
+    }
+
+    .ambient-glow-layer {
+      position: absolute;
+      inset: -2px;
+      border-radius: 44px;
+      background: linear-gradient(135deg, var(--gold-primary), transparent 40%, var(--cyan-primary));
+      opacity: 0.25;
+      z-index: 0;
+      transition: opacity 0.4s ease;
+      filter: blur(8px);
+    }
+
+    /* Inner Elevating 3D Typography & Elements */
+    .button-content {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transform: translateZ(35px);
+      transform-style: preserve-3d;
+      pointer-events: none;
+    }
+
+    .subtitle {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--cyan-primary);
+      margin-bottom: 3px;
+      opacity: 0.9;
+      text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+    }
+
+    .title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.75) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      transition: transform 0.3s ease;
+    }
+
+    /* Elevated Interactive Arrow Icon Vessel */
+    .icon-vessel {
+      position: relative;
+      z-index: 3;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateZ(45px);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s, border-color 0.3s;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .icon-vessel svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.3s ease, stroke 0.3s ease;
+    }
+
+    /* Hover & Active Dynamic Transformations */
+    .magnetic-zone:hover .cta-button {
+      border-color: rgba(212, 175, 55, 0.4);
+      box-shadow: 
+        0 35px 75px -10px rgba(0, 0, 0, 0.8),
+        0 0 30px var(--cyan-glow),
+        inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    .magnetic-zone:hover .ambient-glow-layer {
+      opacity: 0.6;
+    }
+
+    .magnetic-zone:hover .icon-vessel {
+      transform: translateZ(55px) scale(1.05);
+      background: linear-gradient(135deg, var(--gold-primary) 0%, #b8860b 100%);
+      border-color: var(--gold-light);
+      box-shadow: 0 0 25px var(--gold-glow);
+    }
+
+    .magnetic-zone:hover .icon-vessel svg {
+      stroke: #05070c;
+      transform: translateX(2px) scale(1.1);
+    }
+
+    .magnetic-zone:active .cta-wrapper {
+      transform: scale3d(0.96, 0.96, 0.96) !important;
+    }
+
+    /* ==========================================================================
+       RESPONSIVE DESIGN
+       ========================================================================== */
+    @media (max-width: 768px) {
+      .ui-header, .ui-footer {
+        left: 24px;
+        right: 24px;
+      }
+      .stage-container {
+        width: 100%;
+        height: 100%;
+      }
+      .magnetic-zone {
+        width: 320px;
+        height: 320px;
+      }
+      .cta-wrapper {
+        width: 240px;
+        height: 76px;
+      }
+      .icon-vessel {
+        width: 56px;
+        height: 56px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Imagery & Atmospheric Canvas -->
+  <div class="viewport-bg"></div>
+  <div class="grid-overlay"></div>
+  <canvas id="ambientCanvas"></canvas>
+
+  <!-- Editorial Top Overlay Navigation -->
+  <header class="ui-header">
+    <div class="brand-tag">
+      <span class="brand-status-dot"></span>
+      <span>AETHERIA // LABS</span>
+    </div>
+    <div class="system-coords">
+      LOC: 37.7749° N, 122.4194° W
+    </div>
+  </header>
+
+  <!-- Central Staging Area for 3D Magnetic Floating Halo Component -->
+  <main class="stage-container">
+    <div class="magnetic-zone" id="magneticZone">
+      
+      <!-- Layered Visual Canvas for Luminous Multi-Ring Array -->
+      <canvas id="haloCanvas"></canvas>
+
+      <!-- Glassmorphic Floating CTA Core -->
+      <div class="cta-wrapper" id="ctaWrapper">
+        <div class="cta-button" id="ctaButton">
+          <div class="ambient-glow-layer"></div>
+          <div class="specular-layer" id="specular"></div>
+          
+          <div class="button-content">
+            <span class="subtitle">QUANTUM PROTOCOL</span>
+            <span class="title">INITIALIZE</span>
+          </div>
+
+          <div class="icon-vessel">
+            <svg viewBox="0 0 24 24">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Editorial Bottom Status Footer -->
+  <footer class="ui-footer">
+    <div class="telemetry-group">
+      <div>SYS_STATE: <span class="telemetry-val" id="sysState">ONLINE</span></div>
+      <div>MAG_VECTOR: <span class="telemetry-val" id="vectorVal">0.00, 0.00</span></div>
+    </div>
+    <div class="telemetry-group">
+      <div>DISPLACEMENT: <span class="telemetry-val" id="dispVal">0.0 PX</span></div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+     INTERACTIVE 3D PHYSICS & MULTI-RING ANIMATION ENGINE
+     ========================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // DOM Reference Cache
+      const magneticZone = document.getElementById('magneticZone');
+      const ctaWrapper = document.getElementById('ctaWrapper');
+      const ctaButton = document.getElementById('ctaButton');
+      const specular = document.getElementById('specular');
+      const haloCanvas = document.getElementById('haloCanvas');
+      const haloCtx = haloCanvas.getContext('2d');
+      const ambientCanvas = document.getElementById('ambientCanvas');
+      const ambientCtx = ambientCanvas.getContext('2d');
+
+      // Telemetry UI Elements
+      const vectorVal = document.getElementById('vectorVal');
+      const dispVal = document.getElementById('dispVal');
+      const sysState = document.getElementById('sysState');
+
+      // High-DPI Canvas Scaling Helper
+      function setupCanvas(canvas, ctx, width, height) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.scale(dpr, dpr);
+      }
+
+      let zoneRect = magneticZone.getBoundingClientRect();
+      const HALO_SIZE = 520;
+      setupCanvas(haloCanvas, haloCtx, HALO_SIZE, HALO_SIZE);
+
+      function resizeAmbient() {
+        setupCanvas(ambientCanvas, ambientCtx, window.innerWidth, window.innerHeight);
+        zoneRect = magneticZone.getBoundingClientRect();
+      }
+      resizeAmbient();
+      window.addEventListener('resize', resizeAmbient);
+
+      // Mouse & Physics Engine State
+      const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, active: false };
+      const target = { x: 0, y: 0, rotX: 0, rotY: 0 };
+      const current = { x: 0, y: 0, rotX: 0, rotY: 0 };
+      
+      const LERP_FACTOR = 0.08; // Smooth inertia damping
+      const MAGNETIC_RADIUS = 200;
+
+      // Click Impulse Pulses Dynamic Storage
+      const shockwaves = [];
+
+      // Dynamic Interactive Mouse Coordinates Tracker
+      function updateMousePosition(clientX, clientY) {
+        mouse.x = clientX;
+        mouse.y = clientY;
+
+        const zoneCenterX = zoneRect.left + zoneRect.width / 2;
+        const zoneCenterY = zoneRect.top + zoneRect.height / 2;
+
+        const dx = clientX - zoneCenterX;
+        const dy = clientY - zoneCenterY;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance < MAGNETIC_RADIUS) {
+          mouse.active = true;
+          // Non-linear gravitational pull strength mapping
+          const pull = Math.pow(1 - distance / MAGNETIC_RADIUS, 1.8);
+          target.x = dx * pull * 0.55;
+          target.y = dy * pull * 0.55;
+          target.rotX = -(dy * pull * 0.35);
+          target.rotY = (dx * pull * 0.35);
+
+          sysState.textContent = 'ENGAGED';
+          sysState.style.color = 'var(--gold-primary)';
+        } else {
+          mouse.active = false;
+          target.x = 0;
+          target.y = 0;
+          target.rotX = 0;
+          target.rotY = 0;
+
+          sysState.textContent = 'IDLE';
+          sysState.style.color = 'rgba(255,255,255,0.85)';
+        }
+
+        // Internal Specular Surface Light Tracking
+        const buttonRect = ctaButton.getBoundingClientRect();
+        const specX = ((clientX - buttonRect.left) / buttonRect.width) * 100;
+        const specY = ((clientY - buttonRect.top) / buttonRect.height) * 100;
+        ctaButton.style.setProperty('--mouse-x', `${specX}%`);
+        ctaButton.style.setProperty('--mouse-y', `${specY}%`);
+      }
+
+      window.addEventListener('mousemove', (e) => updateMousePosition(e.clientX, e.clientY));
+      
+      // Mobile Touch Screen Physics Support
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+          updateMousePosition(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchend', () => {
+        mouse.active = false;
+        target.x = 0;
+        target.y = 0;
+        target.rotX = 0;
+        target.rotY = 0;
+      });
+
+      // Click Trigger Ring Shockwave Pulse Handler
+      magneticZone.addEventListener('click', (e) => {
+        shockwaves.push({
+          radius: 80,
+          maxRadius: 240,
+          alpha: 1.0,
+          speed: 4.5,
+          color: Math.random() > 0.5 ? 'cyan' : 'gold'
+        });
+      });
+
+      // ==========================================================================
+      // AMBIENT BACKGROUND FLOATING DUST PARTICLES
+      // ==========================================================================
+      const dustParticles = Array.from({ length: 45 }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: Math.random() * 1.5 + 0.5,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        alpha: Math.random() * 0.5 + 0.1
+      }));
+
+      function drawAmbientParticles() {
+        ambientCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        dustParticles.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < 0) p.x = window.innerWidth;
+          if (p.x > window.innerWidth) p.x = 0;
+          if (p.y < 0) p.y = window.innerHeight;
+          if (p.y > window.innerHeight) p.y = 0;
+
+          ambientCtx.beginPath();
+          ambientCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ambientCtx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+          ambientCtx.fill();
+        });
+      }
+
+      // ==========================================================================
+      // 3D CANVAS HALO MULTI-RING PULSE RENDERING PIPELINE
+      // ==========================================================================
+      let time = 0;
+
+      function renderHalo() {
+        haloCtx.clearRect(0, 0, HALO_SIZE, HALO_SIZE);
+        const center = HALO_SIZE / 2;
+
+        time += 0.025;
+        const pulse = Math.sin(time) * 4;
+
+        // --- Ring 1: Dynamic Concentric Cyan Base Pulse ---
+        haloCtx.save();
+        haloCtx.beginPath();
+        haloCtx.arc(center, center, 140 + pulse, 0, Math.PI * 2);
+        haloCtx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+        haloCtx.lineWidth = 1.5;
+        haloCtx.setLineDash([8, 12]);
+        haloCtx.stroke();
+        haloCtx.restore();
+
+        // --- Ring 2: Rotating Counter-Clockwise Segmented Gold Arc ---
+        haloCtx.save();
+        haloCtx.translate(center, center);
+        haloCtx.rotate(-time * 0.4);
+        haloCtx.beginPath();
+        haloCtx.arc(0, 0, 165 - pulse * 0.5, 0, Math.PI * 1.3);
+        const goldGrad = haloCtx.createLinearGradient(-100, -100, 100, 100);
+        goldGrad.addColorStop(0, 'rgba(212, 175, 55, 0.8)');
+        goldGrad.addColorStop(1, 'rgba(212, 175, 55, 0.05)');
+        haloCtx.strokeStyle = goldGrad;
+        haloCtx.lineWidth = 2;
+        haloCtx.stroke();
+        haloCtx.restore();
+
+        // --- Ring 3: Fast Rotating Clockwise Micro-Dash Cyan Ring ---
+        haloCtx.save();
+        haloCtx.translate(center, center);
+        haloCtx.rotate(time * 0.8);
+        haloCtx.beginPath();
+        haloCtx.arc(0, 0, 185 + pulse * 0.8, 0, Math.PI * 2);
+        haloCtx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+        haloCtx.lineWidth = 1;
+        haloCtx.setLineDash([2, 16]);
+        haloCtx.stroke();
+        haloCtx.restore();
+
+        // --- Ring 4: Luminous Outer Photonic Aura Ring ---
+        haloCtx.save();
+        haloCtx.beginPath();
+        haloCtx.arc(center, center, 210 + pulse * 1.2, 0, Math.PI * 2);
+        const auraGrad = haloCtx.createRadialGradient(center, center, 190, center, center, 230);
+        auraGrad.addColorStop(0, 'rgba(0, 229, 255, 0)');
+        auraGrad.addColorStop(0.5, mouse.active ? 'rgba(212, 175, 55, 0.18)' : 'rgba(0, 229, 255, 0.08)');
+        auraGrad.addColorStop(1, 'rgba(0, 229, 255, 0)');
+        haloCtx.fillStyle = auraGrad;
+        haloCtx.fill();
+        haloCtx.restore();
+
+        // --- Ring Particle Nodes orbiting along Ring 2 ---
+        const particleCount = 6;
+        for (let i = 0; i < particleCount; i++) {
+          const angle = -time * 0.4 + (i * Math.PI * 2) / particleCount;
+          const px = center + Math.cos(angle) * (165 - pulse * 0.5);
+          const py = center + Math.sin(angle) * (165 - pulse * 0.5);
+
+          haloCtx.save();
+          haloCtx.beginPath();
+          haloCtx.arc(px, py, 2.5, 0, Math.PI * 2);
+          haloCtx.fillStyle = i % 2 === 0 ? '#fef08a' : '#00e5ff';
+          haloCtx.shadowColor = i % 2 === 0 ? 'rgba(212, 175, 55, 0.8)' : 'rgba(0, 229, 255, 0.8)';
+          haloCtx.shadowBlur = 8;
+          haloCtx.fill();
+          haloCtx.restore();
+        }
+
+        // --- Shockwave Ripples Processing (Triggered by user click) ---
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+          const sw = shockwaves[i];
+          sw.radius += sw.speed;
+          sw.alpha -= 0.018;
+
+          if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+            shockwaves.splice(i, 1);
+            continue;
+          }
+
+          haloCtx.save();
+          haloCtx.beginPath();
+          haloCtx.arc(center, center, sw.radius, 0, Math.PI * 2);
+          haloCtx.strokeStyle = sw.color === 'cyan' 
+            ? `rgba(0, 229, 255, ${sw.alpha})` 
+            : `rgba(212, 175, 55, ${sw.alpha})`;
+          haloCtx.lineWidth = 3;
+          haloCtx.shadowColor = sw.color === 'cyan' ? '#00e5ff' : '#d4af37';
+          haloCtx.shadowBlur = 12;
+          haloCtx.stroke();
+          haloCtx.restore();
+        }
+      }
+
+      // ==========================================================================
+      // MAIN ANIMATION LOOP (PHYSICS LERP + 3D PRESERVE TRANSFORMATIONS)
+      // ==========================================================================
+      function renderFrame() {
+        // Linear Interpolation for Smooth Inertial Motion
+        current.x += (target.x - current.x) * LERP_FACTOR;
+        current.y += (target.y - current.y) * LERP_FACTOR;
+        current.rotX += (target.rotX - current.rotX) * LERP_FACTOR;
+        current.rotY += (target.rotY - current.rotY) * LERP_FACTOR;
+
+        // Apply 3D Spatial Transforms to Button Wrapper & Halo Canvas
+        const transformStr = `translate3d(${current.x}px, ${current.y}px, 0px) rotateX(${current.rotX}deg) rotateY(${current.rotY}deg)`;
+        ctaWrapper.style.transform = transformStr;
+        haloCanvas.style.transform = transformStr;
+
+        // Update Real-time Telemetry Data Output
+        const displacement = Math.hypot(current.x, current.y).toFixed(1);
+        vectorVal.textContent = `${current.x.toFixed(1)}, ${current.y.toFixed(1)}`;
+        dispVal.textContent = `${displacement} PX`;
+
+        // Render Canvas Subsystems
+        drawAmbientParticles();
+        renderHalo();
+
+        requestAnimationFrame(renderFrame);
+      }
+
+      // Initialize Main Animation Engine
+      requestAnimationFrame(renderFrame);
+    })();
+  </script>
+</body>
+</html>
