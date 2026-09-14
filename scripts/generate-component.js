@@ -10,13 +10,13 @@ if (!GEMINI_API_KEY) {
 
 // Curated cinematic categories inspired by modern creative web studios
 const CINEMATIC_TYPES = [
-  "3D cylindrical arc carousel with horizontal drag inertia and spotlight focus",
-  "Cinematic interactive bento feature card with mouse-tracked specular glow",
-  "3D magnetic floating halo button with multi-ring luminous pulse",
-  "3D card fan-deck selector that expands on hover with perspective tilt",
+  "3D cylindrical arc carousel with horizontal drag inertia, image cards, and spotlight focus",
+  "Cinematic interactive bento feature card with image previews and mouse-tracked specular glow",
+  "3D magnetic floating halo CTA button with multi-ring luminous pulse",
+  "3D card fan-deck selector with architectural images that expands on hover with perspective tilt",
   "Interactive 3D particle constellation globe with drag rotation",
   "Cinematic liquid gradient card with glass refraction and floating typography",
-  "3D accordion folder expander with mechanical depth transitions",
+  "3D accordion media folder expander with mechanical depth transitions",
   "Scroll-reactive 3D telemetry meter with smooth damping physics"
 ];
 
@@ -40,7 +40,7 @@ function extractCode(data) {
 }
 
 async function generateSingle(category, index, timeStr) {
-  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original cinematic website component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external libraries or CDNs.\n2. Visual direction: Cinematic dark mode (#05070c), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-end aesthetics.\n3. Motion: True 3D perspective (CSS preserve-3d, translateZ), smooth physics, and full mobile touch + mouse reactivity.\n4. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n5. Output raw HTML only (no markdown backticks).";
+  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original cinematic website component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS libraries or CDNs.\n2. Visual direction: Cinematic dark mode (#05070c), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-end aesthetics.\n3. Imagery: When a component benefits from visual imagery (such as carousels, galleries, media cards, user profiles, or bento grids), embed high-quality, reliable Unsplash image URLs (e.g., https://images.unsplash.com/photo-... with dark/minimalist architecture, technology, or abstract themes) to achieve an editorial, luxury finish.\n4. Motion: True 3D perspective (CSS preserve-3d, translateZ), smooth physics, and full mobile touch + mouse reactivity.\n5. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n6. Output raw HTML only (no markdown backticks).";
 
   console.log(`[${index}/2] Generating: ${category}...`);
 
@@ -65,8 +65,14 @@ async function generateSingle(category, index, timeStr) {
   let code = extractCode(data);
   code = code.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
+  if (!code) {
+    throw new Error("Could not extract generated code from response.");
+  }
+
   const outputDir = path.join(process.cwd(), 'components');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
 
   const filename = `component-${timeStr}_part${index}.html`;
   fs.writeFileSync(path.join(outputDir, filename), code, 'utf8');
