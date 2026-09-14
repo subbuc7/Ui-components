@@ -8,22 +8,22 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-const COMPONENT_TYPES = [
-  "3D biometric passkey scanner button with particle ripples",
-  "Luxury kinetic navigation dock with liquid gold indicator and glassmorphism",
-  "3D animated holographic credit or asset vault card with mouse tilt",
-  "High-horology watch bezel rotary dial with brushed titanium finish",
-  "3D multi-layered mechanical purge delete button with particle disintegration",
-  "Floating dynamic island controller with glass refraction and expand animation",
-  "3D glassmorphic audio visualizer equalizer widget with glowing bars"
+// Curated cinematic categories inspired by modern creative web studios
+const CINEMATIC_TYPES = [
+  "3D cylindrical arc carousel with horizontal drag inertia and spotlight focus",
+  "Cinematic interactive bento feature card with mouse-tracked specular glow",
+  "3D magnetic floating halo button with multi-ring luminous pulse",
+  "3D card fan-deck selector that expands on hover with perspective tilt",
+  "Interactive 3D particle constellation globe with drag rotation",
+  "Cinematic liquid gradient card with glass refraction and floating typography",
+  "3D accordion folder expander with mechanical depth transitions",
+  "Scroll-reactive 3D telemetry meter with smooth damping physics"
 ];
 
 function extractCode(data) {
   if (typeof data.output_text === "string" && data.output_text.trim()) {
     return data.output_text;
   }
-
-  // Traverse steps in reverse to get the final output
   if (Array.isArray(data.steps)) {
     for (let i = data.steps.length - 1; i >= 0; i--) {
       const step = data.steps[i];
@@ -36,27 +36,15 @@ function extractCode(data) {
       }
     }
   }
-
-  if (data.candidates && data.candidates[0]?.content?.parts) {
-    for (const part of data.candidates[0].content.parts) {
-      if (part.text) return part.text;
-    }
-  }
-
   return "";
 }
 
-async function generateComponent() {
-  const randomType = COMPONENT_TYPES[Math.floor(Math.random() * COMPONENT_TYPES.length)];
-  const today = new Date().toISOString().split('T')[0];
+async function generateSingle(category, index, timeStr) {
+  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original cinematic website component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external libraries or CDNs.\n2. Visual direction: Cinematic dark mode (#05070c), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-end aesthetics.\n3. Motion: True 3D perspective (CSS preserve-3d, translateZ), smooth physics, and full mobile touch + mouse reactivity.\n4. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n5. Output raw HTML only (no markdown backticks).";
 
-  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for a 3D animated UI component: " + randomType + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS dependencies or CDNs.\n2. Ultra-premium luxury visual aesthetic: obsidian/dark theme (#05070c), metallic accents (gold, titanium, or ruby), frosted glassmorphism (backdrop-filter: blur), subtle ambient glows, and crisp typography.\n3. True 3D perspective and depth using CSS transform-style: preserve-3d and translateZ.\n4. Interactive animations: smooth cursor/touch tracking with realistic lighting glare/reflections, and micro-interactions on click/tap.\n5. Provide ONLY the raw HTML code. Do NOT wrap in markdown codeblocks.";
+  console.log(`[${index}/2] Generating: ${category}...`);
 
-  console.log("Generating component: " + randomType + "...");
-
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/interactions";
-
-  const response = await fetch(apiUrl, {
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,35 +57,35 @@ async function generateComponent() {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error("Gemini API Error: " + response.status + " - " + errorText);
+    const err = await response.text();
+    throw new Error("API Error: " + response.status + " - " + err);
   }
 
   const data = await response.json();
   let code = extractCode(data);
-
   code = code.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
-  if (!code) {
-    throw new Error("Could not extract generated code from response.");
-  }
-
   const outputDir = path.join(process.cwd(), 'components');
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  const now = new Date();
-const timeStr = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0') + "-" + String(now.getSeconds()).padStart(2, '0');
-const filename = "component-" + today + "_" + timeStr + ".html";
-  
-  const filePath = path.join(outputDir, filename);
-  fs.writeFileSync(filePath, code, "utf8");
-
-  console.log("Successfully generated and saved: " + filePath);
+  const filename = `component-${timeStr}_part${index}.html`;
+  fs.writeFileSync(path.join(outputDir, filename), code, 'utf8');
+  console.log(`Saved: ${filename}`);
 }
 
-generateComponent().catch((err) => {
-  console.error("Failed to generate component:", err);
+async function runBatch() {
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const time = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0');
+  const timeStr = `${date}_${time}`;
+
+  // Pick 2 random, distinct categories
+  const shuffled = [...CINEMATIC_TYPES].sort(() => 0.5 - Math.random());
+  await generateSingle(shuffled[0], 1, timeStr);
+  await generateSingle(shuffled, 2, timeStr);
+}
+
+runBatch().catch(err => {
+  console.error("Batch run failed:", err);
   process.exit(1);
 });
