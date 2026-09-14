@@ -8,7 +8,6 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Curated cinematic categories inspired by modern creative web studios
 const CINEMATIC_TYPES = [
   "3D cylindrical arc carousel with horizontal drag inertia, image cards, and spotlight focus",
   "Cinematic interactive bento feature card with image previews and mouse-tracked specular glow",
@@ -40,7 +39,7 @@ function extractCode(data) {
 }
 
 async function generateSingle(category, index, timeStr) {
-  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original cinematic website component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS libraries or CDNs.\n2. Visual direction: Cinematic dark mode (#05070c), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-end aesthetics.\n3. Imagery: When a component benefits from visual imagery (such as carousels, galleries, media cards, user profiles, or bento grids), embed high-quality, reliable Unsplash image URLs (e.g., https://images.unsplash.com/photo-... with dark/minimalist architecture, technology, or abstract themes) to achieve an editorial, luxury finish.\n4. Motion: True 3D perspective (CSS preserve-3d, translateZ), smooth physics, and full mobile touch + mouse reactivity.\n5. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n6. Output raw HTML only (no markdown backticks).";
+  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original cinematic website component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS libraries or CDNs.\n2. Visual direction: Cinematic dark mode (#05070c), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-end aesthetics.\n3. Imagery: When a component benefits from visual imagery (such as carousels, galleries, media cards, user profiles, or bento grids), embed high-quality, reliable Unsplash image URLs to achieve an editorial, luxury finish.\n4. Layering & Visibility: Never render solid or opaque indicators over icons or text. Always place glowing active pills on lower z-indexes (z-index: 1) strictly behind foreground icons and text (z-index: 2), using translucent gradients so all elements remain 100% visible and unblocked.\n5. Motion: True 3D perspective (CSS preserve-3d, translateZ), smooth physics, and full mobile touch + mouse reactivity.\n6. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n7. Output raw HTML only (no markdown backticks).";
 
   console.log(`[${index}/2] Generating: ${category}...`);
 
@@ -85,7 +84,6 @@ async function runBatch() {
   const time = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0');
   const timeStr = `${date}_${time}`;
 
-  // Pick 2 random, distinct categories
   const shuffled = [...CINEMATIC_TYPES].sort(() => 0.5 - Math.random());
   await generateSingle(shuffled[0], 1, timeStr);
   await generateSingle(shuffled, 2, timeStr);
