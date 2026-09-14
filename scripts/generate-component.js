@@ -8,7 +8,6 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Categories for daily variety
 const COMPONENT_TYPES = [
   "3D biometric passkey scanner button with particle ripples",
   "Luxury kinetic navigation dock with liquid gold indicator and glassmorphism",
@@ -19,7 +18,33 @@ const COMPONENT_TYPES = [
   "3D glassmorphic audio visualizer equalizer widget with glowing bars"
 ];
 
+async function getAvailableModel() {
+  const listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" + GEMINI_API_KEY;
+  const res = await fetch(listUrl);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Failed to fetch models: " + res.status + " - " + err);
+  }
+  const data = await res.json();
+  const models = (data.models || []).filter(m => 
+    m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+  );
+
+  // Pick gemini-1.5-flash or any flash model, fallback to first available
+  const selected = models.find(m => m.name.includes("1.5-flash"))
+    || models.find(m => m.name.includes("flash"))
+    || models[0];
+
+  if (!selected) {
+    throw new Error("No model supporting generateContent was found on this API key.");
+  }
+  return selected.name; // e.g., "models/gemini-1.5-flash"
+}
+
 async function generateComponent() {
+  const modelName = await getAvailableModel();
+  console.log("Using active model: " + modelName);
+
   const randomType = COMPONENT_TYPES[Math.floor(Math.random() * COMPONENT_TYPES.length)];
   const today = new Date().toISOString().split('T')[0];
 
@@ -27,7 +52,7 @@ async function generateComponent() {
 
   console.log("Generating component: " + randomType + "...");
 
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=" + GEMINI_API_KEY;
+  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/" + modelName + ":generateContent?key=" + GEMINI_API_KEY;
 
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -46,16 +71,13 @@ async function generateComponent() {
   const data = await response.json();
   let code = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  // Clean any markdown code fences if returned
   code = code.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
-  // Ensure components directory exists
   const outputDir = path.join(process.cwd(), 'components');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Save the daily component file
   const filename = "component-" + today + ".html";
   const filePath = path.join(outputDir, filename);
   fs.writeFileSync(filePath, code, "utf8");
