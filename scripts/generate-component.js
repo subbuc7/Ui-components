@@ -8,7 +8,7 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Categories to pick from for daily variety
+// Categories for daily variety
 const COMPONENT_TYPES = [
   "3D biometric passkey scanner button with particle ripples",
   "Luxury kinetic navigation dock with liquid gold indicator and glassmorphism",
@@ -23,41 +23,30 @@ async function generateComponent() {
   const randomType = COMPONENT_TYPES[Math.floor(Math.random() * COMPONENT_TYPES.length)];
   const today = new Date().toISOString().split('T')[0];
 
-  const prompt = `
-Create a single, complete, ultra-premium, self-contained HTML file for a 3D animated UI component: "${randomType}".
+  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for a 3D animated UI component: " + randomType + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS dependencies or CDNs.\n2. Ultra-premium luxury visual aesthetic: obsidian/dark theme (#05070c), metallic accents (gold, titanium, or ruby), frosted glassmorphism (backdrop-filter: blur), subtle ambient glows, and crisp typography.\n3. True 3D perspective and depth using CSS transform-style: preserve-3d and translateZ.\n4. Interactive animations: smooth cursor/touch tracking with realistic lighting glare/reflections, and micro-interactions on click/tap.\n5. Provide ONLY the raw HTML code. Do NOT wrap in markdown codeblocks.";
 
-Strict requirements:
-1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS dependencies or CDNs.
-2. Ultra-premium luxury visual aesthetic: obsidian/dark theme (#05070c), metallic accents (gold, titanium, or ruby), frosted glassmorphism (backdrop-filter: blur), subtle ambient glows, and crisp typography.
-3. True 3D perspective and depth using CSS transform-style: preserve-3d and translateZ.
-4. Interactive animations: smooth cursor/touch tracking with realistic lighting glare/reflections, and micro-interactions on click/tap.
-5. Provide ONLY the raw HTML code. Do NOT wrap in markdown codeblocks (no \`\`\`html or \`\`\`).
-`;
+  console.log("Generating component: " + randomType + "...");
 
-  console.log(`Generating component: ${randomType}...`);
+  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=" + GEMINI_API_KEY;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=${GEMINI_API_KEY}`
-    
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8 }
-      })
-    }
-  );
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.8 }
+    })
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+    throw new Error("Gemini API Error: " + response.status + " - " + errorText);
   }
 
   const data = await response.json();
   let code = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  // Clean any markdown code blocks if present
+  // Clean any markdown code fences if returned
   code = code.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
   // Ensure components directory exists
@@ -67,15 +56,14 @@ Strict requirements:
   }
 
   // Save the daily component file
-  const filename = `component-${today}.html`;
+  const filename = "component-" + today + ".html";
   const filePath = path.join(outputDir, filename);
-  fs.writeFileSync(filePath, code, 'utf8');
+  fs.writeFileSync(filePath, code, "utf8");
 
-  console.log(`Successfully generated and saved: ${filePath}`);
+  console.log("Successfully generated and saved: " + filePath);
 }
 
 generateComponent().catch((err) => {
   console.error("Failed to generate component:", err);
   process.exit(1);
 });
-
