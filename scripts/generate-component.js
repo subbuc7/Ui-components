@@ -87,7 +87,10 @@ async function generateComponent() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const filename = "component-" + today + ".html";
+  const now = new Date();
+const timeStr = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0') + "-" + String(now.getSeconds()).padStart(2, '0');
+const filename = "component-" + today + "_" + timeStr + ".html";
+  
   const filePath = path.join(outputDir, filename);
   fs.writeFileSync(filePath, code, "utf8");
 
