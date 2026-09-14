@@ -18,6 +18,34 @@ const COMPONENT_TYPES = [
   "3D glassmorphic audio visualizer equalizer widget with glowing bars"
 ];
 
+function extractCode(data) {
+  if (typeof data.output_text === "string" && data.output_text.trim()) {
+    return data.output_text;
+  }
+
+  // Traverse steps in reverse to get the final output
+  if (Array.isArray(data.steps)) {
+    for (let i = data.steps.length - 1; i >= 0; i--) {
+      const step = data.steps[i];
+      if (step.content && Array.isArray(step.content)) {
+        for (const item of step.content) {
+          if (item && typeof item.text === "string" && item.text.trim()) {
+            return item.text;
+          }
+        }
+      }
+    }
+  }
+
+  if (data.candidates && data.candidates[0]?.content?.parts) {
+    for (const part of data.candidates[0].content.parts) {
+      if (part.text) return part.text;
+    }
+  }
+
+  return "";
+}
+
 async function generateComponent() {
   const randomType = COMPONENT_TYPES[Math.floor(Math.random() * COMPONENT_TYPES.length)];
   const today = new Date().toISOString().split('T')[0];
@@ -26,7 +54,6 @@ async function generateComponent() {
 
   console.log("Generating component: " + randomType + "...");
 
-  // Google Gemini Interactions API Endpoint
   const apiUrl = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
   const response = await fetch(apiUrl, {
@@ -47,19 +74,12 @@ async function generateComponent() {
   }
 
   const data = await response.json();
-
-  // Extract generated text from Interactions API response
-  let code = "";
-  if (data.steps && data.steps[0] && data.steps[0].content && data.steps[0].content[0]) {
-    code = data.steps[0].content[0].text;
-  } else if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-    code = data.candidates[0].content.parts[0].text;
-  }
+  let code = extractCode(data);
 
   code = code.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
   if (!code) {
-    throw new Error("No code generated in API response: " + JSON.stringify(data));
+    throw new Error("Could not extract generated code from response.");
   }
 
   const outputDir = path.join(process.cwd(), 'components');
