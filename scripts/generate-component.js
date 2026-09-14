@@ -18,33 +18,7 @@ const COMPONENT_TYPES = [
   "3D glassmorphic audio visualizer equalizer widget with glowing bars"
 ];
 
-async function getAvailableModel() {
-  const listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" + GEMINI_API_KEY;
-  const res = await fetch(listUrl);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error("Failed to fetch models: " + res.status + " - " + err);
-  }
-  const data = await res.json();
-  const models = (data.models || []).filter(m => 
-    m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
-  );
-
-  // Pick gemini-1.5-flash or any flash model, fallback to first available
-  const selected = models.find(m => m.name.includes("1.5-flash"))
-    || models.find(m => m.name.includes("flash"))
-    || models[0];
-
-  if (!selected) {
-    throw new Error("No model supporting generateContent was found on this API key.");
-  }
-  return selected.name; // e.g., "models/gemini-1.5-flash"
-}
-
 async function generateComponent() {
-  const modelName = await getAvailableModel();
-  console.log("Using active model: " + modelName);
-
   const randomType = COMPONENT_TYPES[Math.floor(Math.random() * COMPONENT_TYPES.length)];
   const today = new Date().toISOString().split('T')[0];
 
@@ -52,14 +26,18 @@ async function generateComponent() {
 
   console.log("Generating component: " + randomType + "...");
 
-  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/" + modelName + ":generateContent?key=" + GEMINI_API_KEY;
+  // Google Gemini Interactions API Endpoint
+  const apiUrl = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
   const response = await fetch(apiUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": GEMINI_API_KEY
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.8 }
+      model: "gemini-3.6-flash",
+      input: prompt
     })
   });
 
@@ -69,9 +47,20 @@ async function generateComponent() {
   }
 
   const data = await response.json();
-  let code = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  // Extract generated text from Interactions API response
+  let code = "";
+  if (data.steps && data.steps[0] && data.steps[0].content && data.steps[0].content[0]) {
+    code = data.steps[0].content[0].text;
+  } else if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+    code = data.candidates[0].content.parts[0].text;
+  }
 
   code = code.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+
+  if (!code) {
+    throw new Error("No code generated in API response: " + JSON.stringify(data));
+  }
 
   const outputDir = path.join(process.cwd(), 'components');
   if (!fs.existsSync(outputDir)) {
