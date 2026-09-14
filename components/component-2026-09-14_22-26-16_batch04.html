@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA // Cinematic Navigation Experience</title>
+  <style>
+    /* ==========================================================================
+       1. CORE SYSTEM & VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-dark: #04060a;
+      --bg-surface: rgba(10, 15, 26, 0.65);
+      --glass-border: rgba(212, 175, 55, 0.15);
+      --glass-border-hover: rgba(56, 189, 248, 0.4);
+      --accent-gold: #d4af37;
+      --accent-gold-light: #f3e5ab;
+      --accent-cyan: #38bdf8;
+      --accent-cyan-glow: rgba(56, 189, 248, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #475569;
+      --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+      --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* ==========================================================================
+       2. HERO / BACKGROUND CONTAINER (Under Overlay)
+       ========================================================================== */
+    .hero-viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem 4rem;
+      background: radial-gradient(circle at 50% 50%, #0a1120 0%, #04060a 100%);
+      z-index: 1;
+    }
+
+    .hero-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-serif);
+      font-size: 18vw;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.015);
+      letter-spacing: 0.1em;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ==========================================================================
+       3. TOP NAVIGATION BAR (Header Controls)
+       ========================================================================== */
+    .header-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2rem 4rem;
+      z-index: 1000;
+      pointer-events: auto;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      width: 10px;
+      height: 10px;
+      background: var(--accent-gold);
+      transform: rotate(45deg);
+      box-shadow: 0 0 12px var(--accent-gold);
+      transition: transform 0.6s var(--ease-elastic);
+    }
+
+    .brand-logo:hover .brand-mark {
+      transform: rotate(225deg) scale(1.2);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .audio-visualizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 16px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .bar {
+      width: 2px;
+      background: var(--accent-gold);
+      height: 30%;
+      border-radius: 1px;
+      transition: height 0.3s ease;
+    }
+
+    .audio-visualizer.active .bar {
+      animation: soundWave 1.2s ease-in-out infinite alternate;
+    }
+
+    .audio-visualizer.active .bar:nth-child(1) { animation-delay: 0.1s; }
+    .audio-visualizer.active .bar:nth-child(2) { animation-delay: 0.4s; }
+    .audio-visualizer.active .bar:nth-child(3) { animation-delay: 0.2s; }
+    .audio-visualizer.active .bar:nth-child(4) { animation-delay: 0.5s; }
+
+    @keyframes soundWave {
+      0% { height: 20%; }
+      100% { height: 100%; }
+    }
+
+    /* Menu Toggle Button Trigger */
+    .menu-trigger {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      padding: 0.75rem 1.75rem;
+      border-radius: 100px;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.4s var(--ease-out-expo);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-trigger::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.15), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .menu-trigger:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .menu-trigger:hover::before {
+      transform: translateX(100%);
+    }
+
+    .burger-icon {
+      width: 18px;
+      height: 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .burger-line {
+      width: 100%;
+      height: 1.5px;
+      background-color: var(--accent-gold);
+      transition: all 0.4s var(--ease-out-expo);
+      transform-origin: center;
+    }
+
+    /* Trigger active morphing */
+    body.nav-open .burger-line:nth-child(1) {
+      transform: translateY(5.25px) rotate(45deg);
+      background-color: var(--accent-cyan);
+    }
+
+    body.nav-open .burger-line:nth-child(2) {
+      transform: translateY(-5.25px) rotate(-45deg);
+      background-color: var(--accent-cyan);
+    }
+
+    /* ==========================================================================
+       4. FULLSCREEN CINEMATIC NAVIGATION OVERLAY
+       ========================================================================== */
+    .nav-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 900;
+      visibility: hidden;
+      pointer-events: none;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Dynamic Multi-Stage Overlay Backgrounds */
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-dark);
+      opacity: 0;
+      transition: opacity 0.8s var(--ease-out-expo);
+      z-index: 0;
+    }
+
+    /* Canvas for micro-particle physics simulation */
+    #particle-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    /* Preview Image Backdrops for dynamic links */
+    .bg-image-container {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.8s ease, transform 1.2s var(--ease-out-expo);
+      transform: scale(1.08);
+      filter: brightness(0.35) contrast(1.15) saturate(1.1);
+    }
+
+    .bg-image-container.active {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+
+    .bg-image-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Vignette and Gradient Layers */
+    .overlay-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(4, 6, 10, 0.4) 0%, rgba(4, 6, 10, 0.92) 80%),
+                  linear-gradient(to bottom, rgba(4, 6, 10, 0.8) 0%, transparent 20%, transparent 80%, rgba(4, 6, 10, 0.95) 100%);
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    /* Structural Shell */
+    .nav-shell {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      padding: 8rem 6rem 4rem 6rem;
+    }
+
+    /* Left Column: Navigation Links Grid */
+    .nav-main {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: relative;
+    }
+
+    .nav-item {
+      position: relative;
+      opacity: 0;
+      transform: translateY(40px) skewY(2deg);
+      transition: opacity 0.6s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+    }
+
+    /* Link structural container */
+    .nav-link {
+      position: relative;
+      display: flex;
+      align-items: baseline;
+      gap: 2rem;
+      text-decoration: none;
+      padding: 0.5rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      isolation: isolate; /* Local stacking context for z-index requirements */
+    }
+
+    /* REQUIRED: Layering & Visibility Rule Implementation
+       Lower z-index glowing active pill behind foreground elements */
+    .nav-glow-pill {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.12) 0%, rgba(56, 189, 248, 0.05) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 12px;
+      z-index: 1; /* Explicit Lower Layer */
+      opacity: 0;
+      transform: scaleX(0.95) scaleY(0.85);
+      transition: transform 0.5s var(--ease-out-expo), opacity 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Foreground Elements (Explicit Higher Layer z-index: 2) */
+    .nav-num {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.1em;
+      z-index: 2;
+      transition: color 0.4s ease, transform 0.4s var(--ease-out-expo);
+      position: relative;
+    }
+
+    .nav-text-wrap {
+      display: flex;
+      flex-direction: column;
+      z-index: 2;
+      position: relative;
+    }
+
+    .nav-title {
+      font-family: var(--font-serif);
+      font-size: Clamp(2.5rem, 4.5vw, 4.5rem);
+      font-weight: 400;
+      color: var(--text-main);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      transition: color 0.4s ease, transform 0.5s var(--ease-out-expo);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 0.35rem;
+      opacity: 0.6;
+      transition: opacity 0.4s ease, color 0.4s ease, transform 0.4s ease;
+    }
+
+    /* Inline SVG Dynamic Path Underline inside link */
+    .nav-svg-underline {
+      position: absolute;
+      bottom: -4px;
+      left: 1.5rem;
+      width: calc(100% - 3rem);
+      height: 2px;
+      z-index: 2;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .nav-svg-underline path {
+      stroke: var(--accent-cyan);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 400;
+      stroke-dashoffset: 400;
+      transition: stroke-dashoffset 0.7s var(--ease-out-expo), stroke 0.4s ease;
+      filter: drop-shadow(0 0 6px var(--accent-cyan));
+    }
+
+    /* LINK HOVER STATES */
+    .nav-link:hover .nav-glow-pill {
+      opacity: 1;
+      transform: scaleX(1) scaleY(1);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 35px var(--accent-cyan-glow), inset 0 0 15px rgba(56, 189, 248, 0.1);
+    }
+
+    .nav-link:hover .nav-num {
+      color: var(--accent-cyan);
+      transform: translateX(-4px);
+    }
+
+    .nav-link:hover .nav-title {
+      color: #ffffff;
+      transform: translateX(8px);
+    }
+
+    .nav-link:hover .nav-subtitle {
+      opacity: 1;
+      color: var(--accent-cyan);
+      transform: translateX(8px);
+    }
+
+    .nav-link:hover .nav-svg-underline path {
+      stroke-dashoffset: 0;
+    }
+
+    /* ACTIVE/CLICKED STATE MULTI-STAGE ANIMATION */
+    .nav-link.clicked .nav-glow-pill {
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.25) 0%, rgba(212, 175, 55, 0.25) 100%);
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 50px rgba(212, 175, 55, 0.5);
+      animation: pulsePill 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulsePill {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.02); }
+    }
+
+    /* Right Column: Dynamic Showcase & Metadata Panel */
+    .nav-preview-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-end;
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transform: translateX(30px);
+      transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+      padding-left: 2rem;
+    }
+
+    /* Dynamic Showcase Card */
+    .showcase-card {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(10, 15, 26, 0.5);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .showcase-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    }
+
+    .showcase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .showcase-tag {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .showcase-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-cyan);
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .showcase-media {
+      width: 100%;
+      height: 200px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .showcase-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.8s var(--ease-out-expo);
+    }
+
+    .showcase-card:hover .showcase-media img {
+      transform: scale(1.05);
+    }
+
+    /* SVG Circular Progress Dynamic Ring for Click States */
+    .progress-ring-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 6, 10, 0.75);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .progress-ring-wrap.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-circle {
+      stroke: var(--accent-gold);
+      stroke-width: 3;
+      fill: transparent;
+      stroke-dasharray: 226.19; /* 2 * PI * r (36) */
+      stroke-dashoffset: 226.19;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    .progress-text {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-gold-light);
+      letter-spacing: 0.1em;
+    }
+
+    .showcase-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .showcase-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      color: var(--text-main);
+    }
+
+    .showcase-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Footer Metadata Inside Overlay */
+    .nav-footer-meta {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1.5rem;
+    }
+
+    .meta-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .meta-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .meta-val {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-gold);
+    }
+
+    /* ==========================================================================
+       5. OPEN STATE ANIMATION TIMELINES
+       ========================================================================== */
+    body.nav-open .nav-overlay {
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    body.nav-open .overlay-backdrop {
+      opacity: 1;
+    }
+
+    body.nav-open #particle-canvas {
+      opacity: 1;
+    }
+
+    body.nav-open .nav-preview-panel {
+      opacity: 1;
+      transform: translateX(0);
+      transition-delay: 0.3s;
+    }
+
+    /* Staggered reveals using calculated delays */
+    body.nav-open .nav-item {
+      opacity: 1;
+      transform: translateY(0) skewY(0deg);
+    }
+
+    body.nav-open .nav-item:nth-child(1) { transition-delay: 0.15s; }
+    body.nav-open .nav-item:nth-child(2) { transition-delay: 0.25s; }
+    body.nav-open .nav-item:nth-child(3) { transition-delay: 0.35s; }
+    body.nav-open .nav-item:nth-child(4) { transition-delay: 0.45s; }
+    body.nav-open .nav-item:nth-child(5) { transition-delay: 0.55s; }
+
+    /* ==========================================================================
+       6. SUCCESS RESOLUTION OVERLAY (STAGE 4 & 5)
+       ========================================================================== */
+    .transition-curtain {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 2000;
+      pointer-events: none;
+      opacity: 0;
+      transform: scaleY(0);
+      transform-origin: bottom;
+      transition: transform 0.8s var(--ease-out-expo), opacity 0.3s ease;
+    }
+
+    .transition-curtain.active {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+
+    .success-banner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      z-index: 2001;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.6s var(--ease-out-expo);
+    }
+
+    .success-banner.active {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .success-title {
+      font-family: var(--font-serif);
+      font-size: 3rem;
+      color: var(--accent-gold-light);
+      margin-bottom: 0.5rem;
+    }
+
+    .success-sub {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* ==========================================================================
+       7. RESPONSIVE DESIGN
+       ========================================================================== */
+    @media (max-width: 1024px) {
+      .nav-shell {
+        grid-template-columns: 1fr;
+        padding: 7rem 2rem 2rem 2rem;
+      }
+      .nav-preview-panel {
+        display: none;
+      }
+      .header-bar {
+        padding: 1.5rem 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Hero Content -->
+  <main class="hero-viewport">
+    <div class="hero-watermark">AURA</div>
+    <div style="max-width: 600px; margin-top: auto;">
+      <p style="font-family: var(--font-mono); color: var(--accent-gold); font-size: 0.8rem; letter-spacing: 0.2em; margin-bottom: 1rem;">// ARCHITECTURAL ATELIER</p>
+      <h1 style="font-family: var(--font-serif); font-size: Clamp(2.5rem, 5vw, 4.5rem); font-weight: 400; line-height: 1.1; margin-bottom: 1.5rem;">Designing Beyond Physical Boundaries.</h1>
+      <p style="color: var(--text-muted); line-height: 1.6; font-size: 0.95rem;">Explore our curated selection of digital monuments, immersive spatial installations, and private architectural commissions.</p>
+    </div>
+  </main>
+
+  <!-- Global Header Bar -->
+  <header class="header-bar">
+    <a href="#" class="brand-logo">
+      <div class="brand-mark"></div>
+      <span>Aura Studio</span>
+    </a>
+
+    <div class="header-actions">
+      <!-- Interactive Audio Equalizer Simulation -->
+      <div class="audio-visualizer active" id="audioToggle" title="Toggle Spatial Audio Ambient">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+
+      <!-- Menu Toggle Trigger -->
+      <button class="menu-trigger" id="menuBtn" aria-label="Toggle Navigation">
+        <span id="menuBtnText">Menu</span>
+        <div class="burger-icon">
+          <div class="burger-line"></div>
+          <div class="burger-line"></div>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Fullscreen Overlay -->
+  <div class="nav-overlay" id="navOverlay">
+    <!-- Overlay Backdrops & Particle Physics Canvas -->
+    <div class="overlay-backdrop"></div>
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Dynamic Preview Images (Cross-fading per menu link) -->
+    <div class="bg-image-container active" data-bg="0">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80" alt="Architecture">
+    </div>
+    <div class="bg-image-container" data-bg="1">
+      <img src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1600&q=80" alt="Exhibitions">
+    </div>
+    <div class="bg-image-container" data-bg="2">
+      <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1600&q=80" alt="Digital Realms">
+    </div>
+    <div class="bg-image-container" data-bg="3">
+      <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1600&q=80" alt="Private Collection">
+    </div>
+    <div class="bg-image-container" data-bg="4">
+      <img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1600&q=80" alt="Atelier">
+    </div>
+
+    <div class="overlay-vignette"></div>
+
+    <!-- Navigation Overlay Content Shell -->
+    <div class="nav-shell">
+      <!-- Left Column: Interactive Main Links -->
+      <nav class="nav-main">
+        <ul class="nav-list">
+
+          <!-- Item 1 -->
+          <li class="nav-item">
+            <a href="#architecture" class="nav-link" data-index="0" data-title="Monolithic Architecture" data-tag="ARCH // 01" data-desc="Physical and monumental spatial creations built across global metropolitan hubs." data-img="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80">
+              <!-- Glow Pill strictly on z-index: 1 -->
+              <div class="nav-glow-pill"></div>
+              <!-- Foreground content on z-index: 2 -->
+              <span class="nav-num">01</span>
+              <div class="nav-text-wrap">
+                <span class="nav-title">Architecture</span>
+                <span class="nav-subtitle">Physical Works & Commissioned Structures</span>
+              </div>
+              <svg class="nav-svg-underline"><path d="M0 1 L400 1" /></svg>
+            </a>
+          </li>
+
+          <!-- Item 2 -->
+          <li class="nav-item">
+            <a href="#exhibitions" class="nav-link" data-index="1" data-title="Curated Exhibitions" data-tag="EXHB // 02" data-desc="Immersive sensory pavilions, light installations, and ephemeral spatial art." data-img="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80">
+              <div class="nav-glow-pill"></div>
+              <span class="nav-num">02</span>
+              <div class="nav-text-wrap">
+                <span class="nav-title">Exhibitions</span>
+                <span class="nav-subtitle">Sensory Installations & Light Pavilions</span>
+              </div>
+              <svg class="nav-svg-underline"><path d="M0 1 L400 1" /></svg>
+            </a>
+          </li>
+
+          <!-- Item 3 -->
+          <li class="nav-item">
+            <a href="#digital" class="nav-link" data-index="2" data-title="Digital Realms" data-tag="REALM // 03" data-desc="Virtual luxury environments, real-time spatial web, and metaverse architecture." data-img="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80">
+              <div class="nav-glow-pill"></div>
+              <span class="nav-num">03</span>
+              <div class="nav-text-wrap">
+                <span class="nav-title">Digital Realms</span>
+                <span class="nav-subtitle">Real-Time Virtual Environments</span>
+              </div>
+              <svg class="nav-svg-underline"><path d="M0 1 L400 1" /></svg>
+            </a>
+          </li>
+
+          <!-- Item 4 -->
+          <li class="nav-item">
+            <a href="#collection" class="nav-link" data-index="3" data-title="Private Collection" data-tag="PRIV // 04" data-desc="Limited edition procedural furniture, sculptures, and rare material studies." data-img="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80">
+              <div class="nav-glow-pill"></div>
+              <span class="nav-num">04</span>
+              <div class="nav-text-wrap">
+                <span class="nav-title">Private Collection</span>
+                <span class="nav-subtitle">Limited Sculptural Artefacts</span>
+              </div>
+              <svg class="nav-svg-underline"><path d="M0 1 L400 1" /></svg>
+            </a>
+          </li>
+
+          <!-- Item 5 -->
+          <li class="nav-item">
+            <a href="#atelier" class="nav-link" data-index="4" data-title="The Atelier" data-tag="INFO // 05" data-desc="Our philosophy, multidisciplinary team, research lab, and global contact." data-img="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80">
+              <div class="nav-glow-pill"></div>
+              <span class="nav-num">05</span>
+              <div class="nav-text-wrap">
+                <span class="nav-title">The Atelier</span>
+                <span class="nav-subtitle">Philosophy, Team & Contact</span>
+              </div>
+              <svg class="nav-svg-underline"><path d="M0 1 L400 1" /></svg>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+
+      <!-- Right Column: Interactive Dynamic Showcase & Metadata Panel -->
+      <div class="nav-preview-panel">
+        <div class="showcase-card">
+          <div class="showcase-header">
+            <span class="showcase-tag" id="cardTag">ARCH // 01</span>
+            <div class="showcase-status">
+              <div class="status-dot"></div>
+              <span>LIVE PREVIEW</span>
+            </div>
+          </div>
+
+          <div class="showcase-media">
+            <img id="cardImg" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="Preview">
+            
+            <!-- Multi-Stage Physics Progress Ring Loader (Hidden by default, shows on link click) -->
+            <div class="progress-ring-wrap" id="progressRingWrap">
+              <svg class="progress-ring" width="80" height="80">
+                <circle class="progress-ring-circle" id="progressCircle" r="36" cx="40" cy="40"/>
+              </svg>
+              <span class="progress-text" id="progressText">0%</span>
+            </div>
+          </div>
+
+          <div class="showcase-details">
+            <h3 class="showcase-title" id="cardTitle">Monolithic Architecture</h3>
+            <p class="showcase-desc" id="cardDesc">Physical and monumental spatial creations built across global metropolitan hubs.</p>
+          </div>
+        </div>
+
+        <!-- Footer Meta Info inside Navigation Overlay -->
+        <div class="nav-footer-meta">
+          <div class="meta-block">
+            <span class="meta-label">LOCATIONS</span>
+            <span class="meta-val">TYO / PAR / NYC</span>
+          </div>
+          <div class="meta-block">
+            <span class="meta-label">SYS TIME</span>
+            <span class="meta-val" id="sysTime">12:00:00 UTC</span>
+          </div>
+          <div class="meta-block">
+            <span class="meta-label">SPATIAL ENGINE</span>
+            <span class="meta-val">v4.0.8 ACTIVE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-stage Resolution / Transition Curtain -->
+  <div class="transition-curtain" id="transitionCurtain"></div>
+  <div class="success-banner" id="successBanner">
+    <div class="success-title" id="bannerTitle">ARCHITECTURE</div>
+    <div class="success-sub">LOADING SPATIAL DOMAIN...</div>
+  </div>
+
+  <!-- ==========================================================================
+     8. JAVASCRIPT: PARTICLE PHYSICS, STATE MACHINE & INTERACTIONS
+     ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      /* ------------------------------------------------------------------------
+         A. SYSTEM TIME CLOCK
+         ------------------------------------------------------------------------ */
+      const sysTimeEl = document.getElementById('sysTime');
+      function updateClock() {
+        const now = new Date();
+        const hrs = String(now.getUTCHours()).padStart(2, '0');
+        const mins = String(now.getUTCMinutes()).padStart(2, '0');
+        const secs = String(now.getUTCSeconds()).padStart(2, '0');
+        if (sysTimeEl) sysTimeEl.textContent = `${hrs}:${mins}:${secs} UTC`;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      /* ------------------------------------------------------------------------
+         B. CANVAS MICRO-PARTICLE PHYSICS ENGINE
+         ------------------------------------------------------------------------ */
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      let particles = [];
+      let mouse = { x: -1000, y: -1000, targetX: -1000, targetY: -1000 };
+
+      function resizeCanvas() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      class Particle {
+        constructor() {
+          this.reset();
+        }
+
+        reset() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.vx = (Math.random() - 0.5) * 0.4;
+          this.vy = (Math.random() - 0.5) * 0.4;
+          this.size = Math.random() * 1.8 + 0.5;
+          this.alpha = Math.random() * 0.5 + 0.2;
+          this.baseAlpha = this.alpha;
+          this.color = Math.random() > 0.4 ? '#d4af37' : '#38bdf8';
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+
+          if (this.x < 0 || this.x > width) this.vx *= -1;
+          if (this.y < 0 || this.y > height) this.vy *= -1;
+
+          // Mouse influence / magnetic repulsion physics
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = 140;
+
+          if (dist < maxDist) {
+            const force = (maxDist - dist) / maxDist;
+            this.x -= (dx / dist) * force * 2;
+            this.y -= (dy / dist) * force * 2;
+            this.alpha = Math.min(1, this.baseAlpha + force * 0.6);
+          } else {
+            this.alpha += (this.baseAlpha - this.alpha) * 0.05;
+          }
+        }
+
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.globalAlpha = this.alpha;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = this.color;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // Initialize Particles
+      const particleCount = Math.min(80, Math.floor(window.innerWidth / 20));
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
+
+      // Particle Burst Shockwave on Click
+      function createShockwave(originX, originY) {
+        for (let i = 0; i < 30; i++) {
+          const p = new Particle();
+          p.x = originX;
+          p.y = originY;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 6 + 2;
+          p.vx = Math.cos(angle) * speed;
+          p.vy = Math.sin(angle) * speed;
+          p.size = Math.random() * 2.5 + 1;
+          p.alpha = 1;
+          particles.push(p);
+        }
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Smooth mouse lerp
+        mouse.x += (mouse.targetX - mouse.x) * 0.1;
+        mouse.y += (mouse.targetY - mouse.y) * 0.1;
+
+        // Draw dynamic connection lines between nearby particles
+        for (let i = 0; i < particles.length; i++) {
+          particles[i].update();
+          particles[i].draw();
+
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 110) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = particles[i].color;
+              ctx.globalAlpha = (1 - dist / 110) * 0.15;
+              ctx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(animateParticles);
+      }
+      animateParticles();
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.targetX = e.clientX;
+        mouse.targetY = e.clientY;
+      });
+
+      /* ------------------------------------------------------------------------
+         C. MENU OVERLAY TOGGLE CONTROLLER
+         ------------------------------------------------------------------------ */
+      const menuBtn = document.getElementById('menuBtn');
+      const menuBtnText = document.getElementById('menuBtnText');
+      let isNavOpen = false;
+
+      function toggleNav() {
+        isNavOpen = !isNavOpen;
+        document.body.classList.toggle('nav-open', isNavOpen);
+        menuBtnText.textContent = isNavOpen ? 'Close' : 'Menu';
+      }
+
+      menuBtn.addEventListener('click', toggleNav);
+
+      /* ------------------------------------------------------------------------
+         D. DYNAMIC HOVER & PREVIEW CARD SWITCHER
+         ------------------------------------------------------------------------ */
+      const navLinks = document.querySelectorAll('.nav-link');
+      const bgContainers = document.querySelectorAll('.bg-image-container');
+      const cardTag = document.getElementById('cardTag');
+      const cardTitle = document.getElementById('cardTitle');
+      const cardDesc = document.getElementById('cardDesc');
+      const cardImg = document.getElementById('cardImg');
+
+      navLinks.forEach(link => {
+        link.addEventListener('mouseenter', (e) => {
+          const idx = link.getAttribute('data-index');
+          const title = link.getAttribute('data-title');
+          const tag = link.getAttribute('data-tag');
+          const desc = link.getAttribute('data-desc');
+          const imgSrc = link.getAttribute('data-img');
+
+          // Switch active background dynamic image
+          bgContainers.forEach(bg => bg.classList.remove('active'));
+          if (bgContainers[idx]) {
+            bgContainers[idx].classList.add('active');
+          }
+
+          // Update Preview Showcase Card Content
+          cardTag.textContent = tag;
+          cardTitle.textContent = title;
+          cardDesc.textContent = desc;
+          cardImg.src = imgSrc;
+        });
+      });
+
+      /* ------------------------------------------------------------------------
+         E. MULTI-STAGE PHYSICAL INTERACTION TRANSITION ON LINK CLICK
+         Stage 1: Idle -> Stage 2: Morph/In-flight -> Stage 3: Processing/Progress 
+         -> Stage 4: Success Resolution -> Stage 5: Reset
+         ------------------------------------------------------------------------ */
+      let isTransitioning = false;
+
+      const progressRingWrap = document.getElementById('progressRingWrap');
+      const progressCircle = document.getElementById('progressCircle');
+      const progressText = document.getElementById('progressText');
+      const transitionCurtain = document.getElementById('transitionCurtain');
+      const successBanner = document.getElementById('successBanner');
+      const bannerTitle = document.getElementById('bannerTitle');
+
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (isTransitioning) return;
+          isTransitioning = true;
+
+          const title = link.getAttribute('data-title');
+          const rect = link.getBoundingClientRect();
+          const clickX = e.clientX || rect.left + rect.width / 2;
+          const clickY = e.clientY || rect.top + rect.height / 2;
+
+          // STAGE 2: IN-FLIGHT MORPH & PARTICLE SHOCKWAVE
+          link.classList.add('clicked');
+          createShockwave(clickX, clickY);
+
+          // STAGE 3: PROCESSING / PROGRESS STATE (SVG Dynamic Ring Animation)
+          progressRingWrap.classList.add('active');
+          const circumference = 2 * Math.PI * 36; // 226.19
+          let progress = 0;
+
+          const progressInterval = setInterval(() => {
+            progress += 4;
+            if (progress > 100) progress = 100;
+
+            const offset = circumference - (progress / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset;
+            progressText.textContent = `${progress}%`;
+
+            if (progress >= 100) {
+              clearInterval(progressInterval);
+              
+              // STAGE 4: SUCCESS RESOLUTION TRANSITION
+              setTimeout(triggerSuccessResolution, 200);
+            }
+          }, 20);
+
+          function triggerSuccessResolution() {
+            bannerTitle.textContent = title;
+            transitionCurtain.classList.add('active');
+
+            setTimeout(() => {
+              successBanner.classList.add('active');
+            }, 400);
+
+            // STAGE 5: RESET STATE & CLOSE OVERLAY
+            setTimeout(() => {
+              // Fade out success banner and curtain
+              successBanner.classList.remove('active');
+              transitionCurtain.classList.remove('active');
+
+              setTimeout(() => {
+                // Reset Nav Overlay States
+                toggleNav();
+                link.classList.remove('clicked');
+                progressRingWrap.classList.remove('active');
+                progressCircle.style.strokeDashoffset = circumference;
+                progressText.textContent = '0%';
+                isTransitioning = false;
+              }, 600);
+            }, 2200);
+          }
+        });
+      });
+
+      /* ------------------------------------------------------------------------
+         F. AUDIO VISUALIZER TOGGLE SIMULATION
+         ------------------------------------------------------------------------ */
+      const audioToggle = document.getElementById('audioToggle');
+      audioToggle.addEventListener('click', () => {
+        audioToggle.classList.toggle('active');
+      });
+
+    });
+  </script>
+</body>
+</html>

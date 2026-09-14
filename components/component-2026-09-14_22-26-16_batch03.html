@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanical Actuator Switch - Tactical Authorization</title>
+    <style>
+        :root {
+            --bg-base: #04060a;
+            --card-bg: rgba(11, 16, 29, 0.75);
+            --card-border: rgba(212, 175, 55, 0.25);
+            --gold-primary: #d4af37;
+            --gold-light: #f3e5ab;
+            --gold-glow: rgba(212, 175, 55, 0.35);
+            --cyan-accent: #00f2fe;
+            --cyan-glow: rgba(0, 242, 254, 0.35);
+            --text-primary: #f0f4f8;
+            --text-secondary: #8a99ad;
+            --text-muted: #4e5d73;
+            --track-bg: rgba(5, 8, 15, 0.85);
+            --knob-gradient: linear-gradient(135deg, #2a3342 0%, #121722 50%, #1c2333 100%);
+            --knob-border: rgba(212, 175, 55, 0.5);
+            --font-mono: 'SF Mono', 'Roboto Mono', 'Cascadia Code', 'Consolas', monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(15, 23, 42, 0.8) 0%, transparent 70%),
+                radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 20% 10%, rgba(0, 242, 254, 0.04) 0%, transparent 40%);
+        }
+
+        /* Ambient Background Grid */
+        .bg-grid {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Main Container */
+        .stage-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 520px;
+            padding: 24px;
+        }
+
+        /* Glass Panel */
+        .actuator-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 32px 28px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 40px rgba(212, 175, 55, 0.05);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .actuator-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transform: skewX(-20deg);
+            pointer-events: none;
+        }
+
+        /* Card Header Telemetry */
+        .telemetry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .sys-title {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sys-title-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gold-primary);
+            box-shadow: 0 0 8px var(--gold-primary);
+            animation: pulse-dot 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.4; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .main-headline {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            background: linear-gradient(180deg, #ffffff 0%, #a0aec0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .telemetry-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            color: var(--gold-light);
+            text-transform: uppercase;
+        }
+
+        /* Telemetry Live Data Row */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 28px;
+            background: rgba(4, 6, 10, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .metric-label {
+            font-size: 9px;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .metric-value {
+            font-size: 13px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Actuator Assembly Track */
+        .actuator-track-wrapper {
+            position: relative;
+            height: 72px;
+            margin-bottom: 24px;
+        }
+
+        .actuator-track {
+            position: absolute;
+            inset: 0;
+            background: var(--track-bg);
+            border-radius: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                inset 0 4px 12px rgba(0, 0, 0, 0.8),
+                inset 0 1px 2px rgba(0, 0, 0, 0.9),
+                0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Mechanical Track Notches / Teeth */
+        .track-notches {
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.03) 0px,
+                rgba(255, 255, 255, 0.03) 2px,
+                transparent 2px,
+                transparent 12px
+            );
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* Dynamic Active Glow Fill (Layer Z-index: 1) */
+        .track-active-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.05) 0%, rgba(212, 175, 55, 0.25) 80%, rgba(0, 242, 254, 0.4) 100%);
+            border-radius: 36px;
+            z-index: 1;
+            transition: width 0.05s linear;
+            pointer-events: none;
+            border-right: 2px solid var(--cyan-accent);
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        /* Track Center Engraved Text (Layer Z-index: 2) */
+        .track-label {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            color: rgba(240, 244, 248, 0.35);
+            text-transform: uppercase;
+            z-index: 2;
+            pointer-events: none;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+
+        /* Mechanical Spring Lock Pins */
+        .spring-lock-pin {
+            position: absolute;
+            width: 8px;
+            height: 14px;
+            background: linear-gradient(180deg, #4a5568, #1a202c);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            z-index: 3;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+
+        .spring-lock-pin.top {
+            top: 4px;
+            right: 18px;
+            transform-origin: top center;
+        }
+
+        .spring-lock-pin.bottom {
+            bottom: 4px;
+            right: 18px;
+            transform-origin: bottom center;
+        }
+
+        .spring-lock-pin.disengaged-top {
+            transform: translateY(-6px) scaleY(0.6);
+            background: var(--gold-primary);
+            box-shadow: 0 0 8px var(--gold-primary);
+        }
+
+        .spring-lock-pin.disengaged-bottom {
+            transform: translateY(6px) scaleY(0.6);
+            background: var(--gold-primary);
+            box-shadow: 0 0 8px var(--gold-primary);
+        }
+
+        /* Canvas Overlay for Particle Physics */
+        #particle-canvas {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            pointer-events: none;
+            border-radius: 36px;
+        }
+
+        /* Actuator Slider Knob Handle (Layer Z-index: 5) */
+        .actuator-knob {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 64px;
+            height: 64px;
+            border-radius: 32px;
+            background: var(--knob-gradient);
+            border: 1px solid var(--knob-border);
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.6),
+                inset 0 1px 1px rgba(255, 255, 255, 0.3),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.8),
+                0 0 15px rgba(212, 175, 55, 0.15);
+            cursor: grab;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .actuator-knob:active {
+            cursor: grabbing;
+        }
+
+        .knob-grip-pattern {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .knob-ridge {
+            width: 3px;
+            height: 18px;
+            background: rgba(212, 175, 55, 0.4);
+            border-radius: 2px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: background 0.3s ease, height 0.2s ease;
+        }
+
+        .actuator-knob:hover .knob-ridge,
+        .actuator-knob.dragging .knob-ridge {
+            background: var(--gold-light);
+            box-shadow: 0 0 6px var(--gold-primary);
+        }
+
+        .actuator-knob.dragging .knob-ridge {
+            height: 22px;
+        }
+
+        /* Center Lock Core Indicator inside Knob */
+        .knob-core-led {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2d3748;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .knob-core-led.active {
+            background: var(--cyan-accent);
+            box-shadow: 0 0 10px var(--cyan-accent);
+        }
+
+        .knob-core-led.locked {
+            background: var(--gold-primary);
+            box-shadow: 0 0 12px var(--gold-primary);
+        }
+
+        /* Status & Instruction Footer */
+        .actuator-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        .status-text-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-indicator-light {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            transition: background 0.3s ease;
+        }
+
+        .status-indicator-light.armed {
+            background: var(--gold-primary);
+            box-shadow: 0 0 6px var(--gold-primary);
+        }
+
+        .status-indicator-light.success {
+            background: var(--cyan-accent);
+            box-shadow: 0 0 8px var(--cyan-accent);
+        }
+
+        /* Reset Button (Hidden until Success) */
+        .btn-reset {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(4px);
+            transition: all 0.3s ease;
+        }
+
+        .btn-reset.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .btn-reset:hover {
+            border-color: var(--gold-primary);
+            color: var(--gold-light);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        /* Morphing Success Overlay Payload Container */
+        .success-payload {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 12, 22, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 32px;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+            transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .success-payload.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        /* Animated SVG Check Ring */
+        .svg-check-ring {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 20px;
+        }
+
+        .svg-check-ring circle {
+            stroke-dasharray: 220;
+            stroke-dashoffset: 220;
+            transform-origin: center;
+            stroke: var(--gold-primary);
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.65, 0, 0.45, 1);
+        }
+
+        .svg-check-ring path {
+            stroke-dasharray: 50;
+            stroke-dashoffset: 50;
+            stroke: var(--cyan-accent);
+            transition: stroke-dashoffset 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.6s;
+        }
+
+        .success-payload.active .svg-check-ring circle {
+            stroke-dashoffset: 0;
+        }
+
+        .success-payload.active .svg-check-ring path {
+            stroke-dashoffset: 0;
+        }
+
+        .success-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .success-subtitle {
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .token-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(212, 175, 55, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--cyan-accent);
+            letter-spacing: 0.15em;
+            margin-bottom: 24px;
+        }
+
+        /* Structural Keyframes */
+        @keyframes spring-shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-3px); }
+            40% { transform: translateX(3px); }
+            60% { transform: translateX(-2px); }
+            80% { transform: translateX(1px); }
+            100% { transform: translateX(0); }
+        }
+
+        .shake-actuator {
+            animation: spring-shake 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-grid"></div>
+
+    <div class="stage-container">
+        <div class="actuator-card" id="actuator-card">
+            
+            <!-- Header Telemetry -->
+            <div class="telemetry-header">
+                <div>
+                    <div class="sys-title">
+                        <span class="sys-title-dot"></span>
+                        Tactical Actuator v4.8
+                    </div>
+                    <div class="main-headline">System Authorization</div>
+                </div>
+                <div class="telemetry-badge" id="telemetry-badge">LOCKED</div>
+            </div>
+
+            <!-- Realtime Metrics Dashboard -->
+            <div class="metrics-row">
+                <div class="metric-item">
+                    <span class="metric-label">Displacement</span>
+                    <span class="metric-value" id="val-displacement">0.0%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Tension Force</span>
+                    <span class="metric-value" id="val-tension">0.0 N</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Lock Pawl</span>
+                    <span class="metric-value" id="val-pawl">ENGAGED</span>
+                </div>
+            </div>
+
+            <!-- Actuator Track & Mechanical Switch Assembly -->
+            <div class="actuator-track-wrapper" id="track-wrapper">
+                <div class="actuator-track" id="actuator-track">
+                    <div class="track-notches"></div>
+                    
+                    <!-- Translucent Glow Fill Behind Text (Z-Index 1) -->
+                    <div class="track-active-fill" id="track-fill"></div>
+                    
+                    <!-- Central Label Text (Z-Index 2) -->
+                    <div class="track-label" id="track-label">SLIDE TO ENGAGE ACTUATOR</div>
+                    
+                    <!-- Mechanical Lock Pawls Top/Bottom -->
+                    <div class="spring-lock-pin top" id="pin-top"></div>
+                    <div class="spring-lock-pin bottom" id="pin-bottom"></div>
+
+                    <!-- Particle Effects Canvas Overlay -->
+                    <canvas id="particle-canvas"></canvas>
+
+                    <!-- Draggable Actuator Knob (Z-Index 5) -->
+                    <div class="actuator-knob" id="actuator-knob">
+                        <div class="knob-grip-pattern">
+                            <div class="knob-ridge"></div>
+                            <div class="knob-ridge"></div>
+                            <div class="knob-ridge"></div>
+                        </div>
+                        <div class="knob-core-led" id="knob-led"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Controls -->
+            <div class="actuator-footer">
+                <div class="status-text-group">
+                    <div class="status-indicator-light" id="status-light"></div>
+                    <span id="status-text">SAFETY LOCK ACTIVE</span>
+                </div>
+                <button class="btn-reset" id="btn-reset">Re-arm Switch</button>
+            </div>
+
+            <!-- Success Morphing Overlay -->
+            <div class="success-payload" id="success-payload">
+                <svg class="svg-check-ring" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="35" fill="none" stroke-width="3"/>
+                    <path d="M25 42 L35 52 L55 30" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="success-title">Authorization Granted</div>
+                <div class="success-subtitle">Mechanical actuator locked in terminal state.<br>Execution payload dispatched.</div>
+                <div class="token-box" id="auth-token-display">TOKEN: AUTH-0x00000000</div>
+                <button class="btn-reset visible" id="btn-modal-reset">Disengage & Reset</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Ultra-Premium Mechanical Actuator Switch Controller
+         * Handles Spring Lock Physics, Web Audio Synthesizer, & Micro-Particle Physics
+         */
+        class ActuatorController {
+            constructor() {
+                // DOM Elements
+                this.card = document.getElementById('actuator-card');
+                this.track = document.getElementById('actuator-track');
+                this.knob = document.getElementById('actuator-knob');
+                this.fill = document.getElementById('track-fill');
+                this.trackLabel = document.getElementById('track-label');
+                this.badge = document.getElementById('telemetry-badge');
+                this.pinTop = document.getElementById('pin-top');
+                this.pinBottom = document.getElementById('pin-bottom');
+                this.knobLed = document.getElementById('knob-led');
+                this.statusLight = document.getElementById('status-light');
+                this.statusText = document.getElementById('status-text');
+                this.btnReset = document.getElementById('btn-reset');
+                this.btnModalReset = document.getElementById('btn-modal-reset');
+                this.successPayload = document.getElementById('success-payload');
+                this.authTokenDisplay = document.getElementById('auth-token-display');
+                
+                // Telemetry Metrics Elements
+                this.valDisplacement = document.getElementById('val-displacement');
+                this.valTension = document.getElementById('val-tension');
+                this.valPawl = document.getElementById('val-pawl');
+
+                // Canvas Particle Engine Setup
+                this.canvas = document.getElementById('particle-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+
+                // State Mechanics Variables
+                this.isDragging = false;
+                this.isLocked = false;
+                this.currentX = 0;
+                this.targetX = 0;
+                this.maxX = 0;
+                this.startX = 0;
+                this.velocity = 0;
+                this.lastX = 0;
+                
+                // Physics Parameters
+                this.springStiffness = 0.18;
+                this.springDamping = 0.72;
+                this.dragResistance = 1.0;
+                this.lockThreshold = 0.88; // 88% required to engage latch
+
+                // Web Audio Context & Sounds Synthesizer
+                this.audioCtx = null;
+
+                this.init();
+            }
+
+            init() {
+                this.resizeCanvas();
+                this.calculateBounds();
+                this.bindEvents();
+                this.renderLoop();
+
+                window.addEventListener('resize', () => {
+                    this.resizeCanvas();
+                    this.calculateBounds();
+                });
+            }
+
+            calculateBounds() {
+                const trackRect = this.track.getBoundingClientRect();
+                const knobRect = this.knob.getBoundingClientRect();
+                this.maxX = trackRect.width - knobRect.width - 8; // 4px margin each side
+            }
+
+            resizeCanvas() {
+                const rect = this.track.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+            }
+
+            // Web Audio Synthesizer (Zero External Dependencies)
+            initAudio() {
+                if (!this.audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                }
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+            }
+
+            playMechanicalClick(freq = 180, duration = 0.03) {
+                if (!this.audioCtx) return;
+                try {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.audioCtx.currentTime + duration);
+                    
+                    gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start();
+                    osc.stop(this.audioCtx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            playLockSnapSound() {
+                if (!this.audioCtx) return;
+                try {
+                    // Heavy Metallic Snap Pulse
+                    const now = this.audioCtx.currentTime;
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(320, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                    
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+
+                    // High frequency metallic ping
+                    const pingOsc = this.audioCtx.createOscillator();
+                    const pingGain = this.audioCtx.createGain();
+                    pingOsc.type = 'sine';
+                    pingOsc.frequency.setValueAtTime(1400, now);
+                    pingOsc.frequency.exponentialRampToValueAtTime(400, now + 0.25);
+
+                    pingGain.gain.setValueAtTime(0.2, now);
+                    pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    pingOsc.connect(pingGain);
+                    pingGain.connect(this.audioCtx.destination);
+                    pingOsc.start(now);
+                    pingOsc.stop(now + 0.25);
+                } catch(e) {}
+            }
+
+            bindEvents() {
+                // Pointer Drag Events
+                const onPointerDown = (e) => {
+                    if (this.isLocked) return;
+                    this.initAudio();
+                    this.isDragging = true;
+                    this.startX = e.clientX || (e.touches && e.touches[0].clientX);
+                    this.knob.classList.add('dragging');
+                    
+                    // Disengage Spring Pawls visually
+                    this.pinTop.classList.add('disengaged-top');
+                    this.pinBottom.classList.add('disengaged-bottom');
+                    this.valPawl.textContent = 'RELEASED';
+                    this.valPawl.style.color = '#d4af37';
+
+                    this.playMechanicalClick(240, 0.04);
+                };
+
+                const onPointerMove = (e) => {
+                    if (!this.isDragging || this.isLocked) return;
+                    const currentClientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const deltaX = currentClientX - this.startX;
+                    
+                    // Add nonlinear mechanical drag resistance
+                    let rawX = this.targetX + deltaX;
+                    if (rawX < 0) rawX = 0;
+                    if (rawX > this.maxX) rawX = this.maxX;
+
+                    // Calculate instant velocity for friction particles & sound
+                    this.velocity = Math.abs(rawX - this.lastX);
+                    this.lastX = rawX;
+
+                    this.currentX = rawX;
+
+                    // Generate sparks on rapid mechanical drag
+                    if (this.velocity > 4 && Math.random() > 0.4) {
+                        this.spawnSparks(this.currentX + 32, 36, Math.floor(this.velocity / 3));
+                    }
+
+                    // Mechanical Click Haptics during movement
+                    if (Math.floor(this.currentX / 20) !== Math.floor(this.lastX / 20)) {
+                        this.playMechanicalClick(150 + (this.currentX / this.maxX) * 200, 0.02);
+                    }
+                };
+
+                const onPointerUp = () => {
+                    if (!this.isDragging || this.isLocked) return;
+                    this.isDragging = false;
+                    this.knob.classList.remove('dragging');
+
+                    const progress = this.currentX / this.maxX;
+
+                    if (progress >= this.lockThreshold) {
+                        // Successfully Actuated & Locked!
+                        this.engageLock();
+                    } else {
+                        // Spring Snap-Back Physics
+                        this.pinTop.classList.remove('disengaged-top');
+                        this.pinBottom.classList.remove('disengaged-bottom');
+                        this.valPawl.textContent = 'ENGAGED';
+                        this.valPawl.style.color = 'var(--text-secondary)';
+                        this.card.classList.add('shake-actuator');
+                        setTimeout(() => this.card.classList.remove('shake-actuator'), 300);
+                        this.playMechanicalClick(120, 0.08);
+                    }
+                };
+
+                // Attach Handlers
+                this.knob.addEventListener('pointerdown', onPointerDown);
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('pointercancel', onPointerUp);
+
+                // Reset Action Handlers
+                this.btnReset.addEventListener('click', () => this.reset());
+                this.btnModalReset.addEventListener('click', () => this.reset());
+            }
+
+            spawnSparks(x, y, count = 8) {
+                for (let i = 0; i < count; i++) {
+                    const angle = (Math.random() * Math.PI * 2);
+                    const speed = Math.random() * 4 + 1;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed - (this.velocity * 0.2),
+                        vy: Math.sin(angle) * speed - (Math.random() * 2),
+                        life: 1.0,
+                        decay: Math.random() * 0.05 + 0.02,
+                        color: Math.random() > 0.5 ? '#d4af37' : '#00f2fe',
+                        size: Math.random() * 2.5 + 1
+                    });
+                }
+            }
+
+            spawnExplosionParticles(x, y) {
+                for (let i = 0; i < 45; i++) {
+                    const angle = (Math.random() * Math.PI * 2);
+                    const speed = Math.random() * 7 + 2;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 1.0,
+                        decay: Math.random() * 0.03 + 0.015,
+                        color: Math.random() > 0.3 ? '#00f2fe' : '#f3e5ab',
+                        size: Math.random() * 3 + 1.5
+                    });
+                }
+            }
+
+            engageLock() {
+                this.isLocked = true;
+                this.targetX = this.maxX;
+                this.currentX = this.maxX;
+                
+                // Visual & State Updates
+                this.knobLed.classList.add('active');
+                this.badge.textContent = 'ACTUATED';
+                this.badge.style.borderColor = 'var(--cyan-accent)';
+                this.badge.style.color = 'var(--cyan-accent)';
+                this.badge.style.background = 'rgba(0, 242, 254, 0.1)';
+
+                this.statusLight.classList.remove('armed');
+                this.statusLight.classList.add('success');
+                this.statusText.textContent = 'SYSTEM LOCK CONFIRMED';
+                this.statusText.style.color = 'var(--cyan-accent)';
+                
+                this.valPawl.textContent = 'LOCKED';
+                this.valPawl.style.color = 'var(--cyan-accent)';
+
+                this.btnReset.classList.add('visible');
+
+                // Mechanical FX
+                this.playLockSnapSound();
+                this.spawnExplosionParticles(this.maxX + 32, 36);
+
+                // Generate Dynamic Auth Security Token
+                const hexToken = '0x' + Math.floor(Math.random() * 0xFFFFFFFF).toString(16).toUpperCase().padStart(8, '0');
+                this.authTokenDisplay.textContent = `TOKEN: AUTH-${hexToken}`;
+
+                // Trigger Morphing Payload View Delay
+                setTimeout(() => {
+                    this.successPayload.classList.add('active');
+                }, 400);
+            }
+
+            reset() {
+                this.isLocked = false;
+                this.isDragging = false;
+                this.targetX = 0;
+                
+                // Reset Animations & UI States
+                this.successPayload.classList.remove('active');
+                this.knobLed.classList.remove('active');
+                this.knobLed.classList.remove('locked');
+                
+                this.pinTop.classList.remove('disengaged-top');
+                this.pinBottom.classList.remove('disengaged-bottom');
+                
+                this.badge.textContent = 'LOCKED';
+                this.badge.style.borderColor = 'rgba(212, 175, 55, 0.2)';
+                this.badge.style.color = 'var(--gold-light)';
+                this.badge.style.background = 'rgba(212, 175, 55, 0.08)';
+
+                this.statusLight.classList.remove('success');
+                this.statusLight.classList.add('armed');
+                this.statusText.textContent = 'SAFETY LOCK ACTIVE';
+                this.statusText.style.color = 'var(--text-muted)';
+
+                this.valPawl.textContent = 'ENGAGED';
+                this.valPawl.style.color = 'var(--text-secondary)';
+
+                this.btnReset.classList.remove('visible');
+
+                this.playMechanicalClick(100, 0.05);
+            }
+
+            updatePhysics() {
+                // Smooth Damped Spring Interpolation when not actively dragged
+                if (!this.isDragging && !this.isLocked) {
+                    const dx = 0 - this.currentX;
+                    this.velocity += dx * this.springStiffness;
+                    this.velocity *= this.springDamping;
+                    this.currentX += this.velocity;
+                    
+                    if (Math.abs(this.currentX) < 0.1 && Math.abs(this.velocity) < 0.1) {
+                        this.currentX = 0;
+                        this.velocity = 0;
+                    }
+                }
+
+                // Update Knob Position in DOM
+                this.knob.style.transform = `translateX(${this.currentX}px)`;
+
+                // Update Progress Fill Line
+                const progressRatio = this.currentX / this.maxX;
+                this.fill.style.width = `${Math.min(100, (this.currentX + 32) / (this.maxX + 64) * 100)}%`;
+
+                // Update Telemetry Displays
+                const dispPercent = (progressRatio * 100).toFixed(1);
+                const tensionVal = (progressRatio * 42.5).toFixed(1);
+                
+                this.valDisplacement.textContent = `${dispPercent}%`;
+                this.valTension.textContent = `${tensionVal} N`;
+
+                // Dim Track Label as Slider moves across
+                this.trackLabel.style.opacity = `${1 - progressRatio * 1.5}`;
+
+                // Update Particle Canvas Physics
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
+
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.globalAlpha = p.life;
+                    this.ctx.shadowBlur = 6;
+                    this.ctx.shadowColor = p.color;
+                    this.ctx.fill();
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+
+            renderLoop() {
+                this.updatePhysics();
+                requestAnimationFrame(() => this.renderLoop());
+            }
+        }
+
+        // Initialize Actuator Engine on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            window.actuatorEngine = new ActuatorController();
+        });
+    </script>
+</body>
+</html>

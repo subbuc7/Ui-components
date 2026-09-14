@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aether Spatial Motion Dock</title>
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & BASE VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-base: #04060a;
+      --surface-glass: rgba(12, 17, 29, 0.68);
+      --surface-glass-border: rgba(255, 255, 255, 0.08);
+      --surface-glass-highlight: rgba(255, 255, 255, 0.15);
+      
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-gold: #f3e5ab;
+      --accent-gold-bright: #ffd700;
+      
+      --cyan-glow: rgba(0, 242, 254, 0.25);
+      --gold-glow: rgba(255, 215, 0, 0.25);
+      
+      --text-main: #f0f4f8;
+      --text-muted: #62728d;
+      --text-dim: #3d4a5d;
+      
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      
+      --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-base);
+      font-family: var(--font-sans);
+      color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       2. VIEWPORT & BACKGROUND CANVAS
+       ========================================================================== */
+    .viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 30%, #0d1527 0%, #04060a 70%);
+    }
+
+    #particle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Hero Ambient Typography Card */
+    .hero-card {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 580px;
+      padding: 0 20px;
+      margin-bottom: 140px;
+      pointer-events: none;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .hero-card .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-card .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    .hero-card h1 {
+      font-size: 38px;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin-bottom: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-card p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .hero-card p span {
+      color: var(--accent-cyan);
+      font-weight: 500;
+    }
+
+    /* ==========================================================================
+       3. FLOATING DYNAMIC ISLAND DOCK WRAPPER
+       ========================================================================== */
+    .dock-wrapper {
+      position: absolute;
+      bottom: 40px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      perspective: 1000px;
+    }
+
+    /* Interactive Island Outer Shell */
+    .island-shell {
+      position: relative;
+      background: var(--surface-glass);
+      backdrop-filter: blur(28px) saturate(200%);
+      -webkit-backdrop-filter: blur(28px) saturate(200%);
+      border: 1px solid var(--surface-glass-border);
+      border-top-color: var(--surface-glass-highlight);
+      border-radius: 36px;
+      box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.7),
+        0 0 40px rgba(0, 242, 254, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      padding: 8px;
+      transition: width 0.6s var(--ease-out-expo), height 0.6s var(--ease-out-expo), border-color 0.4s ease, box-shadow 0.4s ease;
+      overflow: hidden;
+      will-change: width, height, transform;
+      width: 368px;
+      height: 72px;
+    }
+
+    .island-shell.is-expanded {
+      width: 440px;
+      height: 128px;
+      border-color: rgba(0, 242, 254, 0.3);
+      box-shadow: 
+        0 35px 70px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(0, 242, 254, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .island-shell.is-success {
+      border-color: rgba(255, 215, 0, 0.35);
+      box-shadow: 
+        0 35px 70px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(255, 215, 0, 0.15),
+        inset 0 1px 0 rgba(255, 215, 0, 0.3);
+    }
+
+    /* Layer 1: Liquid Indicator Light Pill (STRICTLY z-index: 1) */
+    .liquid-indicator {
+      position: absolute;
+      top: 8px;
+      left: 0;
+      height: 56px;
+      width: 56px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.22) 0%, rgba(79, 172, 254, 0.08) 100%);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      box-shadow: 
+        0 0 20px rgba(0, 242, 254, 0.25),
+        inset 0 0 12px rgba(0, 242, 254, 0.15);
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.3s ease, transform 0.4s var(--ease-out-back);
+      will-change: transform, width, left;
+      backdrop-filter: blur(4px);
+    }
+
+    .liquid-indicator.is-active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .island-shell.is-expanded .liquid-indicator {
+      opacity: 0 !important;
+    }
+
+    /* Layer 2: Dock Icons Container & Interactive Items (STRICTLY z-index: 2) */
+    .dock-items-track {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      width: 100%;
+      padding: 0 4px;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .island-shell.is-expanded .dock-items-track {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px) scale(0.95);
+    }
+
+    .dock-item {
+      position: relative;
+      z-index: 2;
+      width: 56px;
+      height: 56px;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: rgba(255, 255, 255, 0.65);
+      transition: color 0.3s ease;
+      will-change: transform;
+    }
+
+    .dock-item:hover, .dock-item.is-active-target {
+      color: #ffffff;
+    }
+
+    .dock-item svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.3s var(--ease-out-back), filter 0.3s ease;
+    }
+
+    .dock-item:hover svg {
+      filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.6));
+    }
+
+    .dock-item.action-node svg {
+      color: var(--accent-cyan);
+    }
+
+    /* Special Pulsing Aura for Primary Trigger Icon */
+    .dock-item.action-node::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 242, 254, 0.2) 0%, transparent 70%);
+      animation: pulseAura 2.5s infinite ease-in-out;
+      z-index: -1;
+    }
+
+    @keyframes pulseAura {
+      0%, 100% { transform: scale(0.8); opacity: 0.3; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    /* Tooltip Banner */
+    .dock-tooltip {
+      position: absolute;
+      top: -38px;
+      background: rgba(10, 14, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      color: var(--text-main);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px) scale(0.95);
+      transition: opacity 0.25s ease, transform 0.25s var(--ease-out-back);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+      white-space: nowrap;
+    }
+
+    .dock-tooltip.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* ==========================================================================
+       4. EXPANDED STATE (DYNAMIC ISLAND TELEMETRY & MULTI-STAGE)
+       ========================================================================== */
+    .expanded-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      padding: 16px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-15px) scale(0.98);
+      transition: opacity 0.4s ease 0.1s, transform 0.4s var(--ease-out-expo) 0.1s;
+    }
+
+    .island-shell.is-expanded .expanded-overlay {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Multi-Stage Content Container */
+    .stage-view {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Processing Telemetry Layout */
+    .processing-stage {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .progress-ring-box {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .progress-svg {
+      width: 64px;
+      height: 64px;
+      transform: rotate(-90deg);
+    }
+
+    .progress-svg circle {
+      fill: none;
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+
+    .progress-svg .track {
+      stroke: rgba(255, 255, 255, 0.06);
+    }
+
+    .progress-svg .meter {
+      stroke: url(#cyan-gradient);
+      stroke-dasharray: 175.9; /* 2 * PI * 28 */
+      stroke-dashoffset: 175.9;
+      transition: stroke-dashoffset 0.1s linear, stroke 0.4s ease;
+    }
+
+    .progress-value-text {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .stage-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-grow: 1;
+    }
+
+    .stage-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stage-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: #ffffff;
+      transition: color 0.3s ease;
+    }
+
+    .stage-status-tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(0, 242, 254, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 242, 254, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stage-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+    }
+
+    /* Stage SVG Checkmark Animation */
+    .success-checkmark {
+      display: none;
+      width: 28px;
+      height: 28px;
+      stroke: var(--accent-gold-bright);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .success-checkmark path {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+    }
+
+    .island-shell.is-success .progress-svg .meter {
+      stroke: url(#gold-gradient);
+    }
+
+    .island-shell.is-success .stage-status-tag {
+      background: rgba(255, 215, 0, 0.12);
+      color: var(--accent-gold-bright);
+      border-color: rgba(255, 215, 0, 0.3);
+    }
+
+    .island-shell.is-success .stage-title {
+      color: var(--accent-gold);
+    }
+
+    .island-shell.is-success .success-checkmark {
+      display: block;
+    }
+
+    .island-shell.is-success .success-checkmark path {
+      animation: drawCheck 0.5s var(--ease-out-expo) forwards 0.1s;
+    }
+
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Cancel / Abort Button */
+    .close-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: 8px;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+
+    .close-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+
+    /* SVG Gradients Definition Container */
+    .svg-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background SVG Gradients -->
+  <svg class="svg-defs">
+    <defs>
+      <linearGradient id="cyan-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#00f2fe" />
+        <stop offset="100%" stop-color="#4facfe" />
+      </linearGradient>
+      <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f3e5ab" />
+        <stop offset="100%" stop-color="#ffd700" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="viewport">
+    <!-- Particle Physics Backdrop Canvas -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Context / Ambient Header -->
+    <div class="hero-card" id="heroCard">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Spatial Interface v2.4
+      </div>
+      <h1>Aether Dynamic Dock</h1>
+      <p>Hover icons to initiate magnetic pull. Click <span>"Quantum Synthesis"</span> to trigger state morphing, telemetry processing, and micro-particle bursts.</p>
+    </div>
+
+    <!-- Dynamic Island Dock Main Wrapper -->
+    <div class="dock-wrapper" id="dockWrapper">
+      <!-- Tooltip Node -->
+      <div class="dock-tooltip" id="dockTooltip">Quantum Synthesis</div>
+
+      <!-- Island Outer Morphing Container -->
+      <div class="island-shell" id="islandShell">
+        
+        <!-- Layer 1: Translucent Liquid Glow Indicator (z-index: 1) -->
+        <div class="liquid-indicator" id="liquidIndicator"></div>
+
+        <!-- Layer 2: Interactive Dock Icons Track (z-index: 2) -->
+        <div class="dock-items-track" id="dockTrack">
+          
+          <button class="dock-item" data-title="System Matrix">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="2" />
+              <rect x="14" y="3" width="7" height="7" rx="2" />
+              <rect x="14" y="14" width="7" height="7" rx="2" />
+              <rect x="3" y="14" width="7" height="7" rx="2" />
+            </svg>
+          </button>
+
+          <button class="dock-item action-node" id="actionTriggerBtn" data-title="Quantum Synthesis">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+
+          <button class="dock-item" data-title="Neural Equalizer">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 20v-8M6 20V4M18 20v-4"/>
+            </svg>
+          </button>
+
+          <button class="dock-item" data-title="Shield Cipher">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </button>
+
+          <button class="dock-item" data-title="Core Parameters">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
+        </div>
+
+        <!-- Layer 3: Dynamic Island Expanded Telemetry Overlay -->
+        <div class="expanded-overlay" id="expandedOverlay">
+          <div class="stage-view">
+            <div class="processing-stage">
+              
+              <div class="progress-ring-box">
+                <svg class="progress-svg" viewBox="0 0 64 64">
+                  <circle class="track" cx="32" cy="32" r="28" />
+                  <circle class="meter" id="progressMeter" cx="32" cy="32" r="28" />
+                </svg>
+                <span class="progress-value-text" id="progressVal">0%</span>
+                
+                <!-- Success Vector Checkmark -->
+                <svg class="success-checkmark" id="successCheck" viewBox="0 0 24 24">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+
+              <div class="stage-info">
+                <div class="stage-title-row">
+                  <span class="stage-title" id="stageTitle">Compiling Neural Shaders</span>
+                  <span class="stage-status-tag" id="stageTag">PROCESSING</span>
+                </div>
+                <span class="stage-desc" id="stageDesc">Synthesizing quantum vertex buffer arrays...</span>
+              </div>
+
+              <button class="close-btn" id="abortBtn" title="Abort Sequence">
+                <svg viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+     5. JAVASCRIPT: MAGNETIC PHYSICS, PARTICLES & MULTI-STAGE CONTROLLER
+     ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const islandShell = document.getElementById('islandShell');
+      const liquidIndicator = document.getElementById('liquidIndicator');
+      const dockTrack = document.getElementById('dockTrack');
+      const dockItems = Array.from(document.querySelectorAll('.dock-item'));
+      const dockTooltip = document.getElementById('dockTooltip');
+      const actionBtn = document.getElementById('actionTriggerBtn');
+      const abortBtn = document.getElementById('abortBtn');
+      const heroCard = document.getElementById('heroCard');
+      
+      // Progress Elements
+      const progressMeter = document.getElementById('progressMeter');
+      const progressVal = document.getElementById('progressVal');
+      const stageTitle = document.getElementById('stageTitle');
+      const stageTag = document.getElementById('stageTag');
+      const stageDesc = document.getElementById('stageDesc');
+      const progressRingBox = document.querySelector('.progress-ring-box');
+
+      // State Machine Variable
+      // States: 'idle' | 'processing' | 'success' | 'resetting'
+      let currentState = 'idle';
+      let progressAnimId = null;
+      let activeHoveredItem = null;
+
+      // Magnetic Physics & Cursor Tracking Variables
+      const mouse = { x: -1000, y: -1000, targetX: -1000, targetY: -1000 };
+      const itemPhysics = dockItems.map(item => ({
+        element: item,
+        x: 0, y: 0,
+        targetX: 0, targetY: 0,
+        scale: 1, targetScale: 1
+      }));
+
+      /* ------------------------------------------------------------------------
+         5.1 CANVAS PARTICLE SYSTEM
+         ------------------------------------------------------------------------ */
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      class Particle {
+        constructor(x, y, isBurst = false, colorType = 'cyan') {
+          this.x = x;
+          this.y = y;
+          this.isBurst = isBurst;
+          this.colorType = colorType;
+          
+          if (isBurst) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 6 + 2;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+            this.life = 1;
+            this.decay = Math.random() * 0.02 + 0.015;
+            this.size = Math.random() * 3.5 + 1.5;
+          } else {
+            this.vx = (Math.random() - 0.5) * 0.4;
+            this.vy = (Math.random() - 0.5) * 0.4;
+            this.life = Math.random() * 0.8 + 0.2;
+            this.decay = Math.random() * 0.005 + 0.002;
+            this.size = Math.random() * 1.8 + 0.5;
+          }
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.life -= this.decay;
+
+          if (this.isBurst) {
+            this.vx *= 0.95;
+            this.vy *= 0.95;
+          }
+        }
+
+        draw(context) {
+          context.save();
+          context.globalAlpha = Math.max(0, this.life);
+          context.beginPath();
+          context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+
+          if (this.colorType === 'gold') {
+            context.fillStyle = '#ffd700';
+            context.shadowColor = '#ffd700';
+          } else {
+            context.fillStyle = '#00f2fe';
+            context.shadowColor = '#00f2fe';
+          }
+          
+          context.shadowBlur = this.isBurst ? 10 : 4;
+          context.fill();
+          context.restore();
+        }
+      }
+
+      // Initialize Ambient Floating Background Particles
+      for (let i = 0; i < 45; i++) {
+        particles.push(new Particle(Math.random() * width, Math.random() * height, false));
+      }
+
+      function spawnParticleBurst(x, y, count = 35, colorType = 'cyan') {
+        for (let i = 0; i < count; i++) {
+          particles.push(new Particle(x, y, true, colorType));
+        }
+      }
+
+      function renderCanvas() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Update and draw particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.update();
+          p.draw(ctx);
+
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+            if (!p.isBurst) {
+              // Maintain background particle count
+              particles.push(new Particle(Math.random() * width, Math.random() * height, false));
+            }
+          }
+        }
+
+        requestAnimationFrame(renderCanvas);
+      }
+      renderCanvas();
+
+      /* ------------------------------------------------------------------------
+         5.2 MAGNETIC PULL & SPRING PHYSICS LOGIC
+         ------------------------------------------------------------------------ */
+      window.addEventListener('mousemove', (e) => {
+        mouse.targetX = e.clientX;
+        mouse.targetY = e.clientY;
+      });
+
+      function updateMagneticPhysics() {
+        // Smoothly interpolate cursor position
+        mouse.x += (mouse.targetX - mouse.x) * 0.2;
+        mouse.y += (mouse.targetY - mouse.y) * 0.2;
+
+        if (currentState === 'idle') {
+          const magneticRadius = 110;
+
+          itemPhysics.forEach((itemObj) => {
+            const rect = itemObj.element.getBoundingClientRect();
+            const itemCenterX = rect.left + rect.width / 2 - itemObj.x;
+            const itemCenterY = rect.top + rect.height / 2 - itemObj.y;
+
+            const dist = Math.hypot(mouse.x - itemCenterX, mouse.y - itemCenterY);
+
+            if (dist < magneticRadius) {
+              const pullStrength = (1 - dist / magneticRadius);
+              const angle = Math.atan2(mouse.y - itemCenterY, mouse.x - itemCenterX);
+              
+              itemObj.targetX = Math.cos(angle) * pullStrength * 16;
+              itemObj.targetY = Math.sin(angle) * pullStrength * 16;
+              itemObj.targetScale = 1 + pullStrength * 0.18;
+            } else {
+              itemObj.targetX = 0;
+              itemObj.targetY = 0;
+              itemObj.targetScale = 1;
+            }
+
+            // Spring Damping interpolation
+            itemObj.x += (itemObj.targetX - itemObj.x) * 0.15;
+            itemObj.y += (itemObj.targetY - itemObj.y) * 0.15;
+            itemObj.scale += (itemObj.targetScale - itemObj.scale) * 0.15;
+
+            itemObj.element.style.transform = `translate3d(${itemObj.x}px, ${itemObj.y}px, 0) scale(${itemObj.scale})`;
+          });
+
+          // Dynamic Liquid Indicator Positioning Behind Active/Hovered Target (z-index: 1)
+          if (activeHoveredItem) {
+            const trackRect = dockTrack.getBoundingClientRect();
+            const itemRect = activeHoveredItem.getBoundingClientRect();
+            
+            const targetLeft = itemRect.left - trackRect.left;
+            
+            liquidIndicator.style.left = `${targetLeft}px`;
+            liquidIndicator.classList.add('is-active');
+          } else {
+            liquidIndicator.classList.remove('is-active');
+          }
+        }
+
+        requestAnimationFrame(updateMagneticPhysics);
+      }
+      updateMagneticPhysics();
+
+      /* ------------------------------------------------------------------------
+         5.3 HOVER & TOOLTIP INTERACTION
+         ------------------------------------------------------------------------ */
+      dockItems.forEach(item => {
+        item.addEventListener('mouseenter', (e) => {
+          if (currentState !== 'idle') return;
+          
+          activeHoveredItem = item;
+          item.classList.add('is-active-target');
+
+          // Position and reveal tooltip
+          const titleText = item.getAttribute('data-title');
+          dockTooltip.textContent = titleText;
+
+          const itemRect = item.getBoundingClientRect();
+          const wrapperRect = document.getElementById('dockWrapper').getBoundingClientRect();
+          const centerOffset = (itemRect.left + itemRect.width / 2) - wrapperRect.left;
+
+          dockTooltip.style.left = `${centerOffset}px`;
+          dockTooltip.style.transform = `translateX(-50%) translateY(0) scale(1)`;
+          dockTooltip.classList.add('is-visible');
+        });
+
+        item.addEventListener('mouseleave', () => {
+          if (currentState !== 'idle') return;
+          
+          activeHoveredItem = null;
+          item.classList.remove('is-active-target');
+          dockTooltip.classList.remove('is-visible');
+        });
+      });
+
+      /* ------------------------------------------------------------------------
+         5.4 MULTI-STAGE TRANSITION LIFECYCLE (IDLE -> MORPH -> PROCESS -> SUCCESS -> RESET)
+         ------------------------------------------------------------------------ */
+      
+      // Stage 1: Trigger Processing Sequence
+      actionBtn.addEventListener('click', () => {
+        if (currentState !== 'idle') return;
+        startProcessingSequence();
+      });
+
+      // Abort Button
+      abortBtn.addEventListener('click', () => {
+        resetToIdle();
+      });
+
+      function startProcessingSequence() {
+        currentState = 'processing';
+
+        // Reset Tooltip & Magnetic Transforms
+        dockTooltip.classList.remove('is-visible');
+        liquidIndicator.classList.remove('is-active');
+        itemPhysics.forEach(obj => {
+          obj.targetX = 0; obj.targetY = 0; obj.targetScale = 1;
+          obj.element.style.transform = `translate3d(0,0,0) scale(1)`;
+        });
+
+        // Trigger Shell Structural Morph
+        islandShell.classList.add('is-expanded');
+        heroCard.style.opacity = '0.3';
+        heroCard.style.transform = 'translateY(-10px)';
+
+        // Particle Burst from Click Origin
+        const btnRect = actionBtn.getBoundingClientRect();
+        spawnParticleBurst(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2, 25, 'cyan');
+
+        // Reset Progress Telemetry View Mode
+        progressValue = 0;
+        updateProgressUI(0);
+        stageTitle.textContent = "Compiling Neural Shaders";
+        stageTag.textContent = "PROCESSING";
+        stageDesc.textContent = "Synthesizing quantum vertex buffer arrays...";
+        progressVal.style.display = 'block';
+
+        // Animate SVG Stroke Progress
+        const duration = 3200; // 3.2 seconds
+        const startTime = performance.now();
+
+        const progressStep = (currentTime) => {
+          if (currentState !== 'processing') return;
+
+          const elapsedTime = currentTime - startTime;
+          const progressRatio = Math.min(elapsedTime / duration, 1);
+          
+          // Eased progress mapping
+          const easeProgress = Math.pow(progressRatio, 0.85);
+          const currentPercent = Math.floor(easeProgress * 100);
+
+          updateProgressUI(currentPercent);
+
+          // Dynamic Telemetry Status Text Updates
+          if (currentPercent > 35 && currentPercent < 70) {
+            stageTitle.textContent = "Linking Memory Buffers";
+            stageDesc.textContent = "Binding dynamic GPU register targets...";
+          } else if (currentPercent >= 70) {
+            stageTitle.textContent = "Optimizing Pipelines";
+            stageDesc.textContent = "Executing parallel compute shaders...";
+          }
+
+          if (progressRatio < 1) {
+            progressAnimId = requestAnimationFrame(progressStep);
+          } else {
+            // Transition to Stage 3: Success Resolution
+            triggerSuccessState();
+          }
+        };
+
+        progressAnimId = requestAnimationFrame(progressStep);
+      }
+
+      function updateProgressUI(percent) {
+        progressVal.textContent = `${percent}%`;
+        
+        // SVG Stroke DashOffset calculation (Circumference = 2 * PI * 28 = ~175.9)
+        const circumference = 175.9;
+        const offset = circumference - (percent / 100) * circumference;
+        progressMeter.style.strokeDashoffset = offset;
+      }
+
+      // Stage 3: Success State Resolution
+      function triggerSuccessState() {
+        currentState = 'success';
+
+        islandShell.classList.add('is-success');
+        stageTitle.textContent = "Quantum Synthesis Complete";
+        stageTag.textContent = "READY";
+        stageDesc.textContent = "Latency: 0.8ms • Frame Sync Locked";
+        progressVal.style.display = 'none';
+
+        // Burst Gold Micro-Particles
+        const ringRect = progressRingBox.getBoundingClientRect();
+        spawnParticleBurst(ringRect.left + ringRect.width / 2, ringRect.top + ringRect.height / 2, 45, 'gold');
+
+        // Stage 4: Hold Success State then Reset Automatically
+        setTimeout(() => {
+          if (currentState === 'success') {
+            resetToIdle();
+          }
+        }, 2600);
+      }
+
+      // Stage 4 / Reset Function
+      function resetToIdle() {
+        currentState = 'resetting';
+        if (progressAnimId) cancelAnimationFrame(progressAnimId);
+
+        islandShell.classList.remove('is-expanded', 'is-success');
+        heroCard.style.opacity = '1';
+        heroCard.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+          currentState = 'idle';
+          progressMeter.style.strokeDashoffset = 175.9;
+        }, 600);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile Badge Card & Reputation Shield</title>
+  <style>
+    /* ==========================================================================
+       1. CSS VARIABLES & RESET
+       ========================================================================== */
+    :root {
+      --bg-dark: #04060a;
+      --card-bg: rgba(10, 15, 26, 0.65);
+      --card-border: rgba(212, 175, 55, 0.18);
+      --card-border-glow: rgba(0, 242, 254, 0.25);
+      
+      --gold-primary: #dfb15b;
+      --gold-light: #fce8a6;
+      --gold-dark: #997428;
+      --gold-glow: rgba(223, 177, 91, 0.25);
+
+      --cyan-primary: #00f2fe;
+      --cyan-secondary: #4facfe;
+      --cyan-glow: rgba(0, 242, 254, 0.2);
+
+      --text-main: #f0f4f8;
+      --text-muted: #8a99ad;
+      --text-gold: #e2c073;
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", "Roboto Mono", monospace;
+
+      --transition-fast: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-smooth: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-bounce: 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(223, 177, 91, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 242, 254, 0.05) 0%, transparent 40%);
+    }
+
+    /* Ambient Background Canvas */
+    #ambient-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Particles Effect Overlay Canvas */
+    #particle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ==========================================================================
+       2. MAIN CARD CONTAINER & GLASSMORPHISM
+       ========================================================================== */
+    .profile-card {
+      position: relative;
+      width: 100%;
+      max-width: 460px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 28px;
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.75),
+        0 18px 36px -18px rgba(0, 0, 0, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+      z-index: 1;
+      overflow: hidden;
+      transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth), transform var(--transition-smooth);
+    }
+
+    .profile-card:hover {
+      border-color: rgba(212, 175, 55, 0.35);
+      box-shadow: 
+        0 35px 70px -15px rgba(0, 0, 0, 0.85),
+        0 0 30px rgba(223, 177, 91, 0.12),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+
+    /* Dynamic Glow Layer Behind Content (z-index: 1) */
+    .card-glow-layer {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, var(--gold-glow) 0%, rgba(0, 242, 254, 0.08) 50%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.6;
+      transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+      filter: blur(40px);
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 2; /* Strict layout rule: text/icons above dynamic background glow */
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    /* ==========================================================================
+       3. HEADER SECTION (AVATAR & BADGE)
+       ========================================================================== */
+    .header-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+
+    .avatar-ring {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-primary), transparent, var(--cyan-primary));
+      padding: 2px;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: rotateRing 12s linear infinite;
+    }
+
+    @keyframes rotateRing {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(4, 6, 10, 0.8);
+      background: #0d131f;
+      display: block;
+    }
+
+    .status-indicator {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #10b981;
+      border: 3px solid #060911;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Header Details */
+    .user-info {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .user-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .badge-pill {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      overflow: hidden;
+      transition: all var(--transition-smooth);
+    }
+
+    /* Glowing Pill Background at lower z-index */
+    .badge-pill::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(135deg, rgba(223, 177, 91, 0.2), rgba(0, 242, 254, 0.15));
+      border: 1px solid rgba(223, 177, 91, 0.3);
+      border-radius: 20px;
+      transition: all var(--transition-smooth);
+    }
+
+    .badge-pill * {
+      position: relative;
+      z-index: 2; /* Above glowing background pill */
+    }
+
+    .badge-pill.verified {
+      color: var(--gold-light);
+    }
+
+    .badge-pill.legendary::before {
+      background: linear-gradient(135deg, rgba(223, 177, 91, 0.4), rgba(255, 215, 0, 0.3));
+      border-color: rgba(255, 215, 0, 0.6);
+      box-shadow: 0 0 15px rgba(223, 177, 91, 0.4);
+    }
+
+    .user-title {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .user-location {
+      font-size: 0.75rem;
+      color: rgba(138, 153, 173, 0.7);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    /* ==========================================================================
+       4. REPUTATION SHIELD SECTION
+       ========================================================================== */
+    .shield-display-card {
+      position: relative;
+      background: rgba(15, 23, 38, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      transition: all var(--transition-smooth);
+    }
+
+    .shield-display-card:hover {
+      background: rgba(18, 28, 45, 0.5);
+      border-color: rgba(223, 177, 91, 0.2);
+    }
+
+    .shield-visual-container {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* SVG Shield Rings & Path */
+    .shield-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 8px rgba(223, 177, 91, 0.3));
+      transition: filter var(--transition-smooth);
+    }
+
+    .shield-path-bg {
+      fill: url(#shield-grad-bg);
+      stroke: rgba(223, 177, 91, 0.3);
+      stroke-width: 1.5;
+    }
+
+    .shield-path-draw {
+      fill: none;
+      stroke: url(#shield-grad-stroke);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-dasharray: 220;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .orbit-ring {
+      position: absolute;
+      inset: -6px;
+      border: 1px stroke rgba(0, 242, 254, 0.2);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: spinOrbit 10s linear infinite;
+    }
+
+    @keyframes spinOrbit {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .shield-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-grow: 1;
+      margin-left: 18px;
+    }
+
+    .metric-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .metric-value-group {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .metric-score {
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      background: linear-gradient(135deg, #ffffff 30%, var(--gold-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+
+    .metric-max {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .trust-tier-tag {
+      font-size: 0.72rem;
+      color: var(--cyan-primary);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Quick Stats Grid */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: center;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .stat-box:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(223, 177, 91, 0.15);
+    }
+
+    .stat-num {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+    }
+
+    .stat-desc {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* ==========================================================================
+       5. ACTIVITY GRAPH SECTION
+       ========================================================================== */
+    .graph-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(6, 10, 18, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 18px;
+      padding: 16px;
+      position: relative;
+    }
+
+    .graph-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .graph-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .graph-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 3px;
+      border-radius: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .tab-btn.active {
+      background: rgba(223, 177, 91, 0.2);
+      color: var(--gold-light);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 110px;
+    }
+
+    #activity-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Interactive Graph Tooltip */
+    .graph-tooltip {
+      position: absolute;
+      padding: 4px 8px;
+      background: rgba(4, 6, 10, 0.9);
+      border: 1px solid var(--gold-primary);
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--gold-light);
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -120%);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ==========================================================================
+       6. MULTI-STAGE ACTION BUTTON & STATE transitions
+       ========================================================================== */
+    .action-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .endorse-btn {
+      position: relative;
+      width: 100%;
+      height: 48px;
+      border-radius: 14px;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      overflow: hidden;
+      background: transparent;
+      transition: all var(--transition-smooth);
+    }
+
+    /* Translucent Background Layer for Button (z-index: 1) */
+    .btn-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(135deg, #dfb15b 0%, #b8860b 100%);
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(223, 177, 91, 0.3);
+      transition: all var(--transition-smooth);
+    }
+
+    .endorse-btn:hover .btn-bg {
+      background: linear-gradient(135deg, #ebd18c 0%, #d49b1a 100%);
+      box-shadow: 0 8px 25px rgba(223, 177, 91, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .endorse-btn:active .btn-bg {
+      transform: translateY(1px);
+      box-shadow: 0 3px 10px rgba(223, 177, 91, 0.2);
+    }
+
+    /* Content Layer (z-index: 2) strictly above background */
+    .btn-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #05080e;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      transition: all var(--transition-fast);
+    }
+
+    /* Progress Ring Container inside Button */
+    .btn-progress-ring {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+    }
+
+    .spinner-svg {
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* --- Multi-Stage State Styles --- */
+    
+    /* Stage 2: Morph / In-Flight Interaction */
+    .profile-card.state-in-flight .endorse-btn {
+      transform: scale(0.98);
+    }
+    
+    /* Stage 3: Processing */
+    .profile-card.state-processing .btn-bg {
+      background: linear-gradient(135deg, #1a2638 0%, #0e1726 100%);
+      border: 1px solid var(--gold-primary);
+      box-shadow: 0 0 20px rgba(223, 177, 91, 0.2);
+    }
+
+    .profile-card.state-processing .btn-content {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    .profile-card.state-processing .btn-progress-ring {
+      opacity: 1;
+    }
+
+    .profile-card.state-processing .shield-path-draw {
+      stroke-dashoffset: 220;
+      animation: pulseShieldStroke 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseShieldStroke {
+      0% { stroke-dashoffset: 180; stroke: var(--gold-primary); }
+      100% { stroke-dashoffset: 20; stroke: var(--cyan-primary); }
+    }
+
+    /* Stage 4: Success Resolution */
+    .profile-card.state-success {
+      border-color: rgba(223, 177, 91, 0.6);
+      box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(223, 177, 91, 0.25);
+    }
+
+    .profile-card.state-success .btn-bg {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .profile-card.state-success .btn-content {
+      color: #ffffff;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .profile-card.state-success .shield-display-card {
+      background: rgba(223, 177, 91, 0.08);
+      border-color: rgba(223, 177, 91, 0.4);
+    }
+
+    /* Reset Pill Button */
+    .reset-bar {
+      display: flex;
+      justify-content: center;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: all var(--transition-smooth);
+    }
+
+    .profile-card.state-success .reset-bar {
+      opacity: 1;
+      max-height: 40px;
+      margin-top: 4px;
+    }
+
+    .reset-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      text-decoration: underline;
+      cursor: pointer;
+      transition: color var(--transition-fast);
+    }
+
+    .reset-btn:hover {
+      color: var(--text-main);
+    }
+
+    /* SVG Icon Helpers */
+    .icon {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Background Ambient Animation Canvas -->
+  <canvas id="ambient-canvas"></canvas>
+
+  <!-- Main Profile Component -->
+  <div class="profile-card" id="profileCard">
+    
+    <!-- Physics Particle Canvas Layer -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Translucent Background Glow -->
+    <div class="card-glow-layer" id="cardGlow"></div>
+
+    <div class="card-content">
+      
+      <!-- HEADER SECTION -->
+      <header class="header-section">
+        <div class="avatar-wrapper">
+          <div class="avatar-ring"></div>
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80" alt="Avatar" class="avatar-img" />
+          <div class="status-indicator" title="Active Now"></div>
+        </div>
+
+        <div class="user-info">
+          <div class="user-name-row">
+            <h1 class="user-name">Elena Rostova</h1>
+            <div class="badge-pill verified" id="statusBadge">
+              <svg class="icon" viewBox="0 0 24 24" style="width: 12px; height: 12px;">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span id="badgeText">Verified</span>
+            </div>
+          </div>
+          <p class="user-title">Principal Security Architect</p>
+          <div class="user-location">
+            <svg class="icon" viewBox="0 0 24 24" style="width: 12px; height: 12px;">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            Zurich, Switzerland
+          </div>
+        </div>
+      </header>
+
+      <!-- REPUTATION SHIELD CARD -->
+      <section class="shield-display-card">
+        <div class="shield-visual-container">
+          <div class="orbit-ring"></div>
+          <svg class="shield-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="shield-grad-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="rgba(223, 177, 91, 0.25)" />
+                <stop offset="100%" stop-color="rgba(0, 242, 254, 0.05)" />
+              </linearGradient>
+              <linearGradient id="shield-grad-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#dfb15b" />
+                <stop offset="50%" stop-color="#00f2fe" />
+                <stop offset="100%" stop-color="#4facfe" />
+              </linearGradient>
+            </defs>
+            <!-- Shield Base Shape -->
+            <path class="shield-path-bg" d="M50,10 L85,25 L85,55 C85,75 50,92 50,92 C50,92 15,75 15,55 L15,25 Z" />
+            <!-- Dynamic Vector Stroke for Animation -->
+            <path class="shield-path-draw" id="shieldStroke" d="M50,10 L85,25 L85,55 C85,75 50,92 50,92 C50,92 15,75 15,55 L15,25 Z" />
+            <!-- Emblem Inner Icon -->
+            <path d="M50,32 L62,40 L58,54 L50,48 L42,54 L38,40 Z" fill="none" stroke="#fce8a6" stroke-width="2" stroke-linejoin="round" />
+          </svg>
+        </div>
+
+        <div class="shield-metrics">
+          <span class="metric-label">Trust Score Index</span>
+          <div class="metric-value-group">
+            <span class="metric-score" id="trustScoreVal">99.8</span>
+            <span class="metric-max">/ 100</span>
+          </div>
+          <div class="trust-tier-tag">
+            <svg class="icon" viewBox="0 0 24 24" style="width: 12px; height: 12px;">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span id="tierLabel">Tier 1 Sovereign Reputation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATS GRID -->
+      <section class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num" id="statEndorsements">1,420</div>
+          <div class="stat-desc">Endorsements</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">99.9%</div>
+          <div class="stat-desc">Uptime Rate</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">#4</div>
+          <div class="stat-desc">Global Rank</div>
+        </div>
+      </section>
+
+      <!-- ACTIVITY GRAPH SECTION -->
+      <section class="graph-section">
+        <div class="graph-header">
+          <span class="graph-title">
+            <svg class="icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; stroke: var(--gold-primary);">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Activity Telemetry
+          </span>
+          <div class="graph-tabs">
+            <button class="tab-btn active" data-period="7d">7D</button>
+            <button class="tab-btn" data-period="30d">30D</button>
+            <button class="tab-btn" data-period="1y">1Y</button>
+          </div>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="activity-canvas"></canvas>
+          <div class="graph-tooltip" id="graphTooltip"></div>
+        </div>
+      </section>
+
+      <!-- MULTI-STAGE ACTION CONTROL -->
+      <section class="action-container">
+        <button class="endorse-btn" id="endorseBtn">
+          <div class="btn-bg"></div>
+          <div class="btn-content" id="btnContent">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span id="btnLabel">Endorse Credential</span>
+          </div>
+          <div class="btn-progress-ring">
+            <svg class="spinner-svg" viewBox="0 0 50 50">
+              <circle cx="25" cy="25" r="20" fill="none" stroke="var(--gold-primary)" stroke-width="4" stroke-dasharray="80" stroke-dashoffset="60" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </button>
+
+        <div class="reset-bar">
+          <button class="reset-btn" id="resetBtn">Reset Interactive State</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+     7. JAVASCRIPT LOGIC & ANIMATION ENGINE
+     ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      /* ------------------------------------------------------------------------
+         A. AMBIENT BACKGROUND CANVAS
+         ------------------------------------------------------------------------ */
+      const ambientCanvas = document.getElementById('ambient-canvas');
+      const ambCtx = ambientCanvas.getContext('2d');
+      let width, height;
+
+      function resizeAmbient() {
+        width = ambientCanvas.width = window.innerWidth;
+        height = ambientCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeAmbient);
+      resizeAmbient();
+
+      const bgDots = Array.from({ length: 35 }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r: Math.random() * 1.5 + 0.5,
+        alpha: Math.random() * 0.4 + 0.1,
+        dx: (Math.random() - 0.5) * 0.3,
+        dy: (Math.random() - 0.5) * 0.3
+      }));
+
+      function renderAmbient() {
+        ambCtx.clearRect(0, 0, width, height);
+        bgDots.forEach(dot => {
+          dot.x += dot.dx;
+          dot.y += dot.dy;
+          if (dot.x < 0) dot.x = width;
+          if (dot.x > width) dot.x = 0;
+          if (dot.y < 0) dot.y = height;
+          if (dot.y > height) dot.y = 0;
+
+          ambCtx.beginPath();
+          ambCtx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
+          ambCtx.fillStyle = `rgba(223, 177, 91, ${dot.alpha})`;
+          ambCtx.fill();
+        });
+        requestAnimationFrame(renderAmbient);
+      }
+      renderAmbient();
+
+
+      /* ------------------------------------------------------------------------
+         B. PARTICLE PHYSICS ENGINE (On Interaction / Burst)
+         ------------------------------------------------------------------------ */
+      const particleCanvas = document.getElementById('particle-canvas');
+      const pCtx = particleCanvas.getContext('2d');
+      let particles = [];
+
+      function resizeParticleCanvas() {
+        const rect = particleCanvas.parentElement.getBoundingClientRect();
+        particleCanvas.width = rect.width;
+        particleCanvas.height = rect.height;
+      }
+      resizeParticleCanvas();
+      window.addEventListener('resize', resizeParticleCanvas);
+
+      class Particle {
+        constructor(x, y, color) {
+          this.x = x;
+          this.y = y;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 6 + 2;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed - 1;
+          this.radius = Math.random() * 2.5 + 1;
+          this.color = color;
+          this.alpha = 1;
+          this.decay = Math.random() * 0.02 + 0.015;
+          this.gravity = 0.12;
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vy += this.gravity;
+          this.vx *= 0.96;
+          this.alpha -= this.decay;
+        }
+
+        draw(ctx) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, this.alpha);
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = this.color;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function spawnParticleBurst(x, y, count = 40) {
+        const colors = ['#dfb15b', '#fce8a6', '#00f2fe', '#ffffff'];
+        for (let i = 0; i < count; i++) {
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          particles.push(new Particle(x, y, color));
+        }
+      }
+
+      function renderParticles() {
+        pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+        particles = particles.filter(p => p.alpha > 0);
+        particles.forEach(p => {
+          p.update();
+          p.draw(pCtx);
+        });
+        requestAnimationFrame(renderParticles);
+      }
+      renderParticles();
+
+
+      /* ------------------------------------------------------------------------
+         C. ACTIVITY GRAPH TELEMETRY CANVAS
+         ------------------------------------------------------------------------ */
+      const actCanvas = document.getElementById('activity-canvas');
+      const actCtx = actCanvas.getContext('2d');
+      const tooltip = document.getElementById('graphTooltip');
+
+      const datasets = {
+        '7d': [45, 52, 58, 65, 72, 88, 99.8],
+        '30d': [20, 35, 42, 58, 67, 82, 99.8],
+        '1y': [12, 28, 45, 60, 75, 89, 99.8]
+      };
+
+      let currentPeriod = '7d';
+      let currentData = [...datasets['7d']];
+      let targetData = [...datasets['7d']];
+      let graphProgress = 1;
+
+      function setupGraphDPI() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = actCanvas.getBoundingClientRect();
+        actCanvas.width = rect.width * dpr;
+        actCanvas.height = rect.height * dpr;
+        actCtx.scale(dpr, dpr);
+      }
+      setupGraphDPI();
+      window.addEventListener('resize', setupGraphDPI);
+
+      function drawGraph() {
+        const rect = actCanvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+
+        actCtx.clearRect(0, 0, w, h);
+
+        if (w === 0 || h === 0) return;
+
+        // Interpolate data points during transition
+        const points = currentData.map((val, idx) => {
+          const targetVal = targetData[idx];
+          const interpolatedVal = val + (targetVal - val) * graphProgress;
+          const x = (idx / (currentData.length - 1)) * (w - 20) + 10;
+          const y = h - 15 - ((interpolatedVal / 100) * (h - 30));
+          return { x, y, val: interpolatedVal };
+        });
+
+        // Draw Area Gradient Under Path
+        const areaGrad = actCtx.createLinearGradient(0, 0, 0, h);
+        areaGrad.addColorStop(0, 'rgba(223, 177, 91, 0.25)');
+        areaGrad.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+
+        actCtx.beginPath();
+        actCtx.moveTo(points[0].x, h - 5);
+        actCtx.lineTo(points[0].x, points[0].y);
+
+        for (let i = 0; i < points.length - 1; i++) {
+          const xc = (points[i].x + points[i + 1].x) / 2;
+          const yc = (points[i].y + points[i + 1].y) / 2;
+          actCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+        actCtx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        actCtx.lineTo(points[points.length - 1].x, h - 5);
+        actCtx.closePath();
+        actCtx.fillStyle = areaGrad;
+        actCtx.fill();
+
+        // Draw Stroke Line
+        const lineGrad = actCtx.createLinearGradient(0, 0, w, 0);
+        lineGrad.addColorStop(0, '#dfb15b');
+        lineGrad.addColorStop(1, '#00f2fe');
+
+        actCtx.beginPath();
+        actCtx.moveTo(points[0].x, points[0].y);
+        for (let i = 0; i < points.length - 1; i++) {
+          const xc = (points[i].x + points[i + 1].x) / 2;
+          const yc = (points[i].y + points[i + 1].y) / 2;
+          actCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+        actCtx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        actCtx.strokeStyle = lineGrad;
+        actCtx.lineWidth = 2.5;
+        actCtx.shadowBlur = 10;
+        actCtx.shadowColor = 'rgba(223, 177, 91, 0.4)';
+        actCtx.stroke();
+        actCtx.shadowBlur = 0;
+
+        // Draw Data Points
+        points.forEach((pt) => {
+          actCtx.beginPath();
+          actCtx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+          actCtx.fillStyle = '#04060a';
+          actCtx.strokeStyle = '#dfb15b';
+          actCtx.lineWidth = 2;
+          actCtx.fill();
+          actCtx.stroke();
+        });
+
+        if (graphProgress < 1) {
+          graphProgress += 0.05;
+          requestAnimationFrame(drawGraph);
+        }
+      }
+
+      drawGraph();
+
+      // Tab Switching Mechanics
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          
+          currentData = currentData.map((val, idx) => {
+            const targetVal = targetData[idx];
+            return val + (targetVal - val) * graphProgress;
+          });
+          
+          currentPeriod = e.target.getAttribute('data-period');
+          targetData = [...datasets[currentPeriod]];
+          graphProgress = 0;
+          drawGraph();
+        });
+      });
+
+      // Hover Tooltip Interactions
+      actCanvas.addEventListener('mousemove', (e) => {
+        const rect = actCanvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const w = rect.width;
+        
+        const step = (w - 20) / (targetData.length - 1);
+        const index = Math.round((mouseX - 10) / step);
+
+        if (index >= 0 && index < targetData.length) {
+          const val = targetData[index];
+          const ptX = (index / (targetData.length - 1)) * (w - 20) + 10;
+          const ptY = rect.height - 15 - ((val / 100) * (rect.height - 30));
+
+          tooltip.style.opacity = '1';
+          tooltip.style.left = `${ptX}px`;
+          tooltip.style.top = `${ptY}px`;
+          tooltip.textContent = `Score: ${val.toFixed(1)}`;
+        }
+      });
+
+      actCanvas.addEventListener('mouseleave', () => {
+        tooltip.style.opacity = '0';
+      });
+
+
+      /* ------------------------------------------------------------------------
+         D. MULTI-STAGE STATE TRANSITION ENGINE
+         ------------------------------------------------------------------------
+         Stages:
+         1. Idle -> Ready for interaction
+         2. In-flight Interaction -> Initial Morph & Compress
+         3. Processing / Progress -> SVG stroke drawing + Spinner loop
+         4. Success Resolution -> Particle explosion, Score increment, Badge upgrade
+         5. Reset -> Return to initial state
+      ------------------------------------------------------------------------ */
+
+      const profileCard = document.getElementById('profileCard');
+      const endorseBtn = document.getElementById('endorseBtn');
+      const btnLabel = document.getElementById('btnLabel');
+      const resetBtn = document.getElementById('resetBtn');
+      const trustScoreVal = document.getElementById('trustScoreVal');
+      const statEndorsements = document.getElementById('statEndorsements');
+      const statusBadge = document.getElementById('statusBadge');
+      const badgeText = document.getElementById('badgeText');
+      const tierLabel = document.getElementById('tierLabel');
+      const shieldStroke = document.getElementById('shieldStroke');
+
+      let currentState = 'idle'; // 'idle' | 'in-flight' | 'processing' | 'success'
+
+      endorseBtn.addEventListener('click', () => {
+        if (currentState !== 'idle') return;
+
+        // --- STAGE 2: IN-FLIGHT INTERACTION / MORPH ---
+        currentState = 'in-flight';
+        profileCard.classList.add('state-in-flight');
+
+        // Spawn slight touch feedback burst at button center
+        const btnRect = endorseBtn.getBoundingClientRect();
+        const cardRect = profileCard.getBoundingClientRect();
+        spawnParticleBurst(
+          btnRect.left - cardRect.left + btnRect.width / 2,
+          btnRect.top - cardRect.top + btnRect.height / 2,
+          15
+        );
+
+        setTimeout(() => {
+          // --- STAGE 3: PROCESSING / PROGRESS ---
+          currentState = 'processing';
+          profileCard.classList.remove('state-in-flight');
+          profileCard.classList.add('state-processing');
+
+          // Trigger Activity Graph Rise
+          targetData = targetData.map(val => Math.min(100, val + 2));
+          graphProgress = 0;
+          drawGraph();
+
+          // Wait for processing sequence to resolve
+          setTimeout(() => {
+            // --- STAGE 4: SUCCESS RESOLUTION ---
+            currentState = 'success';
+            profileCard.classList.remove('state-processing');
+            profileCard.classList.add('state-success');
+
+            // 1. Particle Explosion from Shield Center
+            const shieldVisual = document.querySelector('.shield-visual-container');
+            const shieldRect = shieldVisual.getBoundingClientRect();
+            spawnParticleBurst(
+              shieldRect.left - cardRect.left + shieldRect.width / 2,
+              shieldRect.top - cardRect.top + shieldRect.height / 2,
+              65
+            );
+
+            // 2. Metric Increment Animation
+            animateNumber(trustScoreVal, 99.8, 100.0, 1, 1000);
+            animateNumber(statEndorsements, 1420, 1421, 0, 800);
+
+            // 3. Status Badge Morph
+            statusBadge.classList.add('legendary');
+            badgeText.textContent = 'Legendary Master';
+            tierLabel.textContent = 'Tier 0 Sovereign Apex';
+
+            // 4. Update Button Label for Success
+            btnLabel.textContent = 'Credential Endorsed';
+            
+            // 5. Shield Complete Ring State
+            shieldStroke.style.strokeDashoffset = '0';
+
+          }, 1600);
+
+        }, 150);
+      });
+
+      // Reset Action Sequence
+      resetBtn.addEventListener('click', () => {
+        currentState = 'idle';
+        profileCard.classList.remove('state-success', 'state-processing', 'state-in-flight');
+
+        // Reset Text and Stats
+        trustScoreVal.textContent = '99.8';
+        statEndorsements.textContent = '1,420';
+        statusBadge.classList.remove('legendary');
+        badgeText.textContent = 'Verified';
+        tierLabel.textContent = 'Tier 1 Sovereign Reputation';
+        btnLabel.textContent = 'Endorse Credential';
+
+        // Reset Graph
+        targetData = [...datasets[currentPeriod]];
+        graphProgress = 0;
+        drawGraph();
+      });
+
+      // Helper function for smoothly incrementing numbers
+      function animateNumber(element, start, end, decimals, duration) {
+        const startTime = performance.now();
+        function update(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const value = start + (end - start) * progress;
+          element.textContent = value.toFixed(decimals);
+          if (progress < 1) {
+            requestAnimationFrame(update);
+          }
+        }
+        requestAnimationFrame(update);
+      }
+
+    });
+  </script>
+</body>
+</html>

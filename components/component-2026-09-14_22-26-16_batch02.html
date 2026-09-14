@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHER | Parametric Architectural Carousel</title>
+  <style>
+    /* ==========================================================================
+       1. CORE SYSTEM & THEME VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-dark: #04060a;
+      --bg-card: rgba(13, 19, 31, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-border-hover: rgba(223, 177, 91, 0.4);
+      --accent-gold: #dfb15b;
+      --accent-gold-glow: rgba(223, 177, 91, 0.25);
+      --accent-cyan: #00f2fe;
+      --accent-cyan-glow: rgba(0, 242, 254, 0.25);
+      --text-main: #f0f4f8;
+      --text-muted: #8a99ad;
+      --text-dim: #4a5768;
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", "Consolas", "Courier New", monospace;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-sans);
+      color: var(--text-main);
+      background-image: 
+        radial-gradient(circle at 50% 15%, rgba(18, 28, 45, 0.8) 0%, rgba(4, 6, 10, 1) 70%),
+        radial-gradient(circle at 85% 85%, rgba(223, 177, 91, 0.03) 0%, transparent 40%);
+    }
+
+    /* Ambient Subtle Grid Background */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ==========================================================================
+       2. HEADER & NAVIGATION HUD
+       ========================================================================== */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 24px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      border: 1.5px solid var(--accent-gold);
+      transform: rotate(45deg);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 12px var(--accent-gold-glow);
+    }
+
+    .brand-logo-inner {
+      width: 10px;
+      height: 10px;
+      background: var(--accent-gold);
+    }
+
+    .brand-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 30%, var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Standardized Layering & Glowing Badge Components */
+    .badge-pill {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      background: rgba(10, 15, 25, 0.4);
+      overflow: hidden;
+      transition: all 0.3s var(--ease-out-expo);
+    }
+
+    .badge-pill:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 20px rgba(223, 177, 91, 0.15);
+    }
+
+    /* Strict Z-Index Layering Rule Enforcement */
+    .badge-glow-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1; /* Glow behind */
+      background: radial-gradient(circle at center, var(--accent-gold-glow) 0%, transparent 70%);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .badge-content {
+      position: relative;
+      z-index: 2; /* Content foreground */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ==========================================================================
+       3. 3D CYLINDRICAL STAGE & CAROUSEL
+       ========================================================================== */
+    .stage-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      perspective: 1400px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .stage-container:active {
+      cursor: grabbing;
+    }
+
+    .cylinder-deck {
+      position: relative;
+      width: 320px;
+      height: 460px;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* Deck Card Architecture */
+    .deck-card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .deck-card.is-active {
+      border-color: var(--glass-border-hover);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7),
+                  0 0 30px var(--accent-gold-glow),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .card-media-wrapper {
+      position: relative;
+      width: 100%;
+      height: 62%;
+      overflow: hidden;
+    }
+
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(0.85) contrast(1.1);
+      transition: transform 0.8s var(--ease-out-expo), filter 0.5s ease;
+      pointer-events: none;
+    }
+
+    .deck-card:hover .card-img {
+      transform: scale(1.08);
+      filter: saturate(1.1) contrast(1.15);
+    }
+
+    .card-overlay-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(4,6,10,0) 30%, rgba(4,6,10,0.95) 100%);
+    }
+
+    .card-tag {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+    }
+
+    .card-body {
+      position: relative;
+      padding: 20px;
+      height: 38%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 2;
+    }
+
+    .card-meta {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card-spec-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .spec-label {
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .spec-value {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .btn-inspect {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-out-expo);
+      overflow: hidden;
+    }
+
+    .btn-inspect:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 242, 254, 0.1);
+      transform: scale(1.1);
+    }
+
+    .btn-inspect svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--text-main);
+      fill: none;
+      transition: stroke 0.3s ease;
+    }
+
+    .btn-inspect:hover svg {
+      stroke: var(--accent-cyan);
+    }
+
+    /* ==========================================================================
+       4. HUD CONTROLS & GAUGES
+       ========================================================================== */
+    .hud-deck-controls {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      z-index: 10;
+      padding: 12px 28px;
+      border-radius: 40px;
+      background: rgba(8, 12, 20, 0.75);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .nav-arrow {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .nav-arrow:hover {
+      color: var(--accent-gold);
+      background: rgba(223, 177, 91, 0.1);
+    }
+
+    .nav-arrow svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .deck-counter {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .deck-counter-current {
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    /* Dynamic Inertia Meter Gauge */
+    .inertia-gauge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 16px;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .gauge-bar-track {
+      width: 60px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .gauge-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(to right, var(--accent-gold), var(--accent-cyan));
+      transition: width 0.1s linear;
+    }
+
+    /* ==========================================================================
+       5. MULTI-STAGE INSPECTION DRAWER & SVG BLUEPRINT SYSTEM
+       ========================================================================== */
+    .inspection-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 6, 10, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s var(--ease-out-expo);
+    }
+
+    .inspection-modal.is-open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-container {
+      position: relative;
+      width: 90vw;
+      max-width: 1100px;
+      height: 80vh;
+      max-height: 720px;
+      background: rgba(10, 16, 26, 0.85);
+      border: 1px solid var(--glass-border-hover);
+      border-radius: 24px;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8),
+                  0 0 50px var(--accent-gold-glow);
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      overflow: hidden;
+      transform: scale(0.92) translateY(20px);
+      transition: transform 0.5s var(--ease-out-expo);
+    }
+
+    .inspection-modal.is-open .modal-container {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Left Stage: Interactive SVG Blueprint + Particle Overlay */
+    .blueprint-stage {
+      position: relative;
+      background: #020407;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      overflow: hidden;
+    }
+
+    #particle-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .blueprint-svg-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .blueprint-svg {
+      width: 85%;
+      height: 85%;
+      stroke: var(--accent-cyan);
+      stroke-width: 1.2;
+      fill: none;
+    }
+
+    .blueprint-path {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      transition: stroke-dashoffset 2s var(--ease-out-expo);
+    }
+
+    .inspection-modal.is-open .blueprint-path {
+      stroke-dashoffset: 0;
+    }
+
+    /* Blueprint Dynamic Hotspots */
+    .blueprint-node {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid var(--accent-gold);
+      background: rgba(223, 177, 91, 0.2);
+      transform: translate(-50%, -50%) scale(0);
+      cursor: pointer;
+      z-index: 3;
+      transition: transform 0.4s var(--ease-elastic);
+    }
+
+    .inspection-modal.is-open .blueprint-node {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .blueprint-node::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1px solid var(--accent-gold);
+      opacity: 0.5;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Right Stage: Parametric Specs & Telemetry */
+    .dossier-stage {
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+    }
+
+    .dossier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .dossier-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .dossier-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-top: 6px;
+      color: #fff;
+    }
+
+    .modal-close-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .modal-close-btn:hover {
+      border-color: var(--accent-gold);
+      color: #fff;
+      transform: rotate(90deg);
+    }
+
+    /* Structural Progress Bars */
+    .metrics-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .metric-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .metric-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .metric-name {
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, var(--accent-gold), var(--accent-cyan));
+      border-radius: 3px;
+      transition: width 1.2s var(--ease-out-expo);
+    }
+
+    .dossier-actions {
+      display: flex;
+      gap: 16px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-gold), #b88e35);
+      color: #04060a;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(223, 177, 91, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(223, 177, 91, 0.35);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 900px) {
+      .modal-container {
+        grid-template-columns: 1fr;
+        height: 90vh;
+        overflow-y: auto;
+      }
+      .blueprint-stage {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <!-- HEADER HUD -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo"><div class="brand-logo-inner"></div></div>
+      <span class="brand-text">Aether Architecture</span>
+    </div>
+
+    <div class="hud-controls">
+      <div class="badge-pill" id="spatial-mode-btn">
+        <div class="badge-glow-bg"></div>
+        <div class="badge-content">
+          <span class="status-dot"></span>
+          <span>Parametric Arc 3D</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 3D CYLINDRICAL CAROUSEL STAGE -->
+  <main class="stage-container" id="stage-container">
+    <div class="cylinder-deck" id="cylinder-deck">
+      <!-- Dynamic Card Elements Injected by JavaScript -->
+    </div>
+  </main>
+
+  <!-- HUD NAVIGATION & INERTIA DECAY GAUGES -->
+  <div class="hud-deck-controls">
+    <button class="nav-arrow" id="prev-btn" aria-label="Previous Project">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    
+    <div class="deck-counter">
+      <span class="deck-counter-current" id="counter-current">01</span>
+      <span>/</span>
+      <span id="counter-total">07</span>
+    </div>
+
+    <button class="nav-arrow" id="next-btn" aria-label="Next Project">
+      <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+
+    <div class="inertia-gauge">
+      <div class="gauge-bar-track">
+        <div class="gauge-bar-fill" id="inertia-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MULTI-STAGE INSPECTION DRAWER & BLUEPRINT ANALYSIS MODAL -->
+  <div class="inspection-modal" id="inspection-modal">
+    <div class="modal-container">
+      <!-- Left: Interactive Vector Blueprint & Micro-particle Physics -->
+      <div class="blueprint-stage">
+        <canvas id="particle-canvas"></canvas>
+        <div class="blueprint-svg-wrapper">
+          <svg class="blueprint-svg" viewBox="0 0 400 400">
+            <!-- Isometric Structural Grid Blueprint Paths -->
+            <path class="blueprint-path" d="M 200,60 L 340,140 L 200,220 L 60,140 Z" />
+            <path class="blueprint-path" d="M 60,140 L 60,280 L 200,360 L 200,220" />
+            <path class="blueprint-path" d="M 340,140 L 340,280 L 200,360" />
+            <path class="blueprint-path" d="M 200,60 L 200,220" />
+            <path class="blueprint-path" d="M 130,100 L 270,180" stroke-dasharray="4,4" />
+            <path class="blueprint-path" d="M 130,240 L 270,320" stroke-dasharray="4,4" />
+            <circle cx="200" cy="60" r="4" fill="var(--accent-cyan)" />
+            <circle cx="340" cy="140" r="4" fill="var(--accent-cyan)" />
+            <circle cx="60" cy="140" r="4" fill="var(--accent-cyan)" />
+            <circle cx="200" cy="360" r="4" fill="var(--accent-cyan)" />
+          </svg>
+          
+          <!-- Interactive Blueprint Hotspots -->
+          <div class="blueprint-node" style="top: 25%; left: 50%;" title="Cantilever Apex Node"></div>
+          <div class="blueprint-node" style="top: 55%; left: 35%;" title="Load-Bearing Dynamic Core"></div>
+          <div class="blueprint-node" style="top: 70%; left: 75%;" title="Kinetic Facet Joint"></div>
+        </div>
+      </div>
+
+      <!-- Right: Detailed Architectural Dossier -->
+      <div class="dossier-stage">
+        <div class="dossier-header">
+          <div>
+            <span class="dossier-subtitle" id="modal-project-code">PRJ-2025-01</span>
+            <h2 class="dossier-title" id="modal-project-title">Villa Symmetria</h2>
+          </div>
+          <button class="modal-close-btn" id="modal-close-btn" aria-label="Close Inspection Drawer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-row">
+            <div class="metric-labels">
+              <span class="metric-name">Structural Structural Equilibrium</span>
+              <span class="metric-val" id="metric-1-val">98.4%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="metric-1-bar"></div>
+            </div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-labels">
+              <span class="metric-name">Solar Energy Harvest Yield</span>
+              <span class="metric-val" id="metric-2-val">87.2%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="metric-2-bar"></div>
+            </div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-labels">
+              <span class="metric-name">Parametric Geometry Index</span>
+              <span class="metric-val" id="metric-3-val">94.0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="metric-3-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dossier-actions">
+          <button class="btn-primary" id="btn-export-spec">Export Architectural Specs</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. DATA DEFINITIONS & INITIALIZATION
+       ========================================================================== */
+    const ARCHITECTURAL_PROJECTS = [
+      {
+        id: "PRJ-01",
+        title: "Villa Symmetria",
+        location: "Zurich, Switzerland",
+        year: "2025",
+        typology: "Residential Pavilion",
+        image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80",
+        metrics: [98, 87, 94]
+      },
+      {
+        id: "PRJ-02",
+        title: "The Hyperion Tower",
+        location: "Tokyo, Japan",
+        year: "2026",
+        typology: "Parametric Skyscraper",
+        image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1000&q=80",
+        metrics: [95, 92, 99]
+      },
+      {
+        id: "PRJ-03",
+        title: "Monolith Noir",
+        location: "Reykjavik, Iceland",
+        year: "2024",
+        typology: "Cliffside Sanctuary",
+        image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80",
+        metrics: [91, 79, 88]
+      },
+      {
+        id: "PRJ-04",
+        title: "Aurora Atrium",
+        location: "Tromsø, Norway",
+        year: "2025",
+        typology: "Eco Envelope",
+        image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=80",
+        metrics: [99, 96, 91]
+      },
+      {
+        id: "PRJ-05",
+        title: "Sanctum Void",
+        location: "Sedona, USA",
+        year: "2024",
+        typology: "Desert Monolith",
+        image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=80",
+        metrics: [89, 94, 85]
+      },
+      {
+        id: "PRJ-06",
+        title: "Nexus Canopy",
+        location: "Singapore",
+        year: "2026",
+        typology: "Biomorphic Complex",
+        image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80",
+        metrics: [96, 98, 97]
+      },
+      {
+        id: "PRJ-07",
+        title: "Helix Obsidian",
+        location: "Oslo, Norway",
+        year: "2025",
+        typology: "Kinetic Research Center",
+        image: "https://images.unsplash.com/photo-1506146332389-18140dc7b2fb?auto=format&fit=crop&w=1000&q=80",
+        metrics: [93, 85, 96]
+      }
+    ];
+
+    /* ==========================================================================
+       2. AUDIO SYNTHESIS ENGINE (Web Audio API - Pure & Native)
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+
+      playTick() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.03);
+        
+        gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.03);
+      }
+
+      playOpen() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(660, this.ctx.currentTime + 0.2);
+        
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.2);
+      }
+    }
+
+    const soundEngine = new SoundEngine();
+
+    /* ==========================================================================
+       3. 3D CYLINDRICAL ARC CAROUSEL ENGINE (Physics & Inertia)
+       ========================================================================== */
+    class CylindricalCarousel {
+      constructor() {
+        this.container = document.getElementById('stage-container');
+        this.deck = document.getElementById('cylinder-deck');
+        this.cardsData = ARCHITECTURAL_PROJECTS;
+        this.cardElements = [];
+        
+        // Arc & Geometry Parameters
+        this.radius = 620; // Radius of cylindrical curve
+        this.angleStep = (Math.PI * 2) / this.cardsData.length;
+        
+        // Motion & Physics State
+        this.rotationAngle = 0;
+        this.targetAngle = 0;
+        this.velocity = 0;
+        this.isDragging = false;
+        this.startX = 0;
+        this.lastX = 0;
+        this.dragDistance = 0;
+        this.activeCardIndex = 0;
+
+        this.init();
+      }
+
+      init() {
+        this.renderCards();
+        this.bindEvents();
+        this.animate();
+      }
+
+      renderCards() {
+        this.cardsData.forEach((project, i) => {
+          const card = document.createElement('div');
+          card.className = 'deck-card';
+          card.setAttribute('data-index', i);
+
+          card.innerHTML = `
+            <div class="card-media-wrapper">
+              <div class="badge-pill card-tag">
+                <div class="badge-glow-bg"></div>
+                <div class="badge-content">
+                  <span class="status-dot"></span>
+                  <span>${project.id}</span>
+                </div>
+              </div>
+              <img class="card-img" src="${project.image}" alt="${project.title}" />
+              <div class="card-overlay-gradient"></div>
+            </div>
+            <div class="card-body">
+              <div>
+                <div class="card-meta">${project.location} • ${project.year}</div>
+                <h3 class="card-title">${project.title}</h3>
+              </div>
+              <div class="card-footer">
+                <div class="card-spec-item">
+                  <span class="spec-label">Typology</span>
+                  <span class="spec-value">${project.typology}</span>
+                </div>
+                <button class="btn-inspect" data-index="${i}" aria-label="Inspect Blueprint">
+                  <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+            </div>
+          `;
+
+          this.deck.appendChild(card);
+          this.cardElements.push(card);
+        });
+
+        document.getElementById('counter-total').textContent = String(this.cardsData.length).padStart(2, '0');
+      }
+
+      bindEvents() {
+        // Pointer Interaction Events
+        const onDragStart = (e) => {
+          soundEngine.init();
+          this.isDragging = true;
+          this.startX = e.clientX || (e.touches && e.touches[0].clientX);
+          this.lastX = this.startX;
+          this.dragDistance = 0;
+        };
+
+        const onDragMove = (e) => {
+          if (!this.isDragging) return;
+          const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+          const deltaX = currentX - this.lastX;
+          this.lastX = currentX;
+          this.dragDistance += Math.abs(deltaX);
+
+          // Convert horizontal drag to angle rotation
+          this.velocity = (deltaX * 0.0035);
+          this.targetAngle += this.velocity;
+        };
+
+        const onDragEnd = () => {
+          if (!this.isDragging) return;
+          this.isDragging = false;
+        };
+
+        this.container.addEventListener('mousedown', onDragStart);
+        window.addEventListener('mousemove', onDragMove);
+        window.addEventListener('mouseup', onDragEnd);
+
+        this.container.addEventListener('touchstart', onDragStart, { passive: true });
+        window.addEventListener('touchmove', onDragMove, { passive: true });
+        window.addEventListener('touchend', onDragEnd);
+
+        // Trackpad & Mouse Wheel Inertia Scroll
+        this.container.addEventListener('wheel', (e) => {
+          soundEngine.init();
+          e.preventDefault();
+          this.velocity -= e.deltaY * 0.00008;
+        }, { passive: false });
+
+        // HUD Navigation Buttons
+        document.getElementById('prev-btn').addEventListener('click', () => this.rotateToIndex(this.activeCardIndex - 1));
+        document.getElementById('next-btn').addEventListener('click', () => this.rotateToIndex(this.activeCardIndex + 1));
+
+        // Click Card to Focus or Inspect
+        this.cardElements.forEach((card, index) => {
+          card.addEventListener('click', (e) => {
+            if (this.dragDistance > 8) return; // Prevent trigger on drag release
+            if (index !== this.activeCardIndex) {
+              this.rotateToIndex(index);
+            } else if (e.target.closest('.btn-inspect') || e.target.closest('.deck-card')) {
+              openInspectionModal(this.cardsData[index]);
+            }
+          });
+        });
+      }
+
+      rotateToIndex(index) {
+        soundEngine.init();
+        const total = this.cardsData.length;
+        // Normalize wrap-around indexing
+        const normalizedIndex = (index % total + total) % total;
+        
+        // Find nearest angular distance
+        const currentNormAngle = this.targetAngle % (Math.PI * 2);
+        const targetNormAngle = -normalizedIndex * this.angleStep;
+        
+        let diff = targetNormAngle - currentNormAngle;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        if (diff < -Math.PI) diff += Math.PI * 2;
+
+        this.targetAngle += diff;
+      }
+
+      animate() {
+        const loop = () => {
+          // Inertia Decay Physics
+          if (!this.isDragging) {
+            this.velocity *= 0.92; // Dynamic Friction
+            this.targetAngle += this.velocity;
+
+            // Magnetic Snap-To-Nearest Card when slow
+            if (Math.abs(this.velocity) < 0.0005) {
+              const nearestIndex = Math.round(-this.targetAngle / this.angleStep);
+              const snapAngle = -nearestIndex * this.angleStep;
+              this.targetAngle += (snapAngle - this.targetAngle) * 0.1; // Spring smoothness
+            }
+          }
+
+          // Smooth Angle Interpolation (Lerp)
+          const prevAngle = this.rotationAngle;
+          this.rotationAngle += (this.targetAngle - this.rotationAngle) * 0.12;
+
+          // Sound trigger on passing card thresholds
+          if (Math.floor(prevAngle / this.angleStep) !== Math.floor(this.rotationAngle / this.angleStep)) {
+            soundEngine.playTick();
+          }
+
+          // Inertia HUD Meter Update
+          const inertiaVal = Math.min(100, Math.abs(this.velocity) * 4000);
+          document.getElementById('inertia-fill').style.width = `${inertiaVal}%`;
+
+          // Calculate Dynamic 3D Positions & Structural Bending
+          let closestDist = Infinity;
+          let closestIndex = 0;
+
+          this.cardElements.forEach((card, i) => {
+            const cardAngle = (i * this.angleStep) + this.rotationAngle;
+            
+            // 3D Cylinder Projection Coordinate Math
+            const x = Math.sin(cardAngle) * this.radius;
+            const z = Math.cos(cardAngle) * this.radius - this.radius;
+            const rotY = (cardAngle * 180 / Math.PI);
+
+            // Dynamic Physical Lean / Pitch / Roll Torque derived from velocity
+            const rotX = this.velocity * 180; 
+            const rotZ = -this.velocity * 80;
+
+            // Apply calculated transform matrix
+            card.style.transform = `translate3d(${x}px, 0px, ${z}px) rotateY(${rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
+
+            // Simulated Depth-of-Field Blur & Depth Opacity Fade
+            const depthRatio = (z + this.radius) / this.radius; // 1 at front, 0 at back
+            const blur = Math.max(0, (1 - depthRatio) * 12);
+            const opacity = Math.max(0.2, depthRatio);
+
+            card.style.filter = `blur(${blur}px)`;
+            card.style.opacity = opacity.toFixed(2);
+
+            // Determine active center card
+            const distFromFront = Math.abs(Math.sin(cardAngle));
+            if (distFromFront < closestDist) {
+              closestDist = distFromFront;
+              closestIndex = i;
+            }
+          });
+
+          // Update active state HUD & visual highlights
+          if (this.activeCardIndex !== closestIndex) {
+            this.cardElements[this.activeCardIndex].classList.remove('is-active');
+            this.activeCardIndex = closestIndex;
+            this.cardElements[this.activeCardIndex].classList.add('is-active');
+
+            // Normalize positive display index
+            const normalizedDisplay = ((this.activeCardIndex % this.cardsData.length) + this.cardsData.length) % this.cardsData.length + 1;
+            document.getElementById('counter-current').textContent = String(normalizedDisplay).padStart(2, '0');
+          }
+
+          requestAnimationFrame(loop);
+        };
+
+        loop();
+      }
+    }
+
+    /* ==========================================================================
+       4. BLUEPRINT CANVAS PARTICLE PHYSICS ENGINE
+       ========================================================================== */
+    class ParticleEngine {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.isActive = false;
+
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+
+      resize() {
+        if (!this.canvas) return;
+        this.canvas.width = this.canvas.parentElement.clientWidth;
+        this.canvas.height = this.canvas.parentElement.clientHeight;
+      }
+
+      start() {
+        this.isActive = true;
+        this.particles = Array.from({ length: 40 }, () => ({
+          x: Math.random() * this.canvas.width,
+          y: Math.random() * this.canvas.height,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: (Math.random() - 0.5) * 0.8,
+          size: Math.random() * 2 + 1,
+          alpha: Math.random() * 0.5 + 0.2
+        }));
+        this.render();
+      }
+
+      stop() {
+        this.isActive = false;
+      }
+
+      render() {
+        if (!this.isActive) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < 0 || p.x > this.canvas.width) p.vx *= -1;
+          if (p.y < 0 || p.y > this.canvas.height) p.vy *= -1;
+
+          this.ctx.fillStyle = `rgba(0, 242, 254, ${p.alpha})`;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          this.ctx.fill();
+        });
+
+        requestAnimationFrame(() => this.render());
+      }
+    }
+
+    const particleEngine = new ParticleEngine('particle-canvas');
+
+    /* ==========================================================================
+       5. MULTI-STAGE INSPECTION MODAL SYSTEM
+       ========================================================================== */
+    const modal = document.getElementById('inspection-modal');
+    const closeBtn = document.getElementById('modal-close-btn');
+
+    function openInspectionModal(projectData) {
+      soundEngine.playOpen();
+      
+      // Populate Spec Dossier Data
+      document.getElementById('modal-project-code').textContent = projectData.id;
+      document.getElementById('modal-project-title').textContent = projectData.title;
+
+      // Reset and trigger metrics progress bar animations
+      const [m1, m2, m3] = projectData.metrics;
+      document.getElementById('metric-1-val').textContent = `${m1}.4%`;
+      document.getElementById('metric-2-val').textContent = `${m2}.8%`;
+      document.getElementById('metric-3-val').textContent = `${m3}.0%`;
+
+      document.getElementById('metric-1-bar').style.width = '0%';
+      document.getElementById('metric-2-bar').style.width = '0%';
+      document.getElementById('metric-3-bar').style.width = '0%';
+
+      modal.classList.add('is-open');
+      particleEngine.start();
+
+      // Multi-stage progress bar morph timeline
+      setTimeout(() => {
+        document.getElementById('metric-1-bar').style.width = `${m1}%`;
+        document.getElementById('metric-2-bar').style.width = `${m2}%`;
+        document.getElementById('metric-3-bar').style.width = `${m3}%`;
+      }, 200);
+    }
+
+    function closeInspectionModal() {
+      modal.classList.remove('is-open');
+      particleEngine.stop();
+    }
+
+    closeBtn.addEventListener('click', closeInspectionModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeInspectionModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+        closeInspectionModal();
+      }
+    });
+
+    /* ==========================================================================
+       6. APPLICATION LAUNCH
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      new CylindricalCarousel();
+    });
+  </script>
+</body>
+</html>

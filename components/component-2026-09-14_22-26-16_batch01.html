@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manufacture de Haute Horlogerie - Caliber H-9000</title>
+    <style>
+        :root {
+            --bg-void: #04060a;
+            --bg-card: rgba(12, 16, 26, 0.75);
+            --gold-primary: #d4af37;
+            --gold-bright: #f9e79f;
+            --gold-dark: #8c6d1f;
+            --gold-glow: rgba(212, 175, 55, 0.25);
+            --steel-blue: #1e3a5f;
+            --cyan-accent: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.3);
+            --ruby-jewel: #e63946;
+            --text-main: #f0f4f8;
+            --text-muted: #64748b;
+            --text-gold: #e6c667;
+            --border-glass: rgba(212, 175, 55, 0.2);
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --font-serif: 'Trajan Pro', 'Cinzel', 'Georgia', serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(20, 30, 50, 0.5) 0%, transparent 70%),
+                radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+                linear-gradient(to bottom, #020305, #060911);
+        }
+
+        /* Subtle Geneva Stripes Background Pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                105deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.01) 10px,
+                rgba(255, 255, 255, 0.01) 20px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .horology-chassis {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1100px;
+            margin: 20px;
+            padding: 35px;
+            background: var(--bg-card);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 0 30px rgba(212, 175, 55, 0.05);
+        }
+
+        /* Decorative Corner Screws */
+        .chassis-screw {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8a929a, #3a4146);
+            border: 1px solid #1a1d20;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.6);
+        }
+        .chassis-screw::after {
+            content: '';
+            position: absolute;
+            top: 5px; left: 2px; right: 2px;
+            height: 1.5px;
+            background: #111;
+            transform: rotate(42deg);
+        }
+        .screw-tl { top: 16px; left: 16px; }
+        .screw-tr { top: 16px; right: 16px; }
+        .screw-bl { bottom: 16px; left: 16px; }
+        .screw-br { bottom: 16px; right: 16px; }
+
+        /* Header Styling */
+        .horology-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .brand-subtitle {
+            font-family: var(--font-serif);
+            font-size: 0.75rem;
+            letter-spacing: 0.4em;
+            color: var(--gold-primary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px var(--gold-glow);
+        }
+
+        .brand-title {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            color: var(--text-main);
+            text-transform: uppercase;
+            background: linear-gradient(180deg, #ffffff 0%, #a0a5b5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .caliber-spec {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 0.2em;
+            margin-top: 6px;
+        }
+
+        /* Layout Grid */
+        .horology-body {
+            display: grid;
+            grid-template-columns: 260px 1fr 260px;
+            gap: 30px;
+            align-items: center;
+        }
+
+        @media (max-width: 950px) {
+            .horology-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sub-dials Layout */
+        .subdial-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .subdial-card {
+            background: rgba(8, 11, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 18px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+
+        .subdial-card:hover {
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .subdial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .subdial-title {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .subdial-value {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--gold-primary);
+            font-weight: 600;
+        }
+
+        /* Main Center Rotary Component */
+        .rotary-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dial-container {
+            position: relative;
+            width: 380px;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Background Particle Canvas */
+        #particle-canvas {
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            width: 480px;
+            height: 480px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* SVG Rotary Dial Ring Structure */
+        .dial-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            transform: rotate(-90deg); /* Start 0 deg at top */
+        }
+
+        .dial-track-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.03);
+            stroke-width: 14;
+        }
+
+        .dial-progress-fill {
+            fill: none;
+            stroke: url(#gold-cyan-gradient);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 942.48; /* 2 * PI * 150 */
+            stroke-dashoffset: 942.48;
+            transition: stroke-dashoffset 0.05s ease-out;
+            filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
+        }
+
+        .dial-ticks {
+            stroke: rgba(212, 175, 55, 0.3);
+            stroke-width: 1;
+        }
+
+        .dial-ticks-major {
+            stroke: var(--gold-primary);
+            stroke-width: 2;
+        }
+
+        /* Skeleton Movement Animation behind Readout */
+        .skeleton-aperture {
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(15, 20, 32, 0.9) 0%, rgba(5, 7, 12, 0.95) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .escapement-gear {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            opacity: 0.12;
+            transform-origin: center;
+            animation: rotateGear 40s linear infinite;
+        }
+
+        @keyframes rotateGear {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .balance-wheel {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid var(--gold-dark);
+            border-radius: 50%;
+            opacity: 0.25;
+            animation: oscillateBalance 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes oscillateBalance {
+            0% { transform: rotate(-45deg); }
+            100% { transform: rotate(45deg); }
+        }
+
+        /* Central Readout Display (Layered above graphics) */
+        .readout-hub {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        /* Translucent gradient pill behind readout - STRICT LAYER REQUIREMENT (Z-INDEX 1 relative inside hub) */
+        .hub-glow-pill {
+            position: absolute;
+            z-index: 1;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--gold-glow) 0%, rgba(0,240,255,0.05) 60%, transparent 80%);
+            filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .hub-content {
+            position: relative;
+            z-index: 2; /* Fully above glow pill */
+        }
+
+        .readout-angle {
+            font-family: var(--font-mono);
+            font-size: 3.2rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .readout-unit {
+            font-size: 1.5rem;
+            color: var(--gold-primary);
+            margin-left: 2px;
+        }
+
+        .readout-subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.25em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        .state-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            color: var(--text-gold);
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .state-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--gold-primary);
+            box-shadow: 0 0 8px var(--gold-primary);
+        }
+
+        /* Rotating Mechanical Drag Knob Handle */
+        .knob-handle {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #f9e79f 0%, #d4af37 50%, #5c4510 100%);
+            border: 2px solid #ffffff;
+            box-shadow: 
+                0 0 15px rgba(212, 175, 55, 0.8),
+                0 4px 10px rgba(0, 0, 0, 0.7);
+            cursor: grab;
+            z-index: 20;
+            transform: translate(-50%, -50%);
+            transition: transform 0.05s ease-out, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .knob-handle:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(1.15);
+            box-shadow: 
+                0 0 25px rgba(0, 240, 255, 0.9),
+                0 6px 15px rgba(0, 0, 0, 0.9);
+        }
+
+        .knob-jewel {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ff8fa3 0%, var(--ruby-jewel) 70%, #590d22 100%);
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.6);
+        }
+
+        /* Precision Calibration Controls Deck */
+        .controls-deck {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(212, 175, 55, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .horo-btn {
+            position: relative;
+            background: rgba(18, 24, 38, 0.8);
+            border: 1px solid var(--border-glass);
+            color: var(--text-main);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Translucent glow behind button text (Requirement 3) */
+        .horo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, var(--gold-glow), transparent);
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .horo-btn span {
+            position: relative;
+            z-index: 2; /* Foreground text above background pill */
+        }
+
+        .horo-btn:hover {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .horo-btn:hover::before {
+            opacity: 1;
+        }
+
+        .horo-btn:active {
+            transform: translateY(1px);
+        }
+
+        .horo-btn-primary {
+            background: linear-gradient(135deg, #2a210d 0%, #121826 100%);
+            border-color: var(--gold-primary);
+            color: var(--gold-bright);
+        }
+
+        .horo-btn-primary::before {
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%);
+        }
+
+        .horo-btn-primary:hover {
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Mode Selector Pills */
+        .mode-selector {
+            display: flex;
+            background: rgba(5, 8, 14, 0.8);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mode-opt {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .mode-opt.active {
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--gold-bright);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+        }
+
+        /* Telemetry Stream Output */
+        .telemetry-log {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .telemetry-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--cyan-accent);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Dynamic SVG Gauge Meter Component */
+        .gauge-svg {
+            width: 100%;
+            height: 60px;
+        }
+
+        /* Multi-stage State Visual Overlays */
+        .chime-wave {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px; height: 380px;
+            border-radius: 50%;
+            border: 2px solid var(--gold-primary);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .chime-active {
+            animation: chimeExpand 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes chimeExpand {
+            0% { width: 340px; height: 340px; opacity: 1; border-color: var(--cyan-accent); }
+            100% { width: 550px; height: 550px; opacity: 0; border-color: var(--gold-primary); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="horology-chassis">
+        <!-- Chassis Mechanical Screws -->
+        <div class="chassis-screw screw-tl"></div>
+        <div class="chassis-screw screw-tr"></div>
+        <div class="chassis-screw screw-bl"></div>
+        <div class="chassis-screw screw-br"></div>
+
+        <!-- Header -->
+        <header class="horology-header">
+            <div class="brand-subtitle">Manufacture Horlogère • Genève</div>
+            <h1 class="brand-title">Caliber H-9000 Chrono-Rotary</h1>
+            <div class="caliber-spec">PRECISION ANGLE COMPLICATION • FREQUENCY 4HZ (28,800 VPH)</div>
+        </header>
+
+        <!-- Main Body -->
+        <div class="horology-body">
+
+            <!-- Left Sub-Dials Panel -->
+            <div class="subdial-panel">
+                <div class="subdial-card">
+                    <div class="subdial-header">
+                        <span class="subdial-title">Mainspring Tension</span>
+                        <span class="subdial-value" id="reserve-val">78%</span>
+                    </div>
+                    <svg class="gauge-svg" viewBox="0 0 200 50">
+                        <path d="M 20 40 A 80 80 0 0 1 180 40" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" stroke-linecap="round"/>
+                        <path id="reserve-bar" d="M 20 40 A 80 80 0 0 1 180 40" fill="none" stroke="url(#gold-gradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="260" stroke-dashoffset="60"/>
+                        <defs>
+                            <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#8c6d1f"/>
+                                <stop offset="100%" stop-color="#f9e79f"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); text-align: right; margin-top: 4px;">POWER RESERVE: 54 HRS</div>
+                </div>
+
+                <div class="subdial-card">
+                    <div class="subdial-header">
+                        <span class="subdial-title">Escapement Torque</span>
+                        <span class="subdial-value" id="torque-val">1.24 Nm</span>
+                    </div>
+                    <svg class="gauge-svg" viewBox="0 0 200 50">
+                        <path d="M 20 40 L 180 40" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" stroke-linecap="round"/>
+                        <circle id="torque-node" cx="80" cy="40" r="7" fill="var(--cyan-accent)" filter="drop-shadow(0 0 6px var(--cyan-accent))"/>
+                    </svg>
+                    <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); text-align: right; margin-top: 4px;">DYNAMIC FRICTION INDEX</div>
+                </div>
+            </div>
+
+            <!-- Central Rotary Dial Assembly -->
+            <div class="rotary-stage">
+                <div class="chime-wave" id="chime-ring"></div>
+                
+                <div class="dial-container" id="dial-wrapper">
+                    <canvas id="particle-canvas"></canvas>
+
+                    <!-- SVG Dial Rings -->
+                    <svg class="dial-svg" viewBox="0 0 380 380">
+                        <defs>
+                            <linearGradient id="gold-cyan-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#d4af37" />
+                                <stop offset="50%" stop-color="#f9e79f" />
+                                <stop offset="100%" stop-color="#00f0ff" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Outer Static Track -->
+                        <circle class="dial-track-bg" cx="190" cy="190" r="150" />
+
+                        <!-- Dynamic Angle Arc Fill Path -->
+                        <circle id="progress-arc" class="dial-progress-fill" cx="190" cy="190" r="150" />
+
+                        <!-- Generated Mechanical Ticks SVG Group -->
+                        <g id="ticks-group"></g>
+                    </svg>
+
+                    <!-- Inner Skeleton Movement Aperture -->
+                    <div class="skeleton-aperture">
+                        <!-- Escapement Wheel SVG -->
+                        <svg class="escapement-gear" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-dasharray="4 6"/>
+                            <circle cx="50" cy="50" r="30" fill="none" stroke="#d4af37" stroke-width="1"/>
+                            <path d="M 50 5 L 50 95 M 5 50 L 95 50 M 18 18 L 82 82 M 18 82 L 82 18" stroke="#d4af37" stroke-width="1"/>
+                        </svg>
+                        
+                        <!-- Oscillating Balance Wheel -->
+                        <div class="balance-wheel"></div>
+
+                        <!-- Readout Central Display -->
+                        <div class="readout-hub">
+                            <!-- Background Layer Glow Pill (Strictly z-index: 1 inside hub) -->
+                            <div class="hub-glow-pill" id="hub-glow"></div>
+
+                            <!-- Foreground Text Content (Strictly z-index: 2 inside hub) -->
+                            <div class="hub-content">
+                                <div class="readout-angle">
+                                    <span id="angle-display">000.0</span><span class="readout-unit">°</span>
+                                </div>
+                                <div class="readout-subtitle" id="sub-readout">ANGULAR POSITION</div>
+                                <div class="state-badge" id="status-pill">
+                                    <span class="state-dot" id="status-dot"></span>
+                                    <span id="status-text">SYSTEM IDLE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Knurled Rotary Drag Crown Knob -->
+                    <div class="knob-handle" id="knob">
+                        <div class="knob-jewel"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Controls Panel -->
+            <div class="subdial-panel">
+                <div class="subdial-card">
+                    <div class="subdial-header">
+                        <span class="subdial-title">Target Lock</span>
+                        <span class="subdial-value" id="target-readout">045.0°</span>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); line-height: 1.6;">
+                        AUTOMATIC RATCHET ENGAGEMENT IS ACTIVE. ROTATE CROWN TO ENGAGE MECHANISM.
+                    </div>
+                </div>
+
+                <div class="subdial-card">
+                    <div class="subdial-header">
+                        <span class="subdial-title">Angular Resolution</span>
+                        <span class="subdial-value">0.1° STEP</span>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); line-height: 1.6;">
+                        CALIBER FREQUENCY: 28,800 BPH<br>
+                        ISOCHRONISM: REGULATED
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Control Deck -->
+            <div class="controls-deck">
+                <div class="mode-selector">
+                    <div class="mode-opt active" data-step="0.1">CONTINUOUS</div>
+                    <div class="mode-opt" data-step="15">15° NOTCH</div>
+                    <div class="mode-opt" data-step="45">45° DETENT</div>
+                </div>
+
+                <div class="telemetry-log">
+                    <span class="telemetry-dot"></span>
+                    <span id="telemetry-text">HAUTE HORLOGERIE REAL-TIME TELEMETRY CONNECTED</span>
+                </div>
+
+                <div class="btn-group">
+                    <button class="horo-btn" id="btn-reset">
+                        <span>Reset Spring</span>
+                    </button>
+                    <button class="horo-btn horo-btn-primary" id="btn-execute">
+                        <span>Wind & Lock Caliber</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Mechanical High-Horology Rotary Dial Controller
+         * Handles Multi-stage Transitions, Haptics Sound, Particle Physics, & Angle Drag Math
+         */
+        class HorologyDialController {
+            constructor() {
+                // UI Elements
+                this.dialWrapper = document.getElementById('dial-wrapper');
+                this.knob = document.getElementById('knob');
+                this.progressArc = document.getElementById('progress-arc');
+                this.angleDisplay = document.getElementById('angle-display');
+                this.statusText = document.getElementById('status-text');
+                this.statusDot = document.getElementById('status-dot');
+                this.statusPill = document.getElementById('status-pill');
+                this.hubGlow = document.getElementById('hub-glow');
+                this.ticksGroup = document.getElementById('ticks-group');
+                this.telemetryText = document.getElementById('telemetry-text');
+                this.chimeRing = document.getElementById('chime-ring');
+                this.reserveBar = document.getElementById('reserve-bar');
+                this.reserveVal = document.getElementById('reserve-val');
+                this.torqueVal = document.getElementById('torque-val');
+                this.torqueNode = document.getElementById('torque-node');
+                this.btnExecute = document.getElementById('btn-execute');
+                this.btnReset = document.getElementById('btn-reset');
+
+                // Dial Geometry & Physics Constants
+                this.radius = 150; // SVG arc radius
+                this.circumference = 2 * Math.PI * this.radius; // ~942.48
+                this.currentAngle = 0; // 0 to 360 degrees
+                this.targetAngle = 0;
+                this.stepSnap = 0.1; // 0.1, 15, or 45
+                this.isDragging = false;
+                this.lastTickAngle = 0;
+                
+                // State Machine: 0: IDLE, 1: INTERACTING, 2: LOCKED, 3: PROCESSING/WINDING, 4: SUCCESS
+                this.currentState = 0; 
+                this.stateNames = ['SYSTEM IDLE', 'ADJUSTING ANGLE', 'RATCHET LOCKED', 'WINDING MAINSPRING', 'CALIBER ENGAGED'];
+
+                // Audio Context Initialization for Mechanical Click Feedback
+                this.audioCtx = null;
+
+                // Particle Engine
+                this.canvas = document.getElementById('particle-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+
+                this.init();
+            }
+
+            init() {
+                this.setupCanvas();
+                this.renderDialTicks();
+                this.bindEvents();
+                this.updateAngleDisplay(0);
+                this.startParticleLoop();
+
+                // Initialize Web Audio on first user gesture
+                const initAudio = () => {
+                    if (!this.audioCtx) {
+                        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    window.removeEventListener('pointerdown', initAudio);
+                };
+                window.addEventListener('pointerdown', initAudio);
+            }
+
+            setupCanvas() {
+                this.canvas.width = 480;
+                this.canvas.height = 480;
+            }
+
+            /* Render Crisp Horology SVG Ticks */
+            renderDialTicks() {
+                let ticksHTML = '';
+                const cx = 190, cy = 190, r = 150;
+
+                for (let deg = 0; deg < 360; deg += 3) {
+                    const rad = (deg - 90) * (Math.PI / 180);
+                    const isMajor = deg % 30 === 0;
+                    const isMedium = deg % 15 === 0;
+                    
+                    const tickLen = isMajor ? 12 : (isMedium ? 8 : 4);
+                    const strokeClass = isMajor ? 'dial-ticks-major' : 'dial-ticks';
+
+                    const x1 = cx + (r - tickLen) * Math.cos(rad);
+                    const y1 = cy + (r - tickLen) * Math.sin(rad);
+                    const x2 = cx + r * Math.cos(rad);
+                    const y2 = cy + r * Math.sin(rad);
+
+                    ticksHTML += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${strokeClass}" />`;
+                }
+                this.ticksGroup.innerHTML = ticksHTML;
+            }
+
+            /* Mechanical Sound Synthesizer (High Horology Ratchet Click) */
+            playTickSound(frequency = 1200, decay = 0.015) {
+                if (!this.audioCtx) return;
+                try {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(frequency, this.audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, this.audioCtx.currentTime + decay);
+                    
+                    gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + decay);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.audioCtx.currentTime + decay);
+                } catch (e) {
+                    // Audio fallback silently handled
+                }
+            }
+
+            /* Mechanical Chime / Completion Bell Synthesizer */
+            playChimeSound() {
+                if (!this.audioCtx) return;
+                try {
+                    const now = this.audioCtx.currentTime;
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now); // A5 note
+                    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.8);
+                    
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    
+                    osc.start(now);
+                    osc.stop(now + 1.2);
+                } catch(e) {}
+            }
+
+            bindEvents() {
+                // Pointer / Mouse Drag Handlers
+                const onPointerDown = (e) => {
+                    if (this.currentState === 3) return; // Locked during winding process
+                    this.isDragging = true;
+                    this.setState(1); // INTERACTING
+                    this.handlePointerMove(e);
+                    window.addEventListener('pointermove', onPointerMove);
+                    window.addEventListener('pointerup', onPointerUp);
+                };
+
+                const onPointerMove = (e) => {
+                    if (!this.isDragging) return;
+                    this.handlePointerMove(e);
+                };
+
+                const onPointerUp = () => {
+                    if (!this.isDragging) return;
+                    this.isDragging = false;
+                    window.removeEventListener('pointermove', onPointerMove);
+                    window.removeEventListener('pointerup', onPointerUp);
+                    
+                    // Snap to step if required
+                    if (this.stepSnap > 0.1) {
+                        this.currentAngle = Math.round(this.currentAngle / this.stepSnap) * this.stepSnap;
+                        this.updateAngleDisplay(this.currentAngle);
+                        this.playTickSound(1600, 0.03);
+                    }
+                    this.setState(2); // RATCHET LOCKED
+                };
+
+                this.knob.addEventListener('pointerdown', onPointerDown);
+
+                // Mode Selector Options
+                document.querySelectorAll('.mode-opt').forEach(opt => {
+                    opt.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-opt').forEach(o => o.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.stepSnap = parseFloat(e.target.dataset.step);
+                        this.telemetryText.innerText = `RESOLUTION MODE CHANGED: ${this.stepSnap}°`;
+                        this.playTickSound(900, 0.02);
+                    });
+                });
+
+                // Multi-Stage Transition Trigger: Wind & Execute
+                this.btnExecute.addEventListener('click', () => this.executeWindingSequence());
+
+                // Reset Action
+                this.btnReset.addEventListener('click', () => this.resetDial());
+            }
+
+            handlePointerMove(e) {
+                const rect = this.dialWrapper.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+                const dx = clientX - centerX;
+                const dy = clientY - centerY;
+
+                // Calculate Angle in Degrees (0 at top / 12 o'clock position)
+                let rad = Math.atan2(dy, dx);
+                let deg = rad * (180 / Math.PI) + 90;
+                if (deg < 0) deg += 360;
+
+                // Apply snapping logic if dragging
+                if (this.stepSnap >= 15) {
+                    deg = Math.round(deg / this.stepSnap) * this.stepSnap;
+                }
+
+                if (Math.abs(deg - this.currentAngle) > 0.05) {
+                    this.currentAngle = deg;
+                    this.updateAngleDisplay(this.currentAngle);
+                    
+                    // Emit Sparks from Knob Position
+                    this.spawnSparks(1);
+
+                    // Mechanical Ratchet Tick Sound Trigger every 5 degrees
+                    if (Math.abs(this.currentAngle - this.lastTickAngle) >= (this.stepSnap >= 15 ? this.stepSnap : 5)) {
+                        this.playTickSound(1200 + (this.currentAngle * 2), 0.012);
+                        this.lastTickAngle = this.currentAngle;
+                    }
+                }
+            }
+
+            updateAngleDisplay(deg) {
+                deg = Math.max(0, Math.min(360, deg));
+                
+                // Update Numeric Readout
+                this.angleDisplay.innerText = deg.toFixed(1).padStart(5, '0');
+                
+                // Position Drag Knob Handle around Perimeter
+                const rad = (deg - 90) * (Math.PI / 180);
+                const knobX = 190 + 150 * Math.cos(rad);
+                const knobY = 190 + 150 * Math.sin(rad);
+                this.knob.style.left = `${knobX}px`;
+                this.knob.style.top = `${knobY}px`;
+
+                // Update Dynamic SVG Progress Arc Stroke
+                const dashOffset = this.circumference - (deg / 360) * this.circumference;
+                this.progressArc.style.strokeDashoffset = dashOffset;
+
+                // Dynamic Torque Gauge Feedback
+                const torque = (1.0 + (deg / 360) * 0.8).toFixed(2);
+                this.torqueVal.innerText = `${torque} Nm`;
+                this.torqueNode.setAttribute('cx', 20 + (deg / 360) * 160);
+            }
+
+            setState(stateCode) {
+                this.currentState = stateCode;
+                this.statusText.innerText = this.stateNames[stateCode];
+
+                // Dynamic Styling Changes per State
+                if (stateCode === 1) { // Interacting
+                    this.statusDot.style.backgroundColor = 'var(--cyan-accent)';
+                    this.statusDot.style.boxShadow = '0 0 10px var(--cyan-accent)';
+                    this.hubGlow.style.background = 'radial-gradient(circle, var(--cyan-glow) 0%, rgba(212,175,55,0.1) 60%, transparent 80%)';
+                    this.telemetryText.innerText = `ROTATING CROWN: ${this.currentAngle.toFixed(1)}°`;
+                } else if (stateCode === 2) { // Locked
+                    this.statusDot.style.backgroundColor = 'var(--gold-primary)';
+                    this.statusDot.style.boxShadow = '0 0 10px var(--gold-primary)';
+                    this.hubGlow.style.background = 'radial-gradient(circle, var(--gold-glow) 0%, rgba(0,240,255,0.05) 60%, transparent 80%)';
+                    this.telemetryText.innerText = `RATCHET ENGAGED AT ${this.currentAngle.toFixed(1)}°`;
+                } else if (stateCode === 3) { // Processing / Winding
+                    this.statusDot.style.backgroundColor = '#ff9f1c';
+                    this.statusDot.style.boxShadow = '0 0 12px #ff9f1c';
+                    this.telemetryText.innerText = 'WINDING MAINSPRING... ESCAPEMENT TENSIONING';
+                } else if (stateCode === 4) { // Success
+                    this.statusDot.style.backgroundColor = '#2ec4b6';
+                    this.statusDot.style.boxShadow = '0 0 15px #2ec4b6';
+                    this.hubGlow.style.background = 'radial-gradient(circle, rgba(46, 196, 182, 0.4) 0%, var(--gold-glow) 70%, transparent 90%)';
+                    this.telemetryText.innerText = `CALIBER LOCKED AND OPERATIONAL AT ${this.currentAngle.toFixed(1)}°`;
+                } else if (stateCode === 0) { // Idle
+                    this.statusDot.style.backgroundColor = 'var(--gold-primary)';
+                    this.statusDot.style.boxShadow = '0 0 6px var(--gold-primary)';
+                    this.hubGlow.style.background = 'radial-gradient(circle, var(--gold-glow) 0%, rgba(0,240,255,0.05) 60%, transparent 80%)';
+                }
+            }
+
+            /* Multi-Stage State Machine Transition: Execution */
+            executeWindingSequence() {
+                if (this.currentState === 3) return; // Prevent double trigger
+                
+                this.setState(3); // State: WINDING/PROCESSING
+                let stepAngle = this.currentAngle;
+                const targetWinding = (stepAngle === 0) ? 360 : stepAngle;
+
+                // Stage 1: Fast Mechanical Auto-Winding Animation
+                let currentW = 0;
+                const windInterval = setInterval(() => {
+                    currentW += (targetWinding - currentW) * 0.15 + 0.5;
+                    if (currentW >= targetWinding - 0.5) {
+                        currentW = targetWinding;
+                        clearInterval(windInterval);
+                        
+                        // Stage 2: Success Resolution
+                        this.resolveSuccess();
+                    }
+                    this.updateAngleDisplay(currentW);
+                    this.playTickSound(800 + currentW * 3, 0.01);
+                }, 20);
+            }
+
+            resolveSuccess() {
+                this.setState(4); // SUCCESS STATE
+                this.playChimeSound();
+
+                // Trigger Visual Ring Pulse Shockwave
+                this.chimeRing.classList.remove('chime-active');
+                void this.chimeRing.offsetWidth; // Trigger Reflow
+                this.chimeRing.classList.add('chime-active');
+
+                // Burst Micro Spark Particles
+                this.spawnParticleBurst(60);
+
+                // Update Power Reserve Subdial Fill
+                const newReserve = Math.min(100, Math.round(50 + (this.currentAngle / 360) * 50));
+                this.reserveVal.innerText = `${newReserve}%`;
+                const offset = 260 - (260 * (newReserve / 100));
+                this.reserveBar.style.strokeDashoffset = offset;
+            }
+
+            resetDial() {
+                this.setState(0);
+                let startAngle = this.currentAngle;
+                let progress = 0;
+
+                const resetAnim = setInterval(() => {
+                    progress += 0.08;
+                    const easedAngle = startAngle * (1 - Math.pow(progress, 2));
+                    this.updateAngleDisplay(Math.max(0, easedAngle));
+                    this.playTickSound(1400 - progress * 800, 0.01);
+
+                    if (progress >= 1) {
+                        clearInterval(resetAnim);
+                        this.updateAngleDisplay(0);
+                        this.telemetryText.innerText = 'CALIBER RESET TO HOME POSITION (000.0°)';
+                    }
+                }, 16);
+            }
+
+            /* Canvas Particle Physics Engine */
+            spawnSparks(count = 2) {
+                const rad = (this.currentAngle - 90) * (Math.PI / 180);
+                const knobX = 240 + 150 * Math.cos(rad);
+                const knobY = 240 + 150 * Math.sin(rad);
+
+                for (let i = 0; i < count; i++) {
+                    this.particles.push({
+                        x: knobX,
+                        y: knobY,
+                        vx: (Math.random() - 0.5) * 3,
+                        vy: (Math.random() - 0.5) * 3,
+                        size: Math.random() * 2 + 1,
+                        alpha: 1,
+                        color: Math.random() > 0.5 ? '#f9e79f' : '#00f0ff'
+                    });
+                }
+            }
+
+            spawnParticleBurst(count = 50) {
+                const cx = 240, cy = 240;
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 6 + 2;
+                    this.particles.push({
+                        x: cx,
+                        y: cy,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: Math.random() * 3 + 1.5,
+                        alpha: 1,
+                        color: Math.random() > 0.3 ? '#d4af37' : '#00f0ff'
+                    });
+                }
+            }
+
+            startParticleLoop() {
+                const render = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                    for (let i = this.particles.length - 1; i >= 0; i--) {
+                        const p = this.particles[i];
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.alpha -= 0.025;
+
+                        if (p.alpha <= 0) {
+                            this.particles.splice(i, 1);
+                            continue;
+                        }
+
+                        this.ctx.save();
+                        this.ctx.globalAlpha = p.alpha;
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.shadowBlur = 6;
+                        this.ctx.shadowColor = p.color;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.restore();
+                    }
+
+                    requestAnimationFrame(render);
+                };
+                render();
+            }
+        }
+
+        // Initialize Haute Horology Component on DOM Load
+        document.addEventListener('DOMContentLoaded', () => {
+            window.horologyDial = new HorologyDialController();
+        });
+    </script>
+</body>
+</html>
