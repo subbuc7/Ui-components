@@ -8,15 +8,40 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-const CINEMATIC_TYPES = [
-  "3D cylindrical arc carousel with horizontal drag inertia, image cards, and spotlight focus",
-  "Cinematic interactive bento feature card with image previews and mouse-tracked specular glow",
-  "3D magnetic floating halo CTA button with multi-ring luminous pulse",
-  "3D card fan-deck selector with architectural images that expands on hover with perspective tilt",
-  "Interactive 3D particle constellation globe with drag rotation",
-  "Cinematic liquid gradient card with glass refraction and floating typography",
-  "3D accordion media folder expander with mechanical depth transitions",
-  "Scroll-reactive 3D telemetry meter with smooth damping physics"
+// Complete Master Library of 20 Practical & Cinematic UI Components
+const COMPONENT_LIBRARY = [
+  // 1. Navigation & Flow
+  "Floating dynamic island dock with magnetic icon pull and liquid indicator",
+  "Tactile segmented tab switcher with gliding pill and view transitions",
+  "Multi-step breadcrumb progress stepper with active node pulses",
+  
+  // 2. Authentication & Identity
+  "3D glassmorphic login and signup portal with smooth mode morphing",
+  "6-digit OTP code verification grid with auto-advancing inputs and resend timer",
+  "Phone number authentication drawer with country selector and SMS trigger",
+  "Biometric passkey scanner with interactive laser sweep and security unlock",
+
+  // 3. Actions & Physical Buttons
+  "Physical add-to-cart button with package drop bounce and spark burst",
+  "Multi-stage morphing action button with SVG progress arc and checkmark draw",
+  "Slide-to-confirm mechanical actuator switch with spring lock physics",
+  "Orbital floating action button (FAB) that expands into radial satellite nodes",
+
+  // 4. Inputs & Form Controls
+  "Floating label form inputs with laser border focus and live inline validation",
+  "Password entropy cipher meter with real-time bit-strength calculation",
+  "Mechanical high-horology rotary dial and circular slider with angle readout",
+  "Drag-and-drop file upload zone with dashed perimeter and circular progress ring",
+
+  // 5. Content Showcase & Cards
+  "3D cylindrical arc deck carousel with architectural imagery and drag inertia",
+  "Interactive bento feature grid with mouse-tracked specular glare and widgets",
+  "Holographic 3D asset vault card with gyroscopic tilt and metallic sheen",
+  "Comparison pricing matrix tier cards with annual discount toggle",
+
+  // 6. Overlays & Feedback
+  "Interactive floating toast notification banner with auto-dismiss progress bar",
+  "Audio telemetry equalizer widget with live glowing frequency bars"
 ];
 
 function extractCode(data) {
@@ -39,8 +64,8 @@ function extractCode(data) {
 }
 
 async function generateSingle(category, index, timeStr) {
-  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original cinematic website component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS libraries or CDNs.\n2. Meaningful Physical Animations: Do NOT just add glowing colors or hover shadows. Implement complete, tangible multi-stage state transitions (Idle -> In-flight Interaction/Morph -> Processing/Progress -> Success Resolution -> Reset) using structural layout morphing, SVG stroke-drawing paths, and micro-particle physics.\n3. Layering & Visibility: Never render solid or opaque indicators over icons or text. Always place glowing active pills on lower z-indexes (z-index: 1) strictly behind foreground icons and text (z-index: 2), using translucent gradients so all elements remain 100% visible and unblocked.\n4. Visual Aesthetics: Dark luxury theme (#04060a), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-resolution Unsplash imagery when applicable.\n5. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n6. Output raw HTML only (no markdown backticks).";
-  
+  const prompt = "Create a single, complete, ultra-premium, self-contained HTML file for an original, practical website UI component: " + category + ".\n\nStrict requirements:\n1. Completely self-contained single-file with embedded <style> and <script> tags. No external CSS/JS libraries or CDNs.\n2. Meaningful Physical Animations: Do NOT just add glowing colors or hover shadows. Implement complete, tangible multi-stage state transitions (Idle -> In-flight Interaction/Morph -> Processing/Progress -> Success Resolution -> Reset) using structural layout morphing, SVG stroke-drawing paths, and micro-particle physics.\n3. Layering & Visibility: Never render solid or opaque indicators over icons or text. Always place glowing active pills on lower z-indexes (z-index: 1) strictly behind foreground icons and text (z-index: 2), using translucent gradients so all elements remain 100% visible and unblocked.\n4. Visual Aesthetics: Dark luxury theme (#04060a), refined glassmorphism, subtle golden or cyan lighting, crisp micro-typography, and high-resolution Unsplash imagery when applicable.\n5. Standard English: Use clear, standard, elegant English for all labels, titles, and buttons.\n6. Originality: Do not copy existing code verbatim; build an original, production-ready implementation.\n7. Output raw HTML only (no markdown backticks).";
+
   console.log(`[${index}/2] Generating: ${category}...`);
 
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
@@ -81,10 +106,11 @@ async function generateSingle(category, index, timeStr) {
 async function runBatch() {
   const now = new Date();
   const date = now.toISOString().split('T')[0];
-  const time = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0');
+  const time = String(now.getHours()).padStart(2, '0') + "-" + String(now.getMinutes()).padStart(2, '0') + "-" + String(now.getSeconds()).padStart(2, '0');
   const timeStr = `${date}_${time}`;
 
-  const shuffled = [...CINEMATIC_TYPES].sort(() => 0.5 - Math.random());
+  // Pick 2 random, distinct categories from the 20 components
+  const shuffled = [...COMPONENT_LIBRARY].sort(() => 0.5 - Math.random());
   await generateSingle(shuffled[0], 1, timeStr);
   await generateSingle(shuffled, 2, timeStr);
 }
