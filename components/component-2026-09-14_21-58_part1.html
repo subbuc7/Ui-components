@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Telemetry Meter - Kinetic Damping System</title>
+  <style>
+    /* --------------------------------------------------------------------------
+       1. CORE RESET & THEME VARIABLES
+       -------------------------------------------------------------------------- */
+    :root {
+      --bg-primary: #04060a;
+      --bg-surface: rgba(8, 14, 26, 0.65);
+      --bg-surface-border: rgba(0, 240, 255, 0.12);
+      --accent-cyan: #00f0ff;
+      --accent-cyan-dim: rgba(0, 240, 255, 0.25);
+      --accent-gold: #ffb700;
+      --accent-gold-dim: rgba(255, 183, 0, 0.25);
+      --accent-emerald: #00ffaa;
+      --text-main: #f0f4f8;
+      --text-muted: #627284;
+      --text-dim: #3a4756;
+      --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      --glass-blur: blur(20px);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      background-image: 
+        radial-gradient(circle at 50% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 183, 0, 0.03) 0%, transparent 40%),
+        linear-gradient(to bottom, #04060a, #020305);
+      background-attachment: fixed;
+    }
+
+    body {
+      min-height: 400vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* Subtle grid background pattern */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* --------------------------------------------------------------------------
+       2. FIXED VIEWPORT LAYOUT & CANVAS STAGE
+       -------------------------------------------------------------------------- */
+    .viewport-stage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 70px 1fr 60px;
+      grid-template-columns: 320px 1fr 340px;
+      padding: 24px;
+      gap: 20px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .viewport-stage > * {
+      pointer-events: auto;
+    }
+
+    /* --------------------------------------------------------------------------
+       3. TOP NAVIGATION HEADER & HUD BADGES
+       -------------------------------------------------------------------------- */
+    .hud-header {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--bg-surface-border);
+      border-radius: 12px;
+      padding: 0 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .brand-title .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+
+    .header-telemetry-pills {
+      display: flex;
+      gap: 16px;
+    }
+
+    /* MANDATORY RULE COMPLIANCE: Glowing background pills layered strictly behind foreground text (z-index 1 vs 2) */
+    .pill-container {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    .pill-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.02));
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 20px;
+      z-index: 1;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .pill-container.active .pill-bg {
+      background: linear-gradient(135deg, rgba(255, 183, 0, 0.18), rgba(255, 183, 0, 0.03));
+      border-color: rgba(255, 183, 0, 0.5);
+      box-shadow: 0 0 15px rgba(255, 183, 0, 0.15);
+    }
+
+    .pill-content {
+      position: relative;
+      z-index: 2;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-label {
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* --------------------------------------------------------------------------
+       4. LEFT TELEMETRY METRICS PANEL
+       -------------------------------------------------------------------------- */
+    .panel-left {
+      grid-column: 1;
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--bg-surface-border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .metric-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .metric-name {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    /* Real-time Damping Gauge Bar */
+    .gauge-wrapper {
+      margin-top: 5px;
+      position: relative;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .gauge-bar {
+      position: absolute;
+      top: 0; left: 0; height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-gold));
+      transition: width 0.1s linear;
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    /* Dynamic Stage Pipeline Card */
+    .stage-card-wrapper {
+      position: relative;
+      margin-top: auto;
+      padding: 16px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .stage-card-bg {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 240, 255, 0.03);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      z-index: 1;
+      transition: all 0.5s ease;
+    }
+
+    .stage-card-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .stage-card-title {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .stage-card-status {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-top: 4px;
+      transition: color 0.4s ease;
+    }
+
+    /* --------------------------------------------------------------------------
+       5. CENTRAL 3D TELEMETRY STAGE (CANVAS + SVG OVERLAY)
+       -------------------------------------------------------------------------- */
+    .center-stage {
+      grid-column: 2;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #telemetry-canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+
+    .svg-hud-overlay {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .hud-ring-path {
+      fill: none;
+      stroke: rgba(0, 240, 255, 0.2);
+      stroke-width: 1.5;
+      stroke-dasharray: 6 6;
+      transform-origin: center;
+      transition: stroke 0.5s ease, stroke-width 0.5s ease;
+    }
+
+    .hud-progress-arc {
+      fill: none;
+      stroke: var(--accent-cyan);
+      stroke-width: 2.5;
+      stroke-dasharray: 800;
+      stroke-dashoffset: 800;
+      transform-origin: center;
+      transition: stroke-dashoffset 0.1s linear, stroke 0.5s ease;
+      filter: drop-shadow(0 0 6px var(--accent-cyan));
+    }
+
+    .hud-reticle-line {
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-width: 1;
+    }
+
+    /* --------------------------------------------------------------------------
+       6. RIGHT CONTROL & DIAGNOSTICS PANEL
+       -------------------------------------------------------------------------- */
+    .panel-right {
+      grid-column: 3;
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--bg-surface-border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .control-button {
+      position: relative;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      outline: none;
+      margin-bottom: 8px;
+    }
+
+    .control-button .btn-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.02));
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 8px;
+      z-index: 1;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .control-button:hover .btn-bg {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.05));
+      border-color: rgba(0, 240, 255, 0.6);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+    }
+
+    .control-button.active .btn-bg {
+      background: linear-gradient(135deg, rgba(255, 183, 0, 0.25), rgba(255, 183, 0, 0.05));
+      border-color: rgba(255, 183, 0, 0.8);
+      box-shadow: 0 0 25px rgba(255, 183, 0, 0.3);
+    }
+
+    .control-button .btn-text {
+      position: relative;
+      z-index: 2;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text-main);
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Waveform canvas styling */
+    .waveform-box {
+      width: 100%;
+      height: 80px;
+      background: rgba(4, 6, 10, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #waveform-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* --------------------------------------------------------------------------
+       7. BOTTOM STATUS BAR
+       -------------------------------------------------------------------------- */
+    .hud-footer {
+      grid-column: 1 / -1;
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--bg-surface-border);
+      border-radius: 12px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .footer-ticker {
+      display: flex;
+      gap: 24px;
+    }
+
+    .ticker-item span {
+      color: var(--text-main);
+    }
+
+    /* --------------------------------------------------------------------------
+       8. SCROLLABLE CONTENT SPACERS (FOR NATURAL SCROLL SIMULATION)
+       -------------------------------------------------------------------------- */
+    .scroll-content {
+      position: relative;
+      z-index: 1;
+      padding-top: 100vh;
+      pointer-events: auto;
+    }
+
+    .scroll-section {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8vw;
+    }
+
+    .scroll-card {
+      width: 360px;
+      background: var(--bg-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--bg-surface-border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      transform: translateY(30px);
+      opacity: 0;
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+    }
+
+    .scroll-card.visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .scroll-card h3 {
+      font-size: 16px;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      color: var(--accent-cyan);
+    }
+
+    .scroll-card p {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================================
+       FIXED HUD VIEWPORT & 3D TELEMETRY STAGE
+       ========================================================================= -->
+  <div class="viewport-stage">
+    
+    <!-- HEADER NAVBAR -->
+    <header class="hud-header">
+      <div class="brand-title">
+        <div class="status-dot"></div>
+        KINETIC TELEMETRY MATRIX v4.2
+      </div>
+      <div class="header-telemetry-pills">
+        <div class="pill-container" id="pill-mode">
+          <div class="pill-bg"></div>
+          <div class="pill-content">
+            <span class="pill-label">MODE:</span>
+            <span id="txt-mode">DAMPED_ORBIT</span>
+          </div>
+        </div>
+        <div class="pill-container" id="pill-sync">
+          <div class="pill-bg"></div>
+          <div class="pill-content">
+            <span class="pill-label">SYNC:</span>
+            <span id="txt-sync">99.84%</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- LEFT PANEL: REAL-TIME TELEMETRY DATA -->
+    <aside class="panel-left">
+      <div class="panel-title">
+        <span>KINEMATIC METRICS</span>
+        <span>LIVE</span>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-row">
+          <span class="metric-name">SCROLL VELOCITY</span>
+          <span class="metric-val" id="val-velocity">0.00 rad/s</span>
+        </div>
+        <div class="gauge-wrapper">
+          <div class="gauge-bar" id="gauge-velocity"></div>
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-row">
+          <span class="metric-name">DAMPING INERTIA</span>
+          <span class="metric-val" id="val-inertia">0.045</span>
+        </div>
+        <div class="gauge-wrapper">
+          <div class="gauge-bar" id="gauge-inertia" style="width: 45%;"></div>
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-row">
+          <span class="metric-name">PITCH / ROLL / YAW</span>
+          <span class="metric-val" id="val-orient">0° / 0° / 0°</span>
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-row">
+          <span class="metric-name">MORPH TENSION</span>
+          <span class="metric-val" id="val-morph">0.000</span>
+        </div>
+      </div>
+
+      <div class="stage-card-wrapper">
+        <div class="stage-card-bg" id="stage-card-bg"></div>
+        <div class="stage-card-content">
+          <div class="stage-card-title">PIPELINE STAGE</div>
+          <div class="stage-card-status" id="stage-card-status">01 : RESTING_IDLE</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER 3D TELEMETRY CANVAS & SVG HUD RETICLE -->
+    <main class="center-stage">
+      <canvas id="telemetry-canvas"></canvas>
+
+      <svg class="svg-hud-overlay" viewBox="0 0 800 800">
+        <!-- Reticle outer dynamic ring -->
+        <circle class="hud-ring-path" cx="400" cy="400" r="280" />
+        <circle class="hud-ring-path" cx="400" cy="400" r="200" style="stroke-dasharray: 4 12;" />
+        
+        <!-- Live progress dynamic stroke ring -->
+        <circle class="hud-progress-arc" id="hud-arc" cx="400" cy="400" r="240" />
+
+        <!-- Crosshair HUD elements -->
+        <line class="hud-reticle-line" x1="400" y1="80" x2="400" y2="140" />
+        <line class="hud-reticle-line" x1="400" y1="660" x2="400" y2="720" />
+        <line class="hud-reticle-line" x1="80" y1="400" x2="140" y2="400" />
+        <line class="hud-reticle-line" x1="660" y1="400" x2="720" y2="400" />
+      </svg>
+    </main>
+
+    <!-- RIGHT PANEL: INTERACTIVE CONTROLS & DIAGNOSTICS -->
+    <aside class="panel-right">
+      <div class="panel-title">
+        <span>STATE PIPELINE</span>
+        <span>MANUAL OVERRIDE</span>
+      </div>
+
+      <button class="control-button active" id="btn-stage-1" onclick="setPipelineStage(1)">
+        <div class="btn-bg"></div>
+        <div class="btn-text">
+          <span>01. IDLE ORBIT</span>
+          <span>REST</span>
+        </div>
+      </button>
+
+      <button class="control-button" id="btn-stage-2" onclick="setPipelineStage(2)">
+        <div class="btn-bg"></div>
+        <div class="btn-text">
+          <span>02. IN-FLIGHT MORPH</span>
+          <span>GEOM</span>
+        </div>
+      </button>
+
+      <button class="control-button" id="btn-stage-3" onclick="setPipelineStage(3)">
+        <div class="btn-bg"></div>
+        <div class="btn-text">
+          <span>03. SYSTEM PROCESS</span>
+          <span>COMPUTE</span>
+        </div>
+      </button>
+
+      <button class="control-button" id="btn-stage-4" onclick="setPipelineStage(4)">
+        <div class="btn-bg"></div>
+        <div class="btn-text">
+          <span>04. RESOLUTION LOCK</span>
+          <span>SYNC</span>
+        </div>
+      </button>
+
+      <div class="panel-title" style="margin-top: 10px;">
+        <span>TELEMETRY SIGNAL WAVE</span>
+      </div>
+
+      <div class="waveform-box">
+        <canvas id="waveform-canvas"></canvas>
+      </div>
+    </aside>
+
+    <!-- FOOTER HUD BAR -->
+    <footer class="hud-footer">
+      <div class="footer-ticker">
+        <div class="ticker-item">FPS: <span id="val-fps">60</span></div>
+        <div class="ticker-item">PARTICLES: <span>320</span></div>
+        <div class="ticker-item">PHYSICS: <span>SPRING_DAMPED</span></div>
+      </div>
+      <div>CORE_TEMP: <span style="color: var(--accent-cyan);">34.2°C</span></div>
+    </footer>
+  </div>
+
+  <!-- =========================================================================
+       SCROLLABLE CONTENT SECTIONS (TRIGGERS REACTIVE SCROLL METRICS)
+       ========================================================================= -->
+  <div class="scroll-content">
+    <section class="scroll-section">
+      <div class="scroll-card">
+        <h3>01 / KINETIC ROTATION</h3>
+        <p>Scroll down to initiate rotational inertia. The 3D telemetry core responds with multi-axis spring damping physics, resolving angular momentum seamlessly.</p>
+      </div>
+    </section>
+
+    <section class="scroll-section">
+      <div class="scroll-card">
+        <h3>02 / GEOMETRY MORPHING</h3>
+        <p>As scroll displacement increases, the wireframe telemetry ring array transitions smoothly into an expanded hyper-torus core with real-time vector interpolation.</p>
+      </div>
+    </section>
+
+    <section class="scroll-section">
+      <div class="scroll-card">
+        <h3>03 / SYNCHRONIZATION</h3>
+        <p>Reaching deep scroll bounds triggers high-velocity particle convergence and stroke path resolution, locking system frequency into alignment.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- =========================================================================
+       PURE VANILLA JAVASCRIPT: 3D ENGINE & KINETIC DAMPING PHYSICS
+       ========================================================================= -->
+  <script>
+    /* --------------------------------------------------------------------------
+       1. GLOBAL STATE & KINETIC ENGINE VARIABLES
+       -------------------------------------------------------------------------- */
+    const canvas = document.getElementById('telemetry-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const waveCanvas = document.getElementById('waveform-canvas');
+    const waveCtx = waveCanvas.getContext('2d');
+
+    // Canvas Dimensions
+    let width = 0;
+    let height = 0;
+
+    // Scroll Physics State
+    let scrollY = 0;
+    let targetScrollY = 0;
+    let scrollVelocity = 0;
+    let lastScrollY = 0;
+
+    // Kinetic Damping Rotation
+    let rotX = 0, targetRotX = 0;
+    let rotY = 0, targetRotY = 0;
+    let rotZ = 0, targetRotZ = 0;
+    
+    // Morph State & Transition (0.0 = Sphere/Rings, 1.0 = Torus / Dynamic Core)
+    let morphFactor = 0;
+    let targetMorphFactor = 0;
+
+    // Pipeline Stage Logic: 1 = Idle, 2 = Morph/In-flight, 3 = Processing, 4 = Success
+    let currentStage = 1;
+    let stageProgress = 0; // 0 to 1
+
+    // Particle Swarm Architecture
+    const PARTICLE_COUNT = 320;
+    const particles = [];
+
+    // FPS Meter
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+
+    /* --------------------------------------------------------------------------
+       2. 3D GEOMETRY GENERATOR (CONCENTRIC RINGS & HYPER-CORE)
+       -------------------------------------------------------------------------- */
+    const nodes = [];
+    const RING_COUNT = 5;
+    const NODES_PER_RING = 32;
+
+    function initGeometry() {
+      nodes.length = 0;
+      for (let r = 0; r < RING_COUNT; r++) {
+        const radius = 100 + r * 35;
+        for (let i = 0; i < NODES_PER_RING; i++) {
+          const theta = (i / NODES_PER_RING) * Math.PI * 2;
+          
+          // Geometry A: Flat concentric ring with nested spherical offset
+          const baseAx = Math.cos(theta) * radius;
+          const baseAy = Math.sin(theta) * radius;
+          const baseAz = (r - 2) * 25;
+
+          // Geometry B: Toroidal dynamic core layout
+          const phi = (r / RING_COUNT) * Math.PI * 2;
+          const tubeRadius = 60;
+          const ringRadius = 180;
+          const baseBx = (ringRadius + tubeRadius * Math.cos(phi)) * Math.cos(theta);
+          const baseBy = (ringRadius + tubeRadius * Math.cos(phi)) * Math.sin(theta);
+          const baseBz = tubeRadius * Math.sin(phi);
+
+          nodes.push({
+            ax: baseAx, ay: baseAy, az: baseAz,
+            bx: baseBx, by: baseBy, bz: baseBz,
+            x: baseAx,  y: baseAy,  z: baseAz,
+            ring: r,
+            index: i
+          });
+        }
+      }
+
+      // Initialize Micro-Particle Physics
+      particles.length = 0;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const rad = 80 + Math.random() * 260;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = (Math.random() - 0.5) * Math.PI;
+        particles.push({
+          x: rad * Math.cos(theta) * Math.cos(phi),
+          y: rad * Math.sin(theta) * Math.cos(phi),
+          z: rad * Math.sin(phi),
+          baseRad: rad,
+          theta: theta,
+          phi: phi,
+          speed: 0.005 + Math.random() * 0.015,
+          size: 1 + Math.random() * 2,
+          color: Math.random() > 0.3 ? '#00f0ff' : '#ffb700'
+        });
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       3. CANVAS RESIZE & PERSPECTIVE PROJECTION ENGINE
+       -------------------------------------------------------------------------- */
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      width = rect.width;
+      height = rect.height;
+      
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+
+      // Resize Waveform Canvas
+      waveCanvas.width = waveCanvas.parentElement.clientWidth;
+      waveCanvas.height = waveCanvas.parentElement.clientHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // 3D Perspective Projection Math
+    const FOV = 400;
+    function project3D(x, y, z) {
+      const scale = FOV / (FOV + z + 450);
+      return {
+        px: width / 2 + x * scale,
+        py: height / 2 + y * scale,
+        scale: scale
+      };
+    }
+
+    // 3D Matrix Rotation (Euler Angles)
+    function rotate3D(x, y, z, rx, ry, rz) {
+      // Rotate X
+      let cos = Math.cos(rx), sin = Math.sin(rx);
+      let y1 = y * cos - z * sin;
+      let z1 = y * sin + z * cos;
+
+      // Rotate Y
+      cos = Math.cos(ry); sin = Math.sin(ry);
+      let x2 = x * cos + z1 * sin;
+      let z2 = -x * sin + z1 * cos;
+
+      // Rotate Z
+      cos = Math.cos(rz); sin = Math.sin(rz);
+      let x3 = x2 * cos - y1 * sin;
+      let y3 = x2 * sin + y1 * cos;
+
+      return { x: x3, y: y3, z: z2 };
+    }
+
+    /* --------------------------------------------------------------------------
+       4. KINETIC SCROLL & DAMPING PHYSICS LOOP
+       -------------------------------------------------------------------------- */
+    window.addEventListener('scroll', () => {
+      targetScrollY = window.scrollY;
+    });
+
+    function updatePhysics() {
+      // Damped Scroll Velocity Calculation
+      scrollY += (targetScrollY - scrollY) * 0.08;
+      scrollVelocity = Math.abs(scrollY - lastScrollY);
+      lastScrollY = scrollY;
+
+      // Map Scroll Position to Target Rotations & Morph
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      const scrollRatio = Math.min(Math.max(scrollY / maxScroll, 0), 1);
+
+      if (currentStage === 1) {
+        // Idle Damped Orbit
+        targetRotX = scrollRatio * Math.PI * 2 + Math.sin(Date.now() * 0.001) * 0.2;
+        targetRotY = scrollRatio * Math.PI * 3 + Math.cos(Date.now() * 0.001) * 0.2;
+        targetRotZ = scrollRatio * Math.PI;
+        targetMorphFactor = scrollRatio;
+      } else if (currentStage === 2) {
+        // Morph / In-Flight High Spin
+        targetRotX = scrollRatio * Math.PI * 4 + Date.now() * 0.001;
+        targetRotY = Date.now() * 0.0015;
+        targetMorphFactor = 1.0;
+      } else if (currentStage === 3) {
+        // Processing Fast Axis Oscillation
+        targetRotX = Math.sin(Date.now() * 0.005) * 0.8;
+        targetRotY = Date.now() * 0.003;
+        targetMorphFactor = 0.5 + Math.sin(Date.now() * 0.008) * 0.5;
+      } else if (currentStage === 4) {
+        // Resolution Precision Lock
+        targetRotX = 0.2;
+        targetRotY = 0;
+        targetRotZ = 0;
+        targetMorphFactor = 0.0;
+      }
+
+      // Smooth Spring Damping Physics for Rotations
+      rotX += (targetRotX - rotX) * 0.06;
+      rotY += (targetRotY - rotY) * 0.06;
+      rotZ += (targetRotZ - rotZ) * 0.06;
+      morphFactor += (targetMorphFactor - morphFactor) * 0.05;
+
+      // Update Metric UI Readings
+      document.getElementById('val-velocity').textContent = `${scrollVelocity.toFixed(2)} rad/s`;
+      document.getElementById('gauge-velocity').style.width = `${Math.min(scrollVelocity * 4, 100)}%`;
+      
+      const degX = Math.round((rotX % (Math.PI * 2)) * (180 / Math.PI));
+      const degY = Math.round((rotY % (Math.PI * 2)) * (180 / Math.PI));
+      const degZ = Math.round((rotZ % (Math.PI * 2)) * (180 / Math.PI));
+      document.getElementById('val-orient').textContent = `${degX}° / ${degY}° / ${degZ}°`;
+      document.getElementById('val-morph').textContent = morphFactor.toFixed(3);
+
+      // SVG Arc Dynamic Stroke Offset Sync
+      const arc = document.getElementById('hud-arc');
+      const offset = 800 - (scrollRatio * 600 + (currentStage === 4 ? 200 : 0));
+      arc.style.strokeDashoffset = Math.max(0, offset);
+      if (currentStage === 4) {
+        arc.style.stroke = "var(--accent-gold)";
+      } else {
+        arc.style.stroke = "var(--accent-cyan)";
+      }
+
+      // Update Scroll Card Visibility
+      const cards = document.querySelectorAll('.scroll-card');
+      cards.forEach(card => {
+        const top = card.getBoundingClientRect().top;
+        if (top < window.innerHeight * 0.75) {
+          card.classList.add('visible');
+        }
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       5. MAIN RENDER LOOP: CANVAS 3D MATRIX & MICRO-PARTICLE SWARM
+       -------------------------------------------------------------------------- */
+    function render() {
+      updatePhysics();
+      ctx.clearRect(0, 0, width, height);
+
+      // Morph & Interpolate Node Coordinates
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        n.x = n.ax + (n.bx - n.ax) * morphFactor;
+        n.y = n.ay + (n.by - n.ay) * morphFactor;
+        n.z = n.az + (n.bz - n.az) * morphFactor;
+      }
+
+      // Render 3D Wireframe Rings
+      for (let r = 0; r < RING_COUNT; r++) {
+        ctx.beginPath();
+        let firstPt = null;
+
+        for (let i = 0; i < NODES_PER_RING; i++) {
+          const idx = r * NODES_PER_RING + i;
+          const n = nodes[idx];
+          
+          const rot = rotate3D(n.x, n.y, n.z, rotX, rotY, rotZ);
+          const proj = project3D(rot.x, rot.y, rot.z);
+
+          if (i === 0) {
+            firstPt = proj;
+            ctx.moveTo(proj.px, proj.py);
+          } else {
+            ctx.lineTo(proj.px, proj.py);
+          }
+
+          // Render Micro Node Dots
+          ctx.fillStyle = r === 2 ? '#ffb700' : 'rgba(0, 240, 255, 0.8)';
+          ctx.fillRect(proj.px - 1.5 * proj.scale, proj.py - 1.5 * proj.scale, 3 * proj.scale, 3 * proj.scale);
+        }
+
+        if (firstPt) ctx.lineTo(firstPt.px, firstPt.py);
+        
+        ctx.strokeStyle = r % 2 === 0 
+          ? `rgba(0, 240, 255, ${0.15 + (1 - morphFactor) * 0.2})` 
+          : `rgba(255, 183, 0, ${0.1 + morphFactor * 0.25})`;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+
+      // Render Micro-Particle Swarm
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.theta += p.speed * (1 + scrollVelocity * 0.1);
+        
+        const px = p.baseRad * Math.cos(p.theta) * Math.cos(p.phi);
+        const py = p.baseRad * Math.sin(p.theta) * Math.cos(p.phi);
+        const pz = p.baseRad * Math.sin(p.phi);
+
+        const rot = rotate3D(px, py, pz, rotX * 0.5, rotY * 0.5, rotZ * 0.5);
+        const proj = project3D(rot.x, rot.y, rot.z);
+
+        ctx.beginPath();
+        ctx.arc(proj.px, proj.py, p.size * proj.scale, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.min(Math.max((rot.z + 300) / 600, 0.1), 0.8);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+
+      // FPS Calculation
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFrameTime >= 1000) {
+        document.getElementById('val-fps').textContent = frameCount;
+        frameCount = 0;
+        lastFrameTime = now;
+      }
+
+      // Render Waveform Canvas Graph
+      renderWaveform();
+
+      requestAnimationFrame(render);
+    }
+
+    /* --------------------------------------------------------------------------
+       6. DIAGNOSTIC WAVEFORM CANVAS RENDERER
+       -------------------------------------------------------------------------- */
+    let waveOffset = 0;
+    function renderWaveform() {
+      const w = waveCanvas.width;
+      const h = waveCanvas.height;
+      waveCtx.clearRect(0, 0, w, h);
+
+      waveCtx.beginPath();
+      waveCtx.lineWidth = 1.5;
+      waveCtx.strokeStyle = currentStage === 4 ? '#ffb700' : '#00f0ff';
+
+      waveOffset += 0.05 + scrollVelocity * 0.02;
+
+      for (let x = 0; x < w; x++) {
+        const freq = 0.03;
+        const amp = (h / 3) * (1 + Math.sin(waveOffset * 0.5) * 0.3) + scrollVelocity * 2;
+        const y = h / 2 + Math.sin(x * freq + waveOffset) * amp * Math.cos(x * 0.01);
+        
+        if (x === 0) waveCtx.moveTo(x, y);
+        else waveCtx.lineTo(x, y);
+      }
+      waveCtx.stroke();
+    }
+
+    /* --------------------------------------------------------------------------
+       7. MULTI-STAGE STATE PIPELINE CONTROLLER
+       -------------------------------------------------------------------------- */
+    function setPipelineStage(stage) {
+      currentStage = stage;
+
+      // Update Active UI Buttons
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`btn-stage-${i}`);
+        if (i === stage) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+
+      const pillMode = document.getElementById('pill-mode');
+      const txtMode = document.getElementById('txt-mode');
+      const txtSync = document.getElementById('txt-sync');
+      const pillSync = document.getElementById('pill-sync');
+      const cardStatus = document.getElementById('stage-card-status');
+      const cardBg = document.getElementById('stage-card-bg');
+
+      // Mandatory Layering Check: Pills active class updates translucent background strictly behind text
+      if (stage === 1) {
+        txtMode.textContent = "DAMPED_ORBIT";
+        txtSync.textContent = "99.84%";
+        cardStatus.textContent = "01 : RESTING_IDLE";
+        cardStatus.style.color = "var(--accent-cyan)";
+        cardBg.style.borderColor = "rgba(0, 240, 255, 0.15)";
+        pillSync.classList.remove('active');
+      } else if (stage === 2) {
+        txtMode.textContent = "GEOM_MORPH";
+        txtSync.textContent = "84.12%";
+        cardStatus.textContent = "02 : IN_FLIGHT_MORPH";
+        cardStatus.style.color = "var(--accent-cyan)";
+        cardBg.style.borderColor = "rgba(0, 240, 255, 0.4)";
+        pillSync.classList.remove('active');
+      } else if (stage === 3) {
+        txtMode.textContent = "COMPUTE_LOCK";
+        txtSync.textContent = "62.05%";
+        cardStatus.textContent = "03 : PROCESSING_SYNC";
+        cardStatus.style.color = "var(--accent-gold)";
+        cardBg.style.borderColor = "rgba(255, 183, 0, 0.4)";
+        pillSync.classList.add('active');
+      } else if (stage === 4) {
+        txtMode.textContent = "SYSTEM_RESOLVED";
+        txtSync.textContent = "100.00%";
+        cardStatus.textContent = "04 : SUCCESS_RESOLVED";
+        cardStatus.style.color = "var(--accent-emerald)";
+        cardBg.style.borderColor = "rgba(0, 255, 170, 0.6)";
+        pillSync.classList.add('active');
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       8. INIT ENGINE ON DOM READY
+       -------------------------------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas();
+      initGeometry();
+      requestAnimationFrame(render);
+    });
+  </script>
+</body>
+</html>

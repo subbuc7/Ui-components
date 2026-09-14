@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHERIA // Ultra-Premium 3D Interactive Telemetry Experience</title>
+  <style>
+    /* ==========================================
+       DESIGN SYSTEM & CORE ARCHITECTURE
+       ========================================== */
+    :root {
+      --bg-deep: #04060a;
+      --bg-surface: rgba(12, 17, 29, 0.55);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-border-active: rgba(212, 175, 55, 0.4);
+      --gold-primary: #d4af37;
+      --gold-light: #f3e5ab;
+      --gold-glow: rgba(212, 175, 55, 0.25);
+      --cyan-primary: #00f2fe;
+      --cyan-light: #4facfe;
+      --cyan-glow: rgba(0, 242, 254, 0.25);
+      --text-main: #f0f4f8;
+      --text-muted: #8a99ad;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      overflow-x: hidden;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Ambient Background Atmosphere */
+    .ambient-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(0, 242, 254, 0.04) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(212, 175, 55, 0.04) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(4, 6, 10, 0.8) 0%, #04060a 100%);
+    }
+
+    /* Glassmorphic Panel Utility */
+    .glass-panel {
+      background: var(--bg-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .glass-panel:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Typography Utilities */
+    .label-micro {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--gold-primary);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .label-micro::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--gold-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--gold-primary);
+    }
+
+    h1, h2, h3 {
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    /* Layout Wrapper */
+    .experience-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 2rem 8rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8rem;
+    }
+
+    /* SECTION HEADINGS */
+    .section-header {
+      margin-bottom: 2.5rem;
+    }
+    .section-header h2 {
+      font-size: 2.2rem;
+      background: linear-gradient(135deg, #fff 30%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ==========================================
+       COMPONENT 1: SCROLL TELEMETRY METER
+       ========================================== */
+    .telemetry-bar {
+      position: sticky;
+      top: 1.5rem;
+      z-index: 100;
+      margin-bottom: -4rem;
+    }
+    .telemetry-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.8rem 2rem;
+      border-radius: 100px;
+      background: rgba(6, 10, 18, 0.75);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      transform-style: preserve-3d;
+      perspective: 1000px;
+    }
+    .telemetry-group {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    .telemetry-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .telemetry-val {
+      font-family: monospace;
+      font-size: 1.1rem;
+      color: var(--cyan-primary);
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+    }
+    .telemetry-lbl {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+    }
+    /* SVG Gauge Arc */
+    .gauge-wrapper {
+      position: relative;
+      width: 44px;
+      height: 44px;
+    }
+    .gauge-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+    .gauge-bg {
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 4;
+      fill: none;
+    }
+    .gauge-progress {
+      stroke: url(#gold-cyan-grad);
+      stroke-width: 4;
+      fill: none;
+      stroke-dasharray: 113;
+      stroke-dashoffset: 113;
+      transition: stroke-dashoffset 0.1s linear;
+      stroke-linecap: round;
+    }
+
+    /* ==========================================
+       HERO & COMPONENT 3 + 7: GLOBE & MAGNETIC CTA
+       ========================================== */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 4rem;
+      align-items: center;
+      padding-top: 5rem;
+    }
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2rem;
+    }
+    .hero-title {
+      font-size: 3.8rem;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 20%, #a0aec0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* COMPONENT 7: MAGNETIC CTA BUTTON */
+    .cta-magnetic-wrapper {
+      position: relative;
+      padding: 20px;
+      display: inline-block;
+    }
+    .cta-magnetic-btn {
+      position: relative;
+      padding: 1.25rem 2.8rem;
+      background: rgba(12, 18, 30, 0.8);
+      border-radius: 50px;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      cursor: pointer;
+      outline: none;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: border-color 0.3s ease, transform 0.15s cubic-bezier(0.2, 0, 0.1, 1);
+      transform-style: preserve-3d;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+    .cta-magnetic-btn .glow-pill-bg {
+      position: absolute;
+      inset: -2px;
+      border-radius: 50px;
+      background: linear-gradient(90deg, var(--gold-glow), var(--cyan-glow));
+      z-index: 1; /* Strictly below text */
+      opacity: 0.3;
+      filter: blur(8px);
+      transition: opacity 0.3s ease;
+    }
+    .cta-magnetic-btn:hover .glow-pill-bg {
+      opacity: 0.8;
+    }
+    .cta-text-content {
+      position: relative;
+      z-index: 2; /* Strictly above background */
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    /* Dynamic Halo Rings */
+    .halo-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px dashed rgba(212, 175, 55, 0.25);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .halo-ring-1 { width: 140%; height: 180%; animation: spin 20s linear infinite; }
+    .halo-ring-2 { width: 180%; height: 230%; animation: spin 35s linear infinite reverse; border-color: rgba(0, 242, 254, 0.15); }
+
+    @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    /* COMPONENT 3: 3D PARTICLE CONSTELLATION GLOBE */
+    .globe-container {
+      width: 100%;
+      height: 480px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+    .globe-container:active { cursor: grabbing; }
+    #globe-canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+    }
+
+    /* ==========================================
+       COMPONENT 2: 3D CYLINDRICAL ARC CAROUSEL
+       ========================================== */
+    .carousel-section {
+      width: 100%;
+      overflow: hidden;
+      padding: 2rem 0;
+    }
+    .carousel-stage {
+      width: 100%;
+      height: 440px;
+      perspective: 1200px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+    .carousel-stage:active { cursor: grabbing; }
+    .carousel-cylinder {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transform-style: preserve-3d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .carousel-card {
+      position: absolute;
+      width: 280px;
+      height: 380px;
+      border-radius: 18px;
+      background: var(--bg-surface);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(15px);
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+    }
+    .carousel-card img {
+      width: 100%;
+      height: 60%;
+      object-fit: cover;
+      filter: brightness(0.8) contrast(1.1);
+      transition: filter 0.3s;
+    }
+    .carousel-card-body {
+      padding: 1.2rem;
+      position: relative;
+      z-index: 2;
+    }
+    .carousel-card-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #fff;
+      margin-bottom: 0.3rem;
+    }
+    .carousel-card-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    /* Spotlight overlay on active carousel item */
+    .carousel-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.15), transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .carousel-card.active-spotlight {
+      border-color: var(--gold-primary);
+      box-shadow: 0 20px 50px rgba(212, 175, 55, 0.2);
+    }
+    .carousel-card.active-spotlight::after { opacity: 1; }
+
+    /* ==========================================
+       COMPONENT 4: 3D CARD FAN-DECK SELECTOR
+       ========================================== */
+    .fandeck-container {
+      width: 100%;
+      min-height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      perspective: 1000px;
+      padding: 2rem 0;
+    }
+    .fandeck-deck {
+      position: relative;
+      width: 300px;
+      height: 380px;
+      transform-style: preserve-3d;
+    }
+    .fandeck-card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      box-shadow: -10px 20px 40px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      cursor: pointer;
+      transform-origin: 50% 120%;
+      transition: transform 0.6s var(--ease-out-expo), border-color 0.3s, box-shadow 0.3s;
+    }
+    .fandeck-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      opacity: 0.45;
+      transition: opacity 0.4s, transform 0.6s ease;
+    }
+    .fandeck-card-content {
+      position: absolute;
+      inset: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: linear-gradient(to top, rgba(4, 6, 10, 0.95) 10%, transparent 80%);
+      z-index: 2;
+    }
+    /* Fan Expansion Positions on Deck Hover */
+    .fandeck-deck:hover .fandeck-card:nth-child(1) { transform: rotate(-24deg) translateX(-140px) translateZ(0); }
+    .fandeck-deck:hover .fandeck-card:nth-child(2) { transform: rotate(-12deg) translateX(-70px) translateZ(20px); }
+    .fandeck-deck:hover .fandeck-card:nth-child(3) { transform: rotate(0deg) translateX(0) translateZ(40px); }
+    .fandeck-deck:hover .fandeck-card:nth-child(4) { transform: rotate(12deg) translateX(70px) translateZ(20px); }
+    .fandeck-deck:hover .fandeck-card:nth-child(5) { transform: rotate(24deg) translateX(140px) translateZ(0); }
+
+    .fandeck-card:hover {
+      border-color: var(--cyan-primary) !important;
+      box-shadow: 0 30px 60px rgba(0, 242, 254, 0.25) !important;
+      z-index: 50 !important;
+    }
+    .fandeck-card:hover img {
+      opacity: 0.8;
+      transform: scale(1.08);
+    }
+
+    /* ==========================================
+       BENTO GRID: COMPONENT 6 & COMPONENT 8
+       ========================================== */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 2rem;
+    }
+
+    /* COMPONENT 6: BENTO SPECULAR CARD WITH MULTI-STAGE BUTTON */
+    .bento-specular-card {
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 440px;
+      position: relative;
+    }
+    /* Dynamic Specular Tracking Glow */
+    .specular-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.06), transparent 40%);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .bento-card-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Multi-Stage Dynamic State Machine Button */
+    .stage-button-container {
+      position: relative;
+      z-index: 2;
+      margin-top: 2rem;
+    }
+    .stage-btn {
+      position: relative;
+      height: 54px;
+      padding: 0 2rem;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      transition: all 0.4s var(--ease-out-expo);
+    }
+    /* Layer 1: Translucent Glowing Background Pill */
+    .stage-btn .btn-glow-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1; /* Below text */
+      background: linear-gradient(90deg, var(--gold-primary), var(--cyan-primary));
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    /* Layer 2: Button Text and Icon Foreground */
+    .stage-btn .btn-text-layer {
+      position: relative;
+      z-index: 2; /* Above glow */
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    /* SVG Loader Ring inside Button */
+    .btn-svg-loader {
+      position: absolute;
+      z-index: 2;
+      width: 28px;
+      height: 28px;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.3s ease;
+    }
+    .btn-svg-loader circle {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 3;
+      stroke-dasharray: 80;
+      stroke-dashoffset: 80;
+      transform-origin: center;
+    }
+
+    /* State Multi-Stage Classes */
+    .stage-btn.state-processing {
+      width: 160px;
+      border-color: var(--cyan-primary);
+    }
+    .stage-btn.state-processing .btn-text-layer { opacity: 0; transform: translateY(-10px); }
+    .stage-btn.state-processing .btn-svg-loader {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .stage-btn.state-processing .btn-svg-loader circle {
+      animation: loadSpin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .stage-btn.state-success {
+      width: 220px;
+      border-color: var(--gold-primary);
+    }
+    .stage-btn.state-success .btn-glow-layer { opacity: 0.25; }
+    .stage-btn.state-success .btn-text-layer { opacity: 1; transform: translateY(0); }
+    .stage-btn.state-success .btn-svg-loader { opacity: 0; }
+
+    @keyframes loadSpin {
+      0% { stroke-dashoffset: 80; transform: rotate(0deg); }
+      50% { stroke-dashoffset: 20; transform: rotate(180deg); }
+      100% { stroke-dashoffset: 80; transform: rotate(360deg); }
+    }
+
+    /* COMPONENT 8: CINEMATIC LIQUID GRADIENT CARD WITH REFRACTION */
+    .liquid-card {
+      position: relative;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 440px;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      perspective: 1000px;
+    }
+    .liquid-canvas-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.7;
+      mix-blend-mode: screen;
+    }
+    .refraction-glass-overlay {
+      position: absolute;
+      inset: 15px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 1;
+      pointer-events: none;
+    }
+    .floating-typography {
+      position: relative;
+      z-index: 2;
+      transform: translateZ(40px);
+      transition: transform 0.2s ease-out;
+    }
+    .floating-typography h3 {
+      font-size: 2rem;
+      line-height: 1.1;
+      margin-bottom: 0.8rem;
+    }
+
+    /* ==========================================
+       COMPONENT 5: 3D ACCORDION MEDIA FOLDER
+       ========================================== */
+    .accordion-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      width: 100%;
+    }
+    .folder-item {
+      position: relative;
+      border-radius: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--glass-border);
+      overflow: hidden;
+      transition: border-color 0.4s ease, transform 0.4s ease;
+      transform-style: preserve-3d;
+    }
+    .folder-header {
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      position: relative;
+      z-index: 2;
+    }
+    .folder-title-group {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .folder-index {
+      font-family: monospace;
+      color: var(--gold-primary);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .folder-toggle-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.5s var(--ease-out-expo), background 0.3s;
+    }
+    .folder-toggle-icon svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2;
+      transition: stroke 0.3s;
+    }
+    .folder-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.6s var(--ease-out-expo), opacity 0.4s ease;
+      opacity: 0;
+      transform: rotateX(-15deg);
+      transform-origin: top center;
+      position: relative;
+      z-index: 1;
+    }
+    .folder-body-inner {
+      padding: 0 2rem 2rem 2rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
+    .folder-media {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .folder-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Active Accordion Expansion State */
+    .folder-item.active {
+      border-color: rgba(212, 175, 55, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+    .folder-item.active .folder-body {
+      max-height: 350px;
+      opacity: 1;
+      transform: rotateX(0deg);
+    }
+    .folder-item.active .folder-toggle-icon {
+      transform: rotate(135deg);
+      background: var(--gold-primary);
+    }
+    .folder-item.active .folder-toggle-icon svg { stroke: #000; }
+
+    /* Mechanical SVG Line Drawing Path */
+    .folder-svg-line {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 2px;
+    }
+    .folder-svg-line path {
+      stroke: var(--gold-primary);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      transition: stroke-dashoffset 0.8s ease-in-out;
+    }
+    .folder-item.active .folder-svg-line path {
+      stroke-dashoffset: 0;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 968px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .bento-grid { grid-template-columns: 1fr; }
+      .folder-body-inner { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow Background -->
+  <div class="ambient-background"></div>
+
+  <!-- Shared SVG Definitions for Gradients -->
+  <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" aria-hidden="true">
+    <defs>
+      <linearGradient id="gold-cyan-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#d4af37" />
+        <stop offset="100%" stop-color="#00f2fe" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="experience-container">
+
+    <!-- COMPONENT 1: SCROLL-REACTIVE 3D TELEMETRY METER -->
+    <header class="telemetry-bar">
+      <div class="telemetry-inner" id="telemetry-panel">
+        <div class="telemetry-group">
+          <div class="gauge-wrapper">
+            <svg class="gauge-svg" viewBox="0 0 40 40">
+              <circle class="gauge-bg" cx="20" cy="20" r="18" />
+              <circle class="gauge-progress" id="scroll-gauge-circle" cx="20" cy="20" r="18" />
+            </svg>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-val" id="scroll-pct-val">000%</span>
+            <span class="telemetry-lbl">Scroll Dynamic Vector</span>
+          </div>
+        </div>
+
+        <div class="telemetry-group">
+          <div class="telemetry-item">
+            <span class="telemetry-val" id="velocity-val">0.00</span>
+            <span class="telemetry-lbl">Damping Velocity (px/ms)</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-val" id="orient-val">00.0° N</span>
+            <span class="telemetry-lbl">Spatial Pitch Tilt</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO SECTION: HERO CONTENT + COMPONENT 3 (PARTICLE GLOBE) + COMPONENT 7 (MAGNETIC CTA) -->
+    <section class="hero-grid">
+      <div class="hero-content">
+        <div class="label-micro">Aetheria Architecture v4.0</div>
+        <h1 class="hero-title">Spatial Telemetry & 3D Interactive Mechanics</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 520px;">
+          Next-generation interface design featuring real-time inertia damping physics, tactile mechanical depth, and specular glass refractions.
+        </p>
+
+        <!-- COMPONENT 7: 3D MAGNETIC FLOATING HALO CTA BUTTON -->
+        <div class="cta-magnetic-wrapper" id="cta-magnetic-zone">
+          <div class="halo-ring halo-ring-1"></div>
+          <div class="halo-ring halo-ring-2"></div>
+          
+          <button class="cta-magnetic-btn" id="magnetic-btn">
+            <!-- Layer 1: Translucent background glow pill (Strictly z-index: 1) -->
+            <div class="glow-pill-bg"></div>
+            <!-- Layer 2: Foreground text content (Strictly z-index: 2) -->
+            <div class="cta-text-content">
+              <span>Initiate Sequence</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- COMPONENT 3: INTERACTIVE 3D PARTICLE CONSTELLATION GLOBE -->
+      <div class="glass-panel globe-container" id="globe-wrapper">
+        <canvas id="globe-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- COMPONENT 2: 3D CYLINDRICAL ARC CAROUSEL -->
+    <section class="carousel-section">
+      <div class="section-header">
+        <div class="label-micro">Interactive Spatial Array</div>
+        <h2>Cylindrical Arc Horizon</h2>
+      </div>
+
+      <div class="carousel-stage" id="carousel-stage">
+        <div class="carousel-cylinder" id="carousel-cylinder">
+          <!-- Dynamically populated carousel cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- BENTO SECTION: COMPONENT 6 & COMPONENT 8 -->
+    <section>
+      <div class="section-header">
+        <div class="label-micro">Tactile Intelligence Hub</div>
+        <h2>Specular Refraction & Multi-Stage State Engine</h2>
+      </div>
+
+      <div class="bento-grid">
+        <!-- COMPONENT 6: BENTO SPECULAR CARD WITH MULTI-STAGE BUTTON -->
+        <div class="glass-panel bento-specular-card" id="specular-card">
+          <div class="specular-glow" id="specular-glow"></div>
+          <div class="bento-card-content">
+            <div class="label-micro">Interactive Module // 01</div>
+            <h3 style="font-size: 1.8rem; margin: 0.5rem 0 1rem 0;">Autonomous State Reactor</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 480px;">
+              Experience multi-stage tactile physics transition. Hover to trigger specular tracking; trigger the action button to observe procedural morphing.
+            </p>
+          </div>
+
+          <div class="stage-button-container">
+            <button class="stage-btn" id="stage-reactor-btn">
+              <!-- Layer 1: Low z-index glow -->
+              <div class="btn-glow-layer"></div>
+              <!-- SVG Loader Animation for processing state -->
+              <svg class="btn-svg-loader" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="12"></circle>
+              </svg>
+              <!-- Layer 2: High z-index text layer -->
+              <div class="btn-text-layer" id="stage-btn-text">
+                <span>Deploy Telemetry Node</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- COMPONENT 8: CINEMATIC LIQUID GRADIENT CARD WITH GLASS REFRACTION -->
+        <div class="glass-panel liquid-card" id="liquid-card">
+          <canvas class="liquid-canvas-bg" id="liquid-canvas"></canvas>
+          <div class="refraction-glass-overlay"></div>
+          <div class="floating-typography" id="liquid-typo">
+            <div class="label-micro" style="color: var(--cyan-primary);">Refraction Mesh</div>
+            <h3>Liquid Dynamic Shader Overlay</h3>
+            <p style="color: var(--text-muted); font-size: 0.88rem;">
+              Procedural multi-layered canvas fluid physics overlaid with real-time blur dispersion backdrop filters.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENT 4: 3D CARD FAN-DECK SELECTOR -->
+    <section>
+      <div class="section-header">
+        <div class="label-micro">Archival Dossier Collection</div>
+        <h2>3D Perspective Fan-Deck Selector</h2>
+      </div>
+
+      <div class="fandeck-container">
+        <div class="fandeck-deck" id="fandeck-deck">
+          <!-- Card 1 -->
+          <div class="fandeck-card">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="Architecture 1">
+            <div class="fandeck-card-content">
+              <div class="label-micro">Dossier #01</div>
+              <h4 style="color: #fff; font-size: 1.2rem;">Aether Apex Tower</h4>
+            </div>
+          </div>
+          <!-- Card 2 -->
+          <div class="fandeck-card">
+            <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80" alt="Architecture 2">
+            <div class="fandeck-card-content">
+              <div class="label-micro">Dossier #02</div>
+              <h4 style="color: #fff; font-size: 1.2rem;">Lumina Pavilion</h4>
+            </div>
+          </div>
+          <!-- Card 3 -->
+          <div class="fandeck-card">
+            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" alt="Architecture 3">
+            <div class="fandeck-card-content">
+              <div class="label-micro">Dossier #03</div>
+              <h4 style="color: #fff; font-size: 1.2rem;">Monolith Sanctum</h4>
+            </div>
+          </div>
+          <!-- Card 4 -->
+          <div class="fandeck-card">
+            <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80" alt="Architecture 4">
+            <div class="fandeck-card-content">
+              <div class="label-micro">Dossier #04</div>
+              <h4 style="color: #fff; font-size: 1.2rem;">Vortex Glass Atrium</h4>
+            </div>
+          </div>
+          <!-- Card 5 -->
+          <div class="fandeck-card">
+            <img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80" alt="Architecture 5">
+            <div class="fandeck-card-content">
+              <div class="label-micro">Dossier #05</div>
+              <h4 style="color: #fff; font-size: 1.2rem;">Zenith Spire</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENT 5: 3D ACCORDION MEDIA FOLDER EXPANDER -->
+    <section>
+      <div class="section-header">
+        <div class="label-micro">Mechanical Structural Blueprint</div>
+        <h2>Depth Accordion Expander</h2>
+      </div>
+
+      <div class="accordion-section" id="accordion-group">
+        
+        <!-- Folder 1 -->
+        <div class="folder-item active">
+          <div class="folder-header">
+            <div class="folder-title-group">
+              <span class="folder-index">01</span>
+              <h3 style="font-size: 1.2rem;">Orbital Horizon Telemetry Infrastructure</h3>
+            </div>
+            <div class="folder-toggle-icon">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+          </div>
+          <div class="folder-body">
+            <div class="folder-body-inner">
+              <div class="folder-media">
+                <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" alt="Telemetry System">
+              </div>
+              <div>
+                <h4 style="color: var(--gold-primary); margin-bottom: 0.5rem; font-weight: 500;">Mechanical Specification A-1</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+                  Deploys precision physical spring dynamics across 64 independent structural nodes. Features instant rotational damping and dynamic vector calculations relative to vertical window position.
+                </p>
+              </div>
+            </div>
+          </div>
+          <svg class="folder-svg-line"><path d="M 0 1 L 1400 1" /></svg>
+        </div>
+
+        <!-- Folder 2 -->
+        <div class="folder-item">
+          <div class="folder-header">
+            <div class="folder-title-group">
+              <span class="folder-index">02</span>
+              <h3 style="font-size: 1.2rem;">Quantum Particle Spherical Mapping Engine</h3>
+            </div>
+            <div class="folder-toggle-icon">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+          </div>
+          <div class="folder-body">
+            <div class="folder-body-inner">
+              <div class="folder-media">
+                <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80" alt="Particle System">
+              </div>
+              <div>
+                <h4 style="color: var(--cyan-primary); margin-bottom: 0.5rem; font-weight: 500;">Mechanical Specification B-2</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+                  Calculates interactive 3D rotational matrices in real-time. Dynamic proximity algorithms draw luminous geometric vector constellation bonds between active point nodes.
+                </p>
+              </div>
+            </div>
+          </div>
+          <svg class="folder-svg-line"><path d="M 0 1 L 1400 1" /></svg>
+        </div>
+
+        <!-- Folder 3 -->
+        <div class="folder-item">
+          <div class="folder-header">
+            <div class="folder-title-group">
+              <span class="folder-index">03</span>
+              <h3 style="font-size: 1.2rem;">Cylindrical Optical Refraction Horizon</h3>
+            </div>
+            <div class="folder-toggle-icon">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+          </div>
+          <div class="folder-body">
+            <div class="folder-body-inner">
+              <div class="folder-media">
+                <img src="https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=800&q=80" alt="Refraction Spec">
+              </div>
+              <div>
+                <h4 style="color: var(--gold-primary); margin-bottom: 0.5rem; font-weight: 500;">Mechanical Specification C-3</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+                  Features continuous angular inertia tracking with high-velocity gesture support, automatically centering elements and adjusting spotlight intensity based on proximity.
+                </p>
+              </div>
+            </div>
+          </div>
+          <svg class="folder-svg-line"><path d="M 0 1 L 1400 1" /></svg>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ==========================================
+       PHYSICS & INTERACTION SCRIPTS
+       ========================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      /* ------------------------------------------
+         COMPONENT 1: SCROLL TELEMETRY METER PHYSICS
+         ------------------------------------------ */
+      const telemetryPanel = document.getElementById('telemetry-panel');
+      const scrollPctVal = document.getElementById('scroll-pct-val');
+      const velocityVal = document.getElementById('velocity-val');
+      const orientVal = document.getElementById('orient-val');
+      const gaugeCircle = document.getElementById('scroll-gauge-circle');
+
+      let lastScrollY = window.scrollY;
+      let currentScrollY = window.scrollY;
+      let scrollVelocity = 0;
+      let targetVelocity = 0;
+
+      function updateScrollTelemetry() {
+        currentScrollY = window.scrollY;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollFraction = Math.min(Math.max(currentScrollY / maxScroll, 0), 1);
+        
+        // Damping velocity physics
+        const delta = currentScrollY - lastScrollY;
+        targetVelocity = Math.abs(delta);
+        scrollVelocity += (targetVelocity - scrollVelocity) * 0.1;
+        lastScrollY = currentScrollY;
+
+        // UI Updates
+        const pct = Math.round(scrollFraction * 100);
+        scrollPctVal.textContent = `${pct.toString().padStart(3, '0')}%`;
+        velocityVal.textContent = scrollVelocity.toFixed(2);
+        
+        // Pitch rotation calculations
+        const pitchTilt = (scrollVelocity * 0.15).toFixed(1);
+        orientVal.textContent = `${pitchTilt}° PITCH`;
+
+        // 3D Panel Tilt based on scroll momentum
+        telemetryPanel.style.transform = `rotateX(${Math.min(scrollVelocity * 0.2, 12)}deg) rotateY(${(scrollFraction - 0.5) * 4}deg)`;
+
+        // SVG Gauge offset
+        const circumference = 113; // 2 * pi * 18
+        const offset = circumference - (scrollFraction * circumference);
+        gaugeCircle.style.strokeDashoffset = offset;
+
+        requestAnimationFrame(updateScrollTelemetry);
+      }
+      updateScrollTelemetry();
+
+
+      /* ------------------------------------------
+         COMPONENT 3: 3D PARTICLE CONSTELLATION GLOBE
+         ------------------------------------------ */
+      const canvas = document.getElementById('globe-canvas');
+      const ctx = canvas.getContext('2d');
+      const wrapper = document.getElementById('globe-wrapper');
+
+      let width = canvas.width = wrapper.clientWidth;
+      let height = canvas.height = wrapper.clientHeight;
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = wrapper.clientWidth;
+        height = canvas.height = wrapper.clientHeight;
+      });
+
+      const NUM_POINTS = 140;
+      const GLOBE_RADIUS = Math.min(width, height) * 0.35;
+      const points = [];
+
+      // Create 3D points on a sphere using Fibonacci lattice
+      const phi = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 0; i < NUM_POINTS; i++) {
+        const y = 1 - (i / (NUM_POINTS - 1)) * 2;
+        const radiusAtY = Math.sqrt(1 - y * y);
+        const theta = phi * i;
+        const x = Math.cos(theta) * radiusAtY;
+        const z = Math.sin(theta) * radiusAtY;
+        points.push({ x: x * GLOBE_RADIUS, y: y * GLOBE_RADIUS, z: z * GLOBE_RADIUS });
+      }
+
+      let rotationX = 0;
+      let rotationY = 0;
+      let targetRotX = 0.003;
+      let targetRotY = 0.005;
+      let isDraggingGlobe = false;
+      let prevMouseX = 0;
+      let prevMouseY = 0;
+
+      wrapper.addEventListener('pointerdown', (e) => {
+        isDraggingGlobe = true;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDraggingGlobe) return;
+        const dx = e.clientX - prevMouseX;
+        const dy = e.clientY - prevMouseY;
+        targetRotY = dx * 0.005;
+        targetRotX = -dy * 0.005;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      window.addEventListener('pointerup', () => { isDraggingGlobe = false; });
+
+      function renderGlobe() {
+        ctx.clearRect(0, 0, width, height);
+
+        rotationX += (targetRotX - rotationX) * 0.05;
+        rotationY += (targetRotY - rotationY) * 0.05;
+
+        if (!isDraggingGlobe) {
+          targetRotX *= 0.95;
+          targetRotY = 0.002; // Default smooth rotation
+        }
+
+        const cosX = Math.cos(rotationX), sinX = Math.sin(rotationX);
+        const cosY = Math.cos(rotationY), sinY = Math.sin(rotationY);
+
+        const projected = [];
+
+        for (let i = 0; i < points.length; i++) {
+          let p = points[i];
+
+          // Rotate Y
+          let x1 = p.x * cosY - p.z * sinY;
+          let z1 = p.z * cosY + p.x * sinY;
+
+          // Rotate X
+          let y2 = p.y * cosX - z1 * sinX;
+          let z2 = z1 * cosX + p.y * sinX;
+
+          p.x = x1; p.y = y2; p.z = z2;
+
+          // Perspective projection
+          const fov = 400;
+          const scale = fov / (fov + z2 + GLOBE_RADIUS);
+          const projX = x1 * scale + width / 2;
+          const projY = y2 * scale + height / 2;
+
+          projected.push({ x: projX, y: projY, z: z2, scale: scale });
+        }
+
+        // Draw connections
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < projected.length; i++) {
+          for (let j = i + 1; j < projected.length; j++) {
+            const p1 = projected[i];
+            const p2 = projected[j];
+            const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+            if (dist < 65 && p1.z > -GLOBE_RADIUS * 0.5 && p2.z > -GLOBE_RADIUS * 0.5) {
+              const alpha = (1 - dist / 65) * 0.3 * (p1.scale);
+              ctx.strokeStyle = `rgba(0, 242, 254, ${alpha})`;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Draw Point Nodes
+        for (let i = 0; i < projected.length; i++) {
+          const p = projected[i];
+          const alpha = Math.max(0.1, (p.z + GLOBE_RADIUS) / (2 * GLOBE_RADIUS));
+          const size = Math.max(1, 2.5 * p.scale);
+
+          ctx.fillStyle = p.z > 0 ? `rgba(212, 175, 55, ${alpha})` : `rgba(0, 242, 254, ${alpha * 0.5})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        requestAnimationFrame(renderGlobe);
+      }
+      renderGlobe();
+
+
+      /* ------------------------------------------
+         COMPONENT 2: 3D CYLINDRICAL ARC CAROUSEL
+         ------------------------------------------ */
+      const cylinder = document.getElementById('carousel-cylinder');
+      const stage = document.getElementById('carousel-stage');
+
+      const carouselItemsData = [
+        { title: "Horizon Vista", sub: "Sector 01 // Arch", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" },
+        { title: "Nebula Glass", sub: "Sector 02 // Spire", img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80" },
+        { title: "Monolith Void", sub: "Sector 03 // Core", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" },
+        { title: "Cyber Lattice", sub: "Sector 04 // Atrium", img: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80" },
+        { title: "Solaris Apex", sub: "Sector 05 // Crown", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" },
+        { title: "Aether Sanctum", sub: "Sector 06 // Dome", img: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80" }
+      ];
+
+      const totalItems = carouselItemsData.length;
+      const radius = 420; // Cylindrical Radius
+      let carouselAngle = 0;
+      let carouselVelocity = 0;
+      let isDraggingCarousel = false;
+      let startX = 0;
+
+      // Populate Cards
+      carouselItemsData.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'carousel-card';
+        const angleDeg = (360 / totalItems) * idx;
+        card.style.transform = `rotateY(${angleDeg}deg) translateZ(${radius}px)`;
+
+        card.innerHTML = `
+          <img src="${item.img}" alt="${item.title}">
+          <div class="carousel-card-body">
+            <div class="label-micro">${item.sub}</div>
+            <div class="carousel-card-title">${item.title}</div>
+          </div>
+        `;
+        cylinder.appendChild(card);
+      });
+
+      const cards = cylinder.querySelectorAll('.carousel-card');
+
+      stage.addEventListener('pointerdown', (e) => {
+        isDraggingCarousel = true;
+        startX = e.clientX;
+        carouselVelocity = 0;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDraggingCarousel) return;
+        const deltaX = e.clientX - startX;
+        carouselVelocity = deltaX * 0.15;
+        carouselAngle += carouselVelocity;
+        startX = e.clientX;
+      });
+
+      window.addEventListener('pointerup', () => { isDraggingCarousel = false; });
+
+      function animateCarousel() {
+        if (!isDraggingCarousel) {
+          carouselVelocity *= 0.95; // Drag inertia decay
+          carouselAngle += carouselVelocity;
+        }
+
+        cylinder.style.transform = `rotateY(${carouselAngle}deg)`;
+
+        // Highlight spotlight on card facing front
+        const normalizedAngle = (carouselAngle % 360 + 360) % 360;
+        cards.forEach((card, idx) => {
+          const cardBaseAngle = (360 / totalItems) * idx;
+          const currentCardAngle = (cardBaseAngle + normalizedAngle) % 360;
+          const diff = Math.min(Math.abs(currentCardAngle), Math.abs(currentCardAngle - 360));
+
+          if (diff < 30) {
+            card.classList.add('active-spotlight');
+          } else {
+            card.classList.remove('active-spotlight');
+          }
+        });
+
+        requestAnimationFrame(animateCarousel);
+      }
+      animateCarousel();
+
+
+      /* ------------------------------------------
+         COMPONENT 6: SPECULAR BENTO & MULTI-STAGE BUTTON
+         ------------------------------------------ */
+      const specularCard = document.getElementById('specular-card');
+      const specularGlow = document.getElementById('specular-glow');
+      const stageBtn = document.getElementById('stage-reactor-btn');
+      const stageBtnText = document.getElementById('stage-btn-text');
+
+      specularCard.addEventListener('pointermove', (e) => {
+        const rect = specularCard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        specularCard.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
+        specularCard.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
+      });
+
+      // Multi-stage tactile interaction logic
+      // States: Idle -> Processing -> Success -> Reset
+      let currentState = 'idle';
+
+      stageBtn.addEventListener('click', () => {
+        if (currentState !== 'idle') return;
+
+        // Stage 1 -> Processing Stage
+        currentState = 'processing';
+        stageBtn.classList.add('state-processing');
+
+        setTimeout(() => {
+          // Stage 2 -> Success Stage
+          currentState = 'success';
+          stageBtn.classList.remove('state-processing');
+          stageBtn.classList.add('state-success');
+          
+          stageBtnText.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span style="color: var(--gold-light);">System Operational</span>
+          `;
+
+          // Stage 3 -> Reset back to idle
+          setTimeout(() => {
+            currentState = 'idle';
+            stageBtn.classList.remove('state-success');
+            stageBtnText.innerHTML = `
+              <span>Deploy Telemetry Node</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            `;
+          }, 3500);
+
+        }, 2200);
+      });
+
+
+      /* ------------------------------------------
+         COMPONENT 8: CINEMATIC LIQUID GRADIENT SHADER
+         ------------------------------------------ */
+      const liquidCanvas = document.getElementById('liquid-canvas');
+      const liquidCtx = liquidCanvas.getContext('2d');
+      const liquidCard = document.getElementById('liquid-card');
+      const liquidTypo = document.getElementById('liquid-typo');
+
+      let lWidth = liquidCanvas.width = liquidCard.clientWidth;
+      let lHeight = liquidCanvas.height = liquidCard.clientHeight;
+
+      let step = 0;
+      function renderLiquid() {
+        step += 0.015;
+        liquidCtx.clearRect(0, 0, lWidth, lHeight);
+
+        // Procedural organic gradient blobs
+        const g1X = lWidth * 0.5 + Math.sin(step) * (lWidth * 0.3);
+        const g1Y = lHeight * 0.5 + Math.cos(step * 0.8) * (lHeight * 0.3);
+
+        const g2X = lWidth * 0.5 + Math.cos(step * 1.2) * (lWidth * 0.35);
+        const g2Y = lHeight * 0.5 + Math.sin(step * 0.9) * (lHeight * 0.35);
+
+        const grad1 = liquidCtx.createRadialGradient(g1X, g1Y, 10, g1X, g1Y, lWidth * 0.6);
+        grad1.addColorStop(0, 'rgba(0, 242, 254, 0.5)');
+        grad1.addColorStop(1, 'rgba(0, 242, 254, 0)');
+
+        const grad2 = liquidCtx.createRadialGradient(g2X, g2Y, 10, g2X, g2Y, lWidth * 0.6);
+        grad2.addColorStop(0, 'rgba(212, 175, 55, 0.4)');
+        grad2.addColorStop(1, 'rgba(212, 175, 55, 0)');
+
+        liquidCtx.fillStyle = grad1;
+        liquidCtx.fillRect(0, 0, lWidth, lHeight);
+        liquidCtx.fillStyle = grad2;
+        liquidCtx.fillRect(0, 0, lWidth, lHeight);
+
+        requestAnimationFrame(renderLiquid);
+      }
+      renderLiquid();
+
+      // Liquid Card Parallax Tilt
+      liquidCard.addEventListener('pointermove', (e) => {
+        const rect = liquidCard.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+
+        liquidCard.style.transform = `perspective(1000px) rotateX(${-y * 0.04}deg) rotateY(${x * 0.04}deg)`;
+        liquidTypo.style.transform = `translateZ(30px) translateX(${x * 0.02}px) translateY(${y * 0.02}px)`;
+      });
+
+      liquidCard.addEventListener('pointerleave', () => {
+        liquidCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+        liquidTypo.style.transform = 'translateZ(0px) translateX(0px) translateY(0px)';
+      });
+
+
+      /* ------------------------------------------
+         COMPONENT 7: 3D MAGNETIC FLOATING HALO CTA
+         ------------------------------------------ */
+      const ctaZone = document.getElementById('cta-magnetic-zone');
+      const magneticBtn = document.getElementById('magnetic-btn');
+
+      let btnX = 0, btnY = 0;
+      let targetBtnX = 0, targetBtnY = 0;
+
+      ctaZone.addEventListener('pointermove', (e) => {
+        const rect = ctaZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        targetBtnX = (e.clientX - centerX) * 0.35;
+        targetBtnY = (e.clientY - centerY) * 0.35;
+      });
+
+      ctaZone.addEventListener('pointerleave', () => {
+        targetBtnX = 0;
+        targetBtnY = 0;
+      });
+
+      function animateMagneticBtn() {
+        btnX += (targetBtnX - btnX) * 0.1;
+        btnY += (targetBtnY - btnY) * 0.1;
+
+        magneticBtn.style.transform = `translate3d(${btnX}px, ${btnY}px, 0px) rotateX(${-btnY * 0.2}deg) rotateY(${btnX * 0.2}deg)`;
+        requestAnimationFrame(animateMagneticBtn);
+      }
+      animateMagneticBtn();
+
+
+      /* ------------------------------------------
+         COMPONENT 5: 3D ACCORDION EXPANDER MECHANICS
+         ------------------------------------------ */
+      const accordionItems = document.querySelectorAll('.folder-item');
+
+      accordionItems.forEach(item => {
+        const header = item.querySelector('.folder-header');
+        header.addEventListener('click', () => {
+          const isActive = item.classList.contains('active');
+
+          // Close all folders
+          accordionItems.forEach(f => f.classList.remove('active'));
+
+          // Toggle current folder
+          if (!isActive) {
+            item.classList.add('active');
+          }
+        });
+      });
+
+    });
+  </script>
+</body>
+</html>
