@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Mechanical Purge Interface</title>
+  <style>
+    :root {
+      --bg-color: #05070c;
+      --panel-bg: rgba(13, 17, 23, 0.75);
+      --ruby-base: #ff003c;
+      --ruby-glow: rgba(255, 0, 60, 0.6);
+      --ruby-bright: #ff3366;
+      --gold-accent: #dfb15b;
+      --gold-glow: rgba(223, 177, 91, 0.4);
+      --titanium-dark: #161b26;
+      --titanium-mid: #212838;
+      --titanium-light: #3a445d;
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --text-main: #f0f4f8;
+      --text-dim: #64748b;
+      --mouse-x: 0.5;
+      --mouse-y: 0.5;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 1200px;
+    }
+
+    /* Radial Ambient Background Glow */
+    .bg-glow {
+      position: absolute;
+      width: 140vw;
+      height: 140vh;
+      background: 
+        radial-gradient(circle at calc(var(--mouse-x) * 100%) calc(var(--mouse-y) * 100%), rgba(255, 0, 60, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.8) 0%, var(--bg-color) 80%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Grid overlay pattern */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: 2;
+      pointer-events: none;
+      mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+    }
+
+    /* FX Canvas for particles */
+    #particle-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* Viewport Shake Container */
+    .shake-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform-style: preserve-3d;
+    }
+
+    /* Main 3D Stage */
+    .stage-3d {
+      position: relative;
+      width: 440px;
+      height: 280px;
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease-out;
+      cursor: pointer;
+    }
+
+    /* Dynamic Shadow Layer */
+    .chassis-shadow {
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      background: rgba(0, 0, 0, 0.85);
+      filter: blur(25px);
+      transform: translateZ(-50px) scale(0.95);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    /* Layer 1: Heavy Titanium Base Frame */
+    .layer-base {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #1e2538 0%, #0d111a 100%);
+      border-radius: 28px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 
+        inset 0 1px 2px rgba(255, 255, 255, 0.15),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.8),
+        0 20px 40px rgba(0, 0, 0, 0.6);
+      transform: translateZ(0px);
+      overflow: hidden;
+    }
+
+    /* Metallic Brushed Texture Overlay */
+    .layer-base::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.015) 0px,
+        rgba(255, 255, 255, 0.015) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+    }
+
+    /* Corner Rivets / Screws */
+    .screw {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4b5563, #111827);
+      box-shadow: 
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .screw::after {
+      content: '';
+      width: 6px;
+      height: 1.5px;
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(45deg);
+    }
+    .screw-tl { top: 16px; left: 16px; }
+    .screw-tr { top: 16px; right: 16px; }
+    .screw-bl { bottom: 16px; left: 16px; }
+    .screw-br { bottom: 16px; right: 16px; }
+
+    /* Layer 2: Mechanical Hydraulics & Recessed Trench */
+    .layer-mechanics {
+      position: absolute;
+      inset: 18px;
+      background: #090d14;
+      border-radius: 20px;
+      box-shadow: 
+        inset 0 5px 15px rgba(0, 0, 0, 0.9),
+        0 1px 1px rgba(255, 255, 255, 0.05);
+      transform: translateZ(15px);
+      transform-style: preserve-3d;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    /* Top Status Bar */
+    .status-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transform: translateZ(10px);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .led-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .system-id {
+      font-family: monospace;
+      font-size: 10px;
+      color: rgba(223, 177, 91, 0.6);
+      letter-spacing: 1px;
+    }
+
+    /* Pneumatic Side Pillars */
+    .piston-container {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 120px;
+      background: #121722;
+      border-radius: 5px;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .piston-container.left { left: 8px; }
+    .piston-container.right { right: 8px; }
+
+    .piston-shaft {
+      width: 4px;
+      height: 70%;
+      background: linear-gradient(90deg, #64748b, #f8fafc, #475569);
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Layer 3: Glassmorphism Shield Cover Frame */
+    .layer-glass-frame {
+      position: absolute;
+      inset: 48px 28px 24px 28px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      transform: translateZ(35px);
+      transform-style: preserve-3d;
+      box-shadow: 
+        0 15px 35px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    /* Layer 4: Floating Interactive Core Trigger Button */
+    .trigger-core {
+      position: absolute;
+      inset: 8px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e050a 0%, #0a0204 100%);
+      border: 1px solid rgba(255, 0, 60, 0.3);
+      transform: translateZ(25px);
+      transform-style: preserve-3d;
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 
+        0 10px 25px rgba(0, 0, 0, 0.7),
+        0 0 15px rgba(255, 0, 60, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    }
+
+    /* 3D Button Edges for Realistic Depth Thickness */
+    .btn-side {
+      position: absolute;
+      background: #80001d;
+      pointer-events: none;
+    }
+    .btn-side-bottom {
+      bottom: -8px; left: 0; right: 0; height: 8px;
+      background: linear-gradient(to bottom, #990022, #33000b);
+      transform: rotateX(-90deg);
+      transform-origin: top;
+    }
+    .btn-side-right {
+      top: 0; right: -8px; bottom: 0; width: 8px;
+      background: linear-gradient(to right, #80001d, #260008);
+      transform: rotateY(90deg);
+      transform-origin: left;
+    }
+
+    /* Internal Pulsing Ruby Core */
+    .ruby-emitter {
+      position: absolute;
+      inset: -50%;
+      background: radial-gradient(circle at 50% 50%, var(--ruby-glow) 0%, transparent 60%);
+      opacity: 0.4;
+      animation: corePulse 3s infinite ease-in-out;
+      pointer-events: none;
+    }
+
+    @keyframes corePulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.95); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
+
+    /* Dynamic Glare Specular Highlight */
+    .glare-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at calc(var(--mouse-x) * 100%) calc(var(--mouse-y) * 100%), 
+        rgba(255, 255, 255, 0.18) 0%, 
+        transparent 50%
+      );
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Core Visual Content (Text + Graphic) */
+    .core-content {
+      position: relative;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-main);
+      transform: translateZ(15px);
+      transition: opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease;
+    }
+
+    .icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(255, 0, 60, 0.12);
+      border: 1px solid rgba(255, 0, 60, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ruby-bright);
+      box-shadow: 0 0 15px rgba(255, 0, 60, 0.2);
+    }
+
+    .icon-box svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 4px var(--ruby-bright));
+    }
+
+    .text-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .label-primary {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 0, 60, 0.6);
+    }
+
+    .label-secondary {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--gold-accent);
+      opacity: 0.8;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Success State Message overlay */
+    .purged-message {
+      position: absolute;
+      z-index: 6;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: translateZ(15px) scale(0.8);
+      pointer-events: none;
+      transition: opacity 0.5s ease 0.2s, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s;
+    }
+
+    .purged-message .title {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #22c55e;
+      text-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+      text-transform: uppercase;
+    }
+
+    .purged-message .subtitle {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Active State Micro-interactions */
+    .stage-3d:hover .trigger-core {
+      border-color: rgba(255, 0, 60, 0.6);
+      box-shadow: 
+        0 12px 30px rgba(0, 0, 0, 0.8),
+        0 0 25px rgba(255, 0, 60, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    }
+
+    .stage-3d:active .trigger-core,
+    .stage-3d.is-pressed .trigger-core {
+      transform: translateZ(8px) scale(0.98);
+      box-shadow: 
+        0 4px 10px rgba(0, 0, 0, 0.9),
+        0 0 10px rgba(255, 0, 60, 0.2),
+        inset 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Disintegration State Animations */
+    .stage-3d.is-disintegrating .core-content {
+      opacity: 0;
+      filter: blur(12px);
+      transform: translateZ(30px) scale(1.15);
+    }
+
+    .stage-3d.is-purged .purged-message {
+      opacity: 1;
+      transform: translateZ(15px) scale(1);
+    }
+
+    .stage-3d.is-purged .led-dot {
+      background-color: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+    }
+
+    /* Screen Shake Animation Keyframes */
+    @keyframes screenShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-4px, 3px) rotate(-0.5deg); }
+      30% { transform: translate(4px, -2px) rotate(0.5deg); }
+      45% { transform: translate(-3px, -3px) rotate(-0.3deg); }
+      60% { transform: translate(3px, 2px) rotate(0.3deg); }
+      75% { transform: translate(-1px, 1px) rotate(-0.1deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    .shake {
+      animation: screenShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    /* Instructions Hint */
+    .instruction-hint {
+      position: absolute;
+      bottom: 30px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow"></div>
+  <div class="bg-grid"></div>
+
+  <canvas id="particle-canvas"></canvas>
+
+  <div class="shake-wrapper" id="shake-wrapper">
+    <div class="stage-3d" id="stage">
+      <div class="chassis-shadow"></div>
+
+      <!-- Layer 1: Titanium Base -->
+      <div class="layer-base">
+        <div class="screw screw-tl"></div>
+        <div class="screw screw-tr"></div>
+        <div class="screw screw-bl"></div>
+        <div class="screw screw-br"></div>
+      </div>
+
+      <!-- Layer 2: Hydraulics & Inner Frame -->
+      <div class="layer-mechanics">
+        <div class="status-panel">
+          <div class="status-indicator">
+            <span class="led-dot" id="status-led"></span>
+            <span id="status-label">SYS.ARMED</span>
+          </div>
+          <span class="system-id">CRITICAL_OVERRIDE // 0x99</span>
+        </div>
+
+        <div class="piston-container left"><div class="piston-shaft"></div></div>
+        <div class="piston-container right"><div class="piston-shaft"></div></div>
+      </div>
+
+      <!-- Layer 3: Glassmorphism Glass Shroud -->
+      <div class="layer-glass-frame">
+        <!-- Layer 4: Floating Interactive Core Trigger -->
+        <div class="trigger-core" id="core-btn">
+          <div class="btn-side btn-side-bottom"></div>
+          <div class="btn-side btn-side-right"></div>
+          <div class="ruby-emitter"></div>
+          <div class="glare-overlay"></div>
+
+          <!-- Active Content -->
+          <div class="core-content" id="core-content">
+            <div class="icon-box">
+              <svg viewBox="0 0 24 24">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div class="text-container">
+              <span class="label-primary">PURGE DATA</span>
+              <span class="label-secondary">IRREVERSIBLE ACTION</span>
+            </div>
+          </div>
+
+          <!-- Disintegrated Success State -->
+          <div class="purged-message" id="purged-msg">
+            <span class="title">SYSTEM PURGED</span>
+            <span class="subtitle">100% SECTORS SANITIZED</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="instruction-hint" id="hint">Press to execute mechanical purge</div>
+
+  <script>
+    // System & Audio Context Setup
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    // Procedural Mechanical Sound Synthesizer
+    function playSound(type) {
+      if (!audioCtx) return;
+      
+      const now = audioCtx.currentTime;
+
+      if (type === 'click') {
+        // Heavy mechanical crunch sound
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'purge') {
+        // Sub-bass detonation noise & disintegration fizzle
+        const bufferSize = audioCtx.sampleRate * 1.2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(40, now + 1.0);
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        whiteNoise.start(now);
+        whiteNoise.stop(now + 1.1);
+
+        // Sub Bass Oscillator
+        const subOsc = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(150, now);
+        subOsc.frequency.exponentialRampToValueAtTime(20, now + 0.6);
+
+        subGain.gain.setValueAtTime(0.7, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        subOsc.connect(subGain);
+        subGain.connect(audioCtx.destination);
+
+        subOsc.start(now);
+        subOsc.stop(now + 0.6);
+      } else if (type === 'rearm') {
+        // Re-arm metallic slide sound
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+    }
+
+    // DOM Elements
+    const stage = document.getElementById('stage');
+    const shakeWrapper = document.getElementById('shake-wrapper');
+    const coreBtn = document.getElementById('core-btn');
+    const coreContent = document.getElementById('core-content');
+    const statusLed = document.getElementById('status-led');
+    const statusLabel = document.getElementById('status-label');
+    const hint = document.getElementById('hint');
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Particle Canvas Resizing
+    let width, height;
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Smooth Interactive 3D Cursor Tracking Physics
+    let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let currentRot = { x: 0, y: 0 };
+    let targetRot = { x: 0, y: 0 };
+
+    function handlePointerMove(e) {
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX) || mouse.x;
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY) || mouse.y;
+
+      mouse.x = clientX;
+      mouse.y = clientY;
+
+      const normX = (clientX / window.innerWidth) - 0.5;
+      const normY = (clientY / window.innerHeight) - 0.5;
+
+      targetRot.x = -normY * 28; // Pitch
+      targetRot.y = normX * 32;  // Yaw
+
+      document.documentElement.style.setProperty('--mouse-x', (clientX / window.innerWidth).toFixed(2));
+      document.documentElement.style.setProperty('--mouse-y', (clientY / window.innerHeight).toFixed(2));
+    }
+
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('touchmove', handlePointerMove);
+
+    // Dynamic Tilt Loop (Lerp)
+    function animateStage() {
+      currentRot.x += (targetRot.x - currentRot.x) * 0.1;
+      currentRot.y += (targetRot.y - currentRot.y) * 0.1;
+
+      stage.style.transform = `rotateX(${currentRot.x}deg) rotateY(${currentRot.y}deg)`;
+      requestAnimationFrame(animateStage);
+    }
+    animateStage();
+
+    // High Performance Particle Disintegration System
+    class Particle {
+      constructor(x, y, colorType) {
+        this.x = x;
+        this.y = y;
+        
+        // Velocity vector calculations
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 8 + 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed - Math.random() * 3; // slight upward drift
+
+        this.size = Math.random() * 3.5 + 1;
+        this.maxLife = Math.random() * 40 + 30;
+        this.life = this.maxLife;
+        this.drag = 0.94;
+        this.gravity = 0.15;
+
+        // Color palettes
+        this.colorType = colorType;
+        if (colorType === 'ruby') {
+          const colors = ['#ff003c', '#ff3366', '#ff6680', '#e5b869'];
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+        } else {
+          this.color = '#ffffff';
+        }
+      }
+
+      update() {
+        this.vx *= this.drag;
+        this.vy *= this.drag;
+        this.vy += this.gravity;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        this.life--;
+      }
+
+      draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Shockwave Ring Burst
+    class Shockwave {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.maxRadius = 180;
+        this.alpha = 1;
+      }
+
+      update() {
+        this.radius += (this.maxRadius - this.radius) * 0.12;
+        this.alpha = 1 - (this.radius / this.maxRadius);
+      }
+
+      draw(ctx) {
+        if (this.alpha <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.strokeStyle = '#ff003c';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ff003c';
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    let particles = [];
+    let shockwaves = [];
+
+    function renderParticles() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Composite mode for brilliant energetic glowing particles
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update();
+        p.draw(ctx);
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.update();
+        sw.draw(ctx);
+        if (sw.alpha <= 0) shockwaves.splice(i, 1);
+      }
+
+      requestAnimationFrame(renderParticles);
+    }
+    renderParticles();
+
+    // Trigger Disintegration Mechanics
+    function createDisintegration() {
+      const rect = coreContent.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      // Spawn shockwave ring
+      shockwaves.push(new Shockwave(centerX, centerY));
+
+      // Density grid spawn over button face area for destruction effect
+      const particleCount = 220;
+      for (let i = 0; i < particleCount; i++) {
+        const px = rect.left + Math.random() * rect.width;
+        const py = rect.top + Math.random() * rect.height;
+        particles.push(new Particle(px, py, 'ruby'));
+      }
+    }
+
+    // State Machine logic
+    let state = 'IDLE'; // IDLE, PURGING, PURGED
+
+    stage.addEventListener('click', (e) => {
+      initAudio();
+
+      if (state !== 'IDLE') return;
+      state = 'PURGING';
+
+      // Sound & Micro-interaction
+      playSound('click');
+      stage.classList.add('is-pressed');
+
+      setTimeout(() => {
+        stage.classList.remove('is-pressed');
+        stage.classList.add('is-disintegrating');
+        
+        playSound('purge');
+        
+        // Trigger Screen Shake & Particle Burst
+        shakeWrapper.classList.add('shake');
+        createDisintegration();
+
+        statusLed.style.backgroundColor = '#f59e0b';
+        statusLed.style.boxShadow = '0 0 8px #f59e0b';
+        statusLabel.textContent = 'PURGING...';
+
+        setTimeout(() => {
+          shakeWrapper.classList.remove('shake');
+        }, 450);
+
+        // Transition to PURGED state
+        setTimeout(() => {
+          state = 'PURGED';
+          stage.classList.remove('is-disintegrating');
+          stage.classList.add('is-purged');
+          statusLabel.textContent = 'PURGED';
+          hint.textContent = 'System sanitized. Click to re-arm';
+        }, 600);
+
+      }, 100);
+    });
+
+    // Reset Mechanism to Re-Arm the Button
+    document.body.addEventListener('click', (e) => {
+      if (state === 'PURGED' && !stage.contains(e.target)) {
+        rearmSystem();
+      }
+    });
+
+    hint.addEventListener('click', () => {
+      if (state === 'PURGED') rearmSystem();
+    });
+
+    function rearmSystem() {
+      initAudio();
+      playSound('rearm');
+      state = 'IDLE';
+
+      stage.classList.remove('is-purged');
+      statusLed.style.backgroundColor = '#22c55e';
+      statusLed.style.boxShadow = '0 0 8px #22c55e';
+      statusLabel.textContent = 'SYS.ARMED';
+      hint.textContent = 'Press to execute mechanical purge';
+    }
+  </script>
+</body>
+</html>
