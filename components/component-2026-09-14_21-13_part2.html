@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHERIA // Kinetic Architecture & Telemetry Suite</title>
+  <style>
+    /* ==========================================================================
+       RESET & BASE DESIGN SYSTEM
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-base: #030508;
+      --bg-card: rgba(10, 14, 22, 0.65);
+      --bg-glass-hover: rgba(20, 28, 42, 0.75);
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(212, 175, 55, 0.3);
+      
+      --accent-gold: #dfb15b;
+      --accent-gold-glow: rgba(223, 177, 91, 0.25);
+      --accent-cyan: #00f3ff;
+      --accent-cyan-glow: rgba(0, 243, 255, 0.2);
+      --accent-purple: #7000ff;
+      
+      --text-main: #f0f4f8;
+      --text-muted: #8a99ad;
+      --text-dim: #4e5d6c;
+      
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SF Mono", "Consolas", "Fira Code", monospace;
+      
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding-bottom: 120px;
+    }
+
+    /* Ambient Dynamic Background Grid */
+    .bg-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-vignette {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 50% 30%, transparent 20%, #030508 85%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Canvas Elements */
+    #globeCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: auto;
+      cursor: grab;
+    }
+    #globeCanvas:active {
+      cursor: grabbing;
+    }
+
+    #particleOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99;
+      pointer-events: none;
+    }
+
+    /* Layout Structure */
+    .content-wrapper {
+      position: relative;
+      z-index: 2;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* Typography Utilities */
+    .label-micro {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--accent-gold);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .label-micro::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--accent-gold);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-gold);
+    }
+
+    /* ==========================================================================
+       COMPONENT 1: TELEMETRY BAR (Scroll-Reactive HUD)
+       ========================================================================== */
+    .telemetry-sticky {
+      position: sticky;
+      top: 24px;
+      z-index: 50;
+      margin-top: 20px;
+      margin-bottom: 60px;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(6, 10, 18, 0.7);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: border-color 0.3s ease;
+    }
+
+    .telemetry-sticky:hover {
+      border-color: rgba(0, 243, 255, 0.25);
+    }
+
+    .hud-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .hud-logo-icon {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--accent-gold);
+      transform: rotate(45deg);
+      display: grid;
+      place-items: center;
+      transition: transform 0.6s var(--ease-elastic);
+    }
+
+    .telemetry-sticky:hover .hud-logo-icon {
+      transform: rotate(225deg);
+    }
+
+    .hud-logo-icon-inner {
+      width: 14px;
+      height: 14px;
+      background: var(--accent-gold);
+      transform: rotate(-45deg);
+    }
+
+    .hud-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .hud-metrics {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+
+    .metric-box {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    /* Interactive 3D Compass Cube */
+    .hud-compass-stage {
+      width: 36px;
+      height: 36px;
+      perspective: 200px;
+    }
+
+    .hud-cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.1s linear;
+    }
+
+    .cube-face {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      background: rgba(0, 243, 255, 0.05);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--accent-cyan);
+    }
+
+    .cube-face.front  { transform: rotateY(  0deg) translateZ(18px); }
+    .cube-face.back   { transform: rotateY(180deg) translateZ(18px); }
+    .cube-face.right  { transform: rotateY( 90deg) translateZ(18px); }
+    .cube-face.left   { transform: rotateY(-90deg) translateZ(18px); }
+    .cube-face.top    { transform: rotateX( 90deg) translateZ(18px); }
+    .cube-face.bottom { transform: rotateX(-90deg) translateZ(18px); }
+
+    /* ==========================================================================
+       COMPONENT 2: HERO SECTION & MAGNETIC HALO CTA
+       ========================================================================== */
+    .hero-container {
+      min-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 0 80px 0;
+      position: relative;
+    }
+
+    .hero-title {
+      font-size: clamp(2.8rem, 6vw, 5.5rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 20px 0 24px 0;
+      background: linear-gradient(135deg, #ffffff 30%, rgba(255, 255, 255, 0.5) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      max-width: 900px;
+    }
+
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin-bottom: 48px;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    /* Magnetic Halo CTA Container */
+    .cta-wrapper {
+      position: relative;
+      padding: 20px;
+      display: inline-block;
+    }
+
+    .cta-halo-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      border-radius: 100px;
+      border: 1px solid var(--accent-gold-glow);
+      pointer-events: none;
+      animation: ringPulse 3s infinite var(--ease-out-expo);
+      opacity: 0.6;
+    }
+
+    .cta-halo-ring:nth-child(2) {
+      width: 125%;
+      height: 145%;
+      animation-delay: 0.4s;
+      border-color: rgba(0, 243, 255, 0.15);
+    }
+
+    @keyframes ringPulse {
+      0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.8; }
+      50% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.3; }
+      100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.8; }
+    }
+
+    /* Magnetic CTA Master Button */
+    .magnetic-btn {
+      position: relative;
+      z-index: 2;
+      background: rgba(12, 18, 28, 0.85);
+      border: 1px solid var(--accent-gold);
+      border-radius: 100px;
+      padding: 20px 42px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      outline: none;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px var(--accent-gold-glow);
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0.1, 1), background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      will-change: transform;
+    }
+
+    .magnetic-btn:hover {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 30px var(--accent-cyan-glow);
+    }
+
+    /* Active Layering strictly behind text */
+    .btn-bg-pill {
+      position: absolute;
+      inset: 0;
+      z-index: 1; /* Low Z-index behind text */
+      background: linear-gradient(90deg, rgba(223, 177, 91, 0.2), rgba(0, 243, 255, 0.2));
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      border-radius: 100px;
+    }
+
+    .magnetic-btn:hover .btn-bg-pill {
+      opacity: 1;
+    }
+
+    .btn-text-content {
+      position: relative;
+      z-index: 2; /* Foreground text above pill */
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .btn-svg-icon {
+      width: 18px;
+      height: 18px;
+      stroke: var(--accent-gold);
+      fill: none;
+      stroke-width: 2;
+      transition: stroke 0.3s ease, transform 0.3s ease;
+    }
+
+    .magnetic-btn:hover .btn-svg-icon {
+      stroke: var(--accent-cyan);
+      transform: translateX(4px);
+    }
+
+    /* Multi-stage Progress SVG Overlay inside Button */
+    .btn-progress-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+      border-radius: 100px;
+    }
+
+    .btn-progress-path {
+      fill: none;
+      stroke: var(--accent-cyan);
+      stroke-width: 3;
+      stroke-dasharray: 400;
+      stroke-dashoffset: 400;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ==========================================================================
+       COMPONENT 3 & 4: MAIN INTERACTIVE BENTO GRID & Accordion
+       ========================================================================== */
+    .section-title-wrap {
+      margin-bottom: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 24px;
+      margin-bottom: 120px;
+    }
+
+    /* Bento Specular Feature Card */
+    .bento-card-specular {
+      grid-column: span 7;
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: 24px;
+      padding: 40px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transform-style: preserve-3d;
+      perspective: 1000px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 440px;
+    }
+
+    .bento-card-specular:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    }
+
+    /* Dynamic Specular Reflection Layer */
+    .specular-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.06), transparent 40%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .bento-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .bento-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .bento-heading {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .bento-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 440px;
+      margin-bottom: 32px;
+    }
+
+    /* Bento Image Preview Micro Tabs */
+    .preview-stage {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 180px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border-glass);
+    }
+
+    .preview-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transform: scale(1.08);
+      transition: opacity 0.5s ease, transform 0.7s var(--ease-out-expo);
+    }
+
+    .preview-img.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .preview-controls {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-glass);
+      padding: 8px 16px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      border-color: var(--accent-cyan);
+    }
+
+    .tab-btn-pill {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 243, 255, 0.15);
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .tab-btn.active .tab-btn-pill {
+      opacity: 1;
+    }
+
+    .tab-btn-text {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Bento Liquid Refraction Card */
+    .bento-card-liquid {
+      grid-column: span 5;
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: 24px;
+      padding: 40px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 440px;
+    }
+
+    .liquid-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .liquid-content {
+      position: relative;
+      z-index: 2;
+      transform-style: preserve-3d;
+      transition: transform 0.5s var(--ease-out-expo);
+    }
+
+    .bento-card-liquid:hover .liquid-content {
+      transform: translateZ(20px);
+    }
+
+    .liquid-glass-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent-gold);
+      margin-bottom: 20px;
+    }
+
+    .liquid-stat-val {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    /* ==========================================================================
+       COMPONENT 5: 3D ACCORDION MEDIA FOLDER EXPANDER
+       ========================================================================== */
+    .accordion-section {
+      margin-bottom: 120px;
+    }
+
+    .folder-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      perspective: 1200px;
+    }
+
+    .folder-item {
+      position: relative;
+      background: rgba(8, 12, 20, 0.7);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: top center;
+      cursor: pointer;
+    }
+
+    .folder-item:hover {
+      border-color: rgba(212, 175, 55, 0.4);
+      background: rgba(14, 20, 32, 0.85);
+    }
+
+    .folder-header {
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .folder-title-grp {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .folder-num {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent-gold);
+      opacity: 0.7;
+    }
+
+    .folder-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .folder-icon-toggle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border-glass);
+      display: grid;
+      place-items: center;
+      transition: transform 0.4s var(--ease-out-expo);
+    }
+
+    .folder-item.active .folder-icon-toggle {
+      transform: rotate(135deg);
+      border-color: var(--accent-gold);
+    }
+
+    .folder-body {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.6s var(--ease-out-expo), opacity 0.4s ease, padding 0.4s ease;
+      padding: 0 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .folder-item.active .folder-body {
+      max-height: 400px;
+      opacity: 1;
+      padding: 0 32px 32px 32px;
+    }
+
+    .folder-media {
+      height: 220px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .folder-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .folder-details {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .folder-details p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    /* ==========================================================================
+       COMPONENT 6: 3D CARD FAN-DECK SELECTOR
+       ========================================================================== */
+    .deck-section {
+      margin-bottom: 120px;
+      position: relative;
+    }
+
+    .deck-container {
+      position: relative;
+      height: 450px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 1200px;
+    }
+
+    .deck-card {
+      position: absolute;
+      width: 280px;
+      height: 380px;
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      transition: transform 0.6s var(--ease-out-expo), border-color 0.3s ease, box-shadow 0.3s ease;
+      transform-origin: bottom center;
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+    }
+
+    .deck-card-img {
+      width: 100%;
+      height: 65%;
+      object-fit: cover;
+    }
+
+    .deck-card-info {
+      padding: 20px;
+    }
+
+    .deck-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .deck-card-sub {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent-gold);
+    }
+
+    /* Rest Stack Positional Setup */
+    .deck-card:nth-child(1) { transform: translateY(0) rotate(0deg) translateZ(0); z-index: 4; }
+    .deck-card:nth-child(2) { transform: translateY(8px) rotate(-3deg) translateZ(-20px); z-index: 3; }
+    .deck-card:nth-child(3) { transform: translateY(16px) rotate(3deg) translateZ(-40px); z-index: 2; }
+    .deck-card:nth-child(4) { transform: translateY(24px) rotate(-6deg) translateZ(-60px); z-index: 1; }
+
+    /* Fan-out on deck hover */
+    .deck-container:hover .deck-card:nth-child(1) { transform: translateX(-240px) rotate(-16deg) translateZ(0); }
+    .deck-container:hover .deck-card:nth-child(2) { transform: translateX(-80px) rotate(-6deg) translateZ(10px); }
+    .deck-container:hover .deck-card:nth-child(3) { transform: translateX(80px) rotate(6deg) translateZ(20px); }
+    .deck-container:hover .deck-card:nth-child(4) { transform: translateX(240px) rotate(16deg) translateZ(30px); }
+
+    /* Individual Card Hover Focus */
+    .deck-container .deck-card:hover {
+      transform: translateY(-30px) scale(1.08) rotate(0deg) translateZ(100px) !important;
+      z-index: 10 !important;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 25px var(--accent-cyan-glow);
+    }
+
+    /* ==========================================================================
+       COMPONENT 7: 3D CYLINDRICAL ARC CAROUSEL
+       ========================================================================== */
+    .carousel-section {
+      margin-bottom: 80px;
+      overflow: hidden;
+      padding: 40px 0;
+    }
+
+    .carousel-stage {
+      position: relative;
+      height: 420px;
+      perspective: 1000px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .carousel-stage:active {
+      cursor: grabbing;
+    }
+
+    .carousel-cylinder {
+      position: relative;
+      width: 320px;
+      height: 360px;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .carousel-card {
+      position: absolute;
+      inset: 0;
+      width: 320px;
+      height: 360px;
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      backface-visibility: hidden;
+      transition: filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 28px;
+    }
+
+    .carousel-card-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      opacity: 0.5;
+      transition: transform 0.6s ease, opacity 0.3s ease;
+    }
+
+    .carousel-card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #030508 20%, transparent 80%);
+      z-index: 1;
+    }
+
+    .carousel-card-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .carousel-card.active {
+      border-color: var(--accent-gold);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px var(--accent-gold-glow);
+      filter: brightness(1.15);
+    }
+
+    .carousel-card.active .carousel-card-bg {
+      opacity: 0.85;
+      transform: scale(1.05);
+    }
+
+    /* Utility Hint Overlay */
+    .drag-hint {
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      margin-top: 20px;
+      text-transform: uppercase;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .bento-card-specular { grid-column: span 12; }
+      .bento-card-liquid { grid-column: span 12; }
+      .deck-container:hover .deck-card:nth-child(1) { transform: translateX(-120px) scale(0.9); }
+      .deck-container:hover .deck-card:nth-child(4) { transform: translateX(120px) scale(0.9); }
+      .hud-metrics { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Grids & Background Canvases -->
+  <div class="bg-grid"></div>
+  <div class="bg-vignette"></div>
+  <canvas id="globeCanvas"></canvas>
+  <canvas id="particleOverlay"></canvas>
+
+  <!-- Content Hierarchy -->
+  <div class="content-wrapper">
+
+    <!-- COMPONENT 1: Scroll-Reactive 3D Telemetry Meter HUD -->
+    <header class="telemetry-sticky">
+      <div class="hud-brand">
+        <div class="hud-logo-icon">
+          <div class="hud-logo-icon-inner"></div>
+        </div>
+        <div>
+          <div class="hud-title">AETHERIA</div>
+          <div class="label-micro" style="font-size:0.55rem; margin:0;">SYS.VER 4.0.9</div>
+        </div>
+      </div>
+
+      <div class="hud-metrics">
+        <div class="metric-box">
+          <span class="metric-label">SCROLL DEPTH</span>
+          <span class="metric-value" id="hudScrollVal">000%</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">VELOCITY</span>
+          <span class="metric-value" id="hudVelocityVal">0.00 KP/S</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">GLOBE ROTATION</span>
+          <span class="metric-value" id="hudRotVal">32° N / 114° E</span>
+        </div>
+      </div>
+
+      <!-- Interactive 3D Compass Cube HUD element -->
+      <div class="hud-compass-stage">
+        <div class="hud-cube" id="hudCube">
+          <div class="cube-face front">N</div>
+          <div class="cube-face back">S</div>
+          <div class="cube-face right">E</div>
+          <div class="cube-face left">W</div>
+          <div class="cube-face top">Z+</div>
+          <div class="cube-face bottom">Z-</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- COMPONENT 2: Hero Section & 3D Magnetic Floating Halo CTA Button -->
+    <section class="hero-container">
+      <div class="label-micro">Autonomous Architecture Engine</div>
+      <h1 class="hero-title">Spatial Physics & Kinetic Intelligence</h1>
+      <p class="hero-subtitle">
+        An ultra-premium UI framework integrating real-time 3D telemetry, dynamic lighting projection, and physical momentum damping.
+      </p>
+
+      <!-- 3D Magnetic Floating Halo CTA Button Wrapper -->
+      <div class="cta-wrapper" id="ctaWrapper">
+        <div class="cta-halo-ring"></div>
+        <div class="cta-halo-ring"></div>
+        
+        <button class="magnetic-btn" id="masterCtaBtn">
+          <!-- Multi-stage SVG stroke progress border -->
+          <svg class="btn-progress-svg" viewBox="0 0 240 64" preserveAspectRatio="none">
+            <rect class="btn-progress-path" x="2" y="2" width="236" height="60" rx="30" id="btnProgressRect" />
+          </svg>
+          
+          <!-- Translucent Active Pill behind text -->
+          <div class="btn-bg-pill"></div>
+
+          <!-- Foreground Text & Icon -->
+          <span class="btn-text-content">
+            <span id="btnLabelText">INITIATE QUANTUM LINK</span>
+            <svg class="btn-svg-icon" id="btnIcon" viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- COMPONENT 3 & 4: Bento Feature Grid (Specular Highlight & Liquid Refraction) -->
+    <section>
+      <div class="section-title-wrap">
+        <div>
+          <div class="label-micro">System Modules</div>
+          <h2 class="section-title">Telemetry Bento Array</h2>
+        </div>
+      </div>
+
+      <div class="bento-grid">
+        <!-- Specular Highlight Interactive Bento Card -->
+        <div class="bento-card-specular" id="specularCard">
+          <div class="specular-glow" id="specularGlow"></div>
+          
+          <div class="bento-content">
+            <span class="bento-tag">// MODULE 01 — LIGHTING</span>
+            <h3 class="bento-heading">Specular Ray-Tracing Surface</h3>
+            <p class="bento-desc">Interactive light tracking with real-time vector calculations and physical glass reflectivity controls.</p>
+          </div>
+
+          <div class="preview-stage">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" class="preview-img active" id="prevImg1" alt="Arch 1">
+            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" class="preview-img" id="prevImg2" alt="Arch 2">
+            <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80" class="preview-img" id="prevImg3" alt="Arch 3">
+          </div>
+
+          <div class="preview-controls">
+            <button class="tab-btn active" onclick="switchPreview(0, this)">
+              <div class="tab-btn-pill"></div>
+              <span class="tab-btn-text">CAM_01</span>
+            </button>
+            <button class="tab-btn" onclick="switchPreview(1, this)">
+              <div class="tab-btn-pill"></div>
+              <span class="tab-btn-text">CAM_02</span>
+            </button>
+            <button class="tab-btn" onclick="switchPreview(2, this)">
+              <div class="tab-btn-pill"></div>
+              <span class="tab-btn-text">CAM_03</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Liquid Gradient Glass Card -->
+        <div class="bento-card-liquid">
+          <canvas class="liquid-canvas" id="liquidCanvas"></canvas>
+          <div class="liquid-content">
+            <div class="liquid-glass-badge">FLUID REFRACTION</div>
+            <div class="liquid-stat-val">99.8%</div>
+            <p class="bento-desc" style="margin-bottom:0;">Dynamic gradient mesh with glass blur overlays and real-time velocity refraction.</p>
+          </div>
+          <div class="label-micro" style="color:var(--text-dim); margin-top: 24px;">SHADER ENGINE // v2.4</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENT 5: 3D Accordion Media Folder Expander -->
+    <section class="accordion-section">
+      <div class="section-title-wrap">
+        <div>
+          <div class="label-micro">Database Manifest</div>
+          <h2 class="section-title">Mechanical Media Folders</h2>
+        </div>
+      </div>
+
+      <div class="folder-accordion" id="folderAccordion">
+        <!-- Folder 1 -->
+        <div class="folder-item active" onclick="toggleFolder(this)">
+          <div class="folder-header">
+            <div class="folder-title-grp">
+              <span class="folder-num">01</span>
+              <span class="folder-name">NEO-TOKYO HELIX TOWER</span>
+            </div>
+            <div class="folder-icon-toggle">+</div>
+          </div>
+          <div class="folder-body">
+            <div class="folder-media">
+              <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" alt="Tower">
+            </div>
+            <div class="folder-details">
+              <p>Hyper-structural megastructure with integrated kinetic dampening and ambient glass luminescence.</p>
+              <div class="label-micro">HEIGHT: 840M // COMPLETED 2026</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Folder 2 -->
+        <div class="folder-item" onclick="toggleFolder(this)">
+          <div class="folder-header">
+            <div class="folder-title-grp">
+              <span class="folder-num">02</span>
+              <span class="folder-name">CYGNUS DOCKING PAVILION</span>
+            </div>
+            <div class="folder-icon-toggle">+</div>
+          </div>
+          <div class="folder-body">
+            <div class="folder-media">
+              <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="Pavilion">
+            </div>
+            <div class="folder-details">
+              <p>Aerodynamic fluid-form pavilion designed for high-altitude transport and autonomous transit hubs.</p>
+              <div class="label-micro">AREA: 42,000 SQM // ACTIVE NODE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Folder 3 -->
+        <div class="folder-item" onclick="toggleFolder(this)">
+          <div class="folder-header">
+            <div class="folder-title-grp">
+              <span class="folder-num">03</span>
+              <span class="folder-name">ORION QUANTUM DATA LAB</span>
+            </div>
+            <div class="folder-icon-toggle">+</div>
+          </div>
+          <div class="folder-body">
+            <div class="folder-media">
+              <img src="https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80" alt="Lab">
+            </div>
+            <div class="folder-details">
+              <p>Sub-zero liquid cooled computing center featuring architectural optical glass refractor fins.</p>
+              <div class="label-micro">COOLING: CRYOGENIC // LEVEL 04</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENT 6: 3D Card Fan-Deck Selector -->
+    <section class="deck-section">
+      <div class="section-title-wrap">
+        <div>
+          <div class="label-micro">Architectural Deck</div>
+          <h2 class="section-title">Kinetic Fan Selector</h2>
+        </div>
+      </div>
+
+      <div class="deck-container" id="deckContainer">
+        <!-- Card 1 -->
+        <div class="deck-card">
+          <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" class="deck-card-img" alt="Deck 1">
+          <div class="deck-card-info">
+            <div class="deck-card-title">PROJECT AETHER</div>
+            <div class="deck-card-sub">RESIDENTIAL // ZURICH</div>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="deck-card">
+          <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80" class="deck-card-img" alt="Deck 2">
+          <div class="deck-card-info">
+            <div class="deck-card-title">SOLARIS COMPLEX</div>
+            <div class="deck-card-sub">COMMERCIAL // KYOTO</div>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="deck-card">
+          <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80" class="deck-card-img" alt="Deck 3">
+          <div class="deck-card-title">KINETIC VILLA</div>
+          <div class="deck-card-sub">PRIVATE // REYKJAVIK</div>
+        </div>
+        <!-- Card 4 -->
+        <div class="deck-card">
+          <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" class="deck-card-img" alt="Deck 4">
+          <div class="deck-card-info">
+            <div class="deck-card-title">ATLAS TOWER</div>
+            <div class="deck-card-sub">MIXED-USE // SINGAPORE</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENT 7: 3D Cylindrical Arc Carousel -->
+    <section class="carousel-section">
+      <div class="section-title-wrap">
+        <div>
+          <div class="label-micro">3D Curved Cylindrical Arc</div>
+          <h2 class="section-title">Inertial Perspective Carousel</h2>
+        </div>
+      </div>
+
+      <div class="carousel-stage" id="carouselStage">
+        <div class="carousel-cylinder" id="carouselCylinder">
+          <!-- Item 1 -->
+          <div class="carousel-card">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" class="carousel-card-bg" alt="Carousel 1">
+            <div class="carousel-card-overlay"></div>
+            <div class="carousel-card-content">
+              <div class="label-micro">SECTOR 01</div>
+              <h3>NEXUS MONOLITH</h3>
+            </div>
+          </div>
+          <!-- Item 2 -->
+          <div class="carousel-card">
+            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" class="carousel-card-bg" alt="Carousel 2">
+            <div class="carousel-card-overlay"></div>
+            <div class="carousel-card-content">
+              <div class="label-micro">SECTOR 02</div>
+              <h3>AURORA SPIRE</h3>
+            </div>
+          </div>
+          <!-- Item 3 -->
+          <div class="carousel-card">
+            <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80" class="carousel-card-bg" alt="Carousel 3">
+            <div class="carousel-card-overlay"></div>
+            <div class="carousel-card-content">
+              <div class="label-micro">SECTOR 03</div>
+              <h3>HALO DOME</h3>
+            </div>
+          </div>
+          <!-- Item 4 -->
+          <div class="carousel-card">
+            <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80" class="carousel-card-bg" alt="Carousel 4">
+            <div class="carousel-card-overlay"></div>
+            <div class="carousel-card-content">
+              <div class="label-micro">SECTOR 04</div>
+              <h3>VORTEX CENTER</h3>
+            </div>
+          </div>
+          <!-- Item 5 -->
+          <div class="carousel-card">
+            <img src="https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80" class="carousel-card-bg" alt="Carousel 5">
+            <div class="carousel-card-overlay"></div>
+            <div class="carousel-card-content">
+              <div class="label-micro">SECTOR 05</div>
+              <h3>ZENITH TOWER</h3>
+            </div>
+          </div>
+          <!-- Item 6 -->
+          <div class="carousel-card">
+            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" class="carousel-card-bg" alt="Carousel 6">
+            <div class="carousel-card-overlay"></div>
+            <div class="carousel-card-content">
+              <div class="label-micro">SECTOR 06</div>
+              <h3>QUANTUM BRIDGE</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="drag-hint">← DRAG HORIZONTALLY TO ROTATE WITH MOMENTUM INERTIA →</div>
+    </section>
+
+  </div>
+
+  <!-- ==========================================================================
+     INLINE JAVASCRIPT ENGINE (NO EXTERNAL DEPENDENCIES)
+     ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       1. 3D PARTICLE CONSTELLATION GLOBE ENGINE (CANVAS)
+       ========================================================================== */
+    const globeCanvas = document.getElementById('globeCanvas');
+    const gCtx = globeCanvas.getContext('2d');
+
+    let gWidth = globeCanvas.width = window.innerWidth;
+    let gHeight = globeCanvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      gWidth = globeCanvas.width = window.innerWidth;
+      gHeight = globeCanvas.height = window.innerHeight;
+    });
+
+    const GLOBE_RADIUS = Math.min(gWidth, gHeight) * 0.35;
+    const NUM_POINTS = 280;
+    const points = [];
+
+    // Generate Points on a Sphere
+    for (let i = 0; i < NUM_POINTS; i++) {
+      const phi = Math.acos(-1 + (2 * i) / NUM_POINTS);
+      const theta = Math.sqrt(NUM_POINTS * Math.PI) * phi;
+      points.push({
+        x: GLOBE_RADIUS * Math.cos(theta) * Math.sin(phi),
+        y: GLOBE_RADIUS * Math.sin(theta) * Math.sin(phi),
+        z: GLOBE_RADIUS * Math.cos(phi),
+        baseX: 0, baseY: 0, baseZ: 0
+      });
+    }
+
+    let rotX = 0;
+    let rotY = 0;
+    let targetRotX = 0.001;
+    let targetRotY = 0.002;
+    let isDraggingGlobe = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.clientY < window.innerHeight * 0.8) {
+        isDraggingGlobe = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingGlobe) {
+        const deltaX = e.clientX - lastMouseX;
+        const deltaY = e.clientY - lastMouseY;
+        targetRotY = deltaX * 0.005;
+        targetRotX = -deltaY * 0.005;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    });
+
+    window.addEventListener('mouseup', () => isDraggingGlobe = false);
+
+    function rotateGlobe() {
+      rotX += (targetRotX - rotX) * 0.05;
+      rotY += (targetRotY - rotY) * 0.05;
+
+      if (!isDraggingGlobe) {
+        targetRotY *= 0.95;
+        targetRotX *= 0.95;
+        rotY += 0.0015; // Auto-drift
+      }
+
+      gCtx.clearRect(0, 0, gWidth, gHeight);
+
+      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+
+      const projected = [];
+      const centerX = gWidth * 0.65; // Positioned offset to right for hero space
+      const centerY = gHeight * 0.45;
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+
+        // Y-axis rotation
+        let x1 = p.x * cosY - p.z * sinY;
+        let z1 = p.z * cosY + p.x * sinY;
+
+        // X-axis rotation
+        let y1 = p.y * cosX - z1 * sinX;
+        let z2 = z1 * cosX + p.y * sinX;
+
+        p.x = x1; p.y = y1; p.z = z2;
+
+        const scale = 400 / (400 + z2);
+        const px = x1 * scale + centerX;
+        const py = y1 * scale + centerY;
+
+        projected.push({ x: px, y: py, z: z2, scale });
+      }
+
+      // Draw Constellation Edge Lines
+      gCtx.lineWidth = 0.5;
+      for (let i = 0; i < projected.length; i++) {
+        for (let j = i + 1; j < projected.length; j++) {
+          const p1 = projected[i];
+          const p2 = projected[j];
+          if (p1.z > -100 && p2.z > -100) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 75) {
+              const alpha = (1 - dist / 75) * 0.25 * ((p1.z + GLOBE_RADIUS) / (2 * GLOBE_RADIUS));
+              gCtx.strokeStyle = `rgba(0, 243, 255, ${alpha})`;
+              gCtx.beginPath();
+              gCtx.moveTo(p1.x, p1.y);
+              gCtx.lineTo(p2.x, p2.y);
+              gCtx.stroke();
+            }
+          }
+        }
+      }
+
+      // Draw Points
+      for (let i = 0; i < projected.length; i++) {
+        const p = projected[i];
+        if (p.z > -GLOBE_RADIUS) {
+          const alpha = Math.max(0.1, (p.z + GLOBE_RADIUS) / (2 * GLOBE_RADIUS));
+          const size = Math.max(0.8, p.scale * 1.8);
+
+          gCtx.fillStyle = p.z > 50 ? '#dfb15b' : '#00f3ff';
+          gCtx.globalAlpha = alpha;
+          gCtx.beginPath();
+          gCtx.arc(p.x, p.y, size, 0, Math.PI * 2);
+          gCtx.fill();
+        }
+      }
+      gCtx.globalAlpha = 1.0;
+
+      // Update HUD display readout with Globe coords
+      document.getElementById('hudRotVal').innerText = 
+        `${Math.round(rotX * 57.2)}° N / ${Math.round(rotY * 57.2)}° E`;
+
+      requestAnimationFrame(rotateGlobe);
+    }
+    rotateGlobe();
+
+
+    /* ==========================================================================
+       2. SCROLL REACTIVE TELEMETRY METER & 3D HUD CUBE
+       ========================================================================== */
+    let lastScrollY = window.scrollY;
+    let scrollVelocity = 0;
+    const hudScrollVal = document.getElementById('hudScrollVal');
+    const hudVelocityVal = document.getElementById('hudVelocityVal');
+    const hudCube = document.getElementById('hudCube');
+
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = Math.min(100, Math.max(0, Math.round((currentScroll / maxScroll) * 100)));
+      
+      scrollVelocity = Math.abs(currentScroll - lastScrollY);
+      lastScrollY = currentScroll;
+
+      hudScrollVal.innerText = `${scrollPercent.toString().padStart(3, '0')}%`;
+      hudVelocityVal.innerText = `${scrollVelocity.toFixed(1)} KP/S`;
+
+      // Rotate HUD 3D cube dynamically with scroll
+      hudCube.style.transform = `rotateX(${currentScroll * 0.3}deg) rotateY(${currentScroll * 0.5}deg)`;
+    });
+
+
+    /* ==========================================================================
+       3. 3D MAGNETIC FLOATING HALO CTA & MULTI-STAGE ANIMATION ENGINE
+       ========================================================================== */
+    const ctaWrapper = document.getElementById('ctaWrapper');
+    const masterBtn = document.getElementById('masterCtaBtn');
+    const btnProgressRect = document.getElementById('btnProgressRect');
+    const btnLabelText = document.getElementById('btnLabelText');
+    const overlayCanvas = document.getElementById('particleOverlay');
+    const pCtx = overlayCanvas.getContext('2d');
+
+    overlayCanvas.width = window.innerWidth;
+    overlayCanvas.height = window.innerHeight;
+
+    let btnX = 0, btnY = 0;
+    let targetBtnX = 0, targetBtnY = 0;
+
+    ctaWrapper.addEventListener('mousemove', (e) => {
+      const rect = ctaWrapper.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      targetBtnX = (e.clientX - centerX) * 0.35;
+      targetBtnY = (e.clientY - centerY) * 0.35;
+    });
+
+    ctaWrapper.addEventListener('mouseleave', () => {
+      targetBtnX = 0;
+      targetBtnY = 0;
+    });
+
+    function animateMagneticBtn() {
+      btnX += (targetBtnX - btnX) * 0.1;
+      btnY += (targetBtnY - btnY) * 0.1;
+      masterBtn.style.transform = `translate3d(${btnX}px, ${btnY}px, 0)`;
+      requestAnimationFrame(animateMagneticBtn);
+    }
+    animateMagneticBtn();
+
+    // Multi-stage Physical Transition Sequence
+    let btnState = 'IDLE'; // IDLE -> PROCESSING -> SUCCESS -> RESET
+    const particles = [];
+
+    masterBtn.addEventListener('click', (e) => {
+      if (btnState !== 'IDLE') return;
+      btnState = 'PROCESSING';
+
+      // Morph Stage 1: In-Flight Process
+      btnLabelText.innerText = "ESTABLISHING LINK...";
+      btnProgressRect.style.strokeDashoffset = '0'; // Draw SVG stroke outline
+
+      // Spawn burst micro-particles from button center
+      const rect = masterBtn.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+
+      for (let i = 0; i < 60; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        particles.push({
+          x: originX,
+          y: originY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1.0,
+          decay: Math.random() * 0.02 + 0.015,
+          color: Math.random() > 0.5 ? '#dfb15b' : '#00f3ff'
+        });
+      }
+
+      // Stage 2: Processing Delay & Resolution Transition
+      setTimeout(() => {
+        btnState = 'SUCCESS';
+        btnLabelText.innerText = "SYSTEM LINKED";
+        masterBtn.style.borderColor = "#00f3ff";
+        masterBtn.style.boxShadow = "0 0 40px rgba(0,243,255,0.6)";
+
+        // Stage 3: Auto Reset After Timeout
+        setTimeout(() => {
+          btnState = 'IDLE';
+          btnLabelText.innerText = "INITIATE QUANTUM LINK";
+          btnProgressRect.style.strokeDashoffset = '400';
+          masterBtn.style.borderColor = "var(--accent-gold)";
+          masterBtn.style.boxShadow = "none";
+        }, 3000);
+      }, 1400);
+    });
+
+    // Particle Animation Loop for CTA Explosion
+    function renderParticles() {
+      pCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        pCtx.fillStyle = p.color;
+        pCtx.globalAlpha = p.life;
+        pCtx.beginPath();
+        pCtx.arc(p.x, p.y, Math.max(1, p.life * 3), 0, Math.PI * 2);
+        pCtx.fill();
+      }
+      pCtx.globalAlpha = 1.0;
+      requestAnimationFrame(renderParticles);
+    }
+    renderParticles();
+
+
+    /* ==========================================================================
+       4. BENTO SPECULAR GLOW & MEDIA PREVIEW CONTROL
+       ========================================================================== */
+    const specularCard = document.getElementById('specularCard');
+    const specularGlow = document.getElementById('specularGlow');
+
+    specularCard.addEventListener('mousemove', (e) => {
+      const rect = specularCard.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      specularCard.style.setProperty('--mouse-x', `${x}px`);
+      specularCard.style.setProperty('--mouse-y', `${y}px`);
+
+      // Dynamic 3D Perspective Tilt
+      const rotateX = -((y - rect.height / 2) / rect.height) * 8;
+      const rotateY = ((x - rect.width / 2) / rect.width) * 8;
+      specularCard.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+
+    specularCard.addEventListener('mouseleave', () => {
+      specularCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+    });
+
+    function switchPreview(index, btnElement) {
+      const previews = document.querySelectorAll('.preview-img');
+      const tabs = document.querySelectorAll('.tab-btn');
+
+      previews.forEach((img, i) => img.classList.toggle('active', i === index));
+      tabs.forEach((tab) => tab.classList.remove('active'));
+      btnElement.classList.add('active');
+    }
+
+
+    /* ==========================================================================
+       5. CINEMATIC LIQUID GRADIENT CARD SHADER ENGINE (CANVAS)
+       ========================================================================== */
+    const liquidCanvas = document.getElementById('liquidCanvas');
+    const lCtx = liquidCanvas.getContext('2d');
+    let lWidth = liquidCanvas.width = 400;
+    let lHeight = liquidCanvas.height = 400;
+
+    let time = 0;
+    function renderLiquid() {
+      time += 0.015;
+      lCtx.clearRect(0, 0, lWidth, lHeight);
+
+      const grad1X = lWidth * 0.5 + Math.sin(time) * 120;
+      const grad1Y = lHeight * 0.5 + Math.cos(time * 0.8) * 120;
+      const grad2X = lWidth * 0.5 + Math.cos(time * 1.2) * 100;
+      const grad2Y = lHeight * 0.5 + Math.sin(time * 0.9) * 100;
+
+      const g1 = lCtx.createRadialGradient(grad1X, grad1Y, 10, grad1X, grad1Y, 180);
+      g1.addColorStop(0, 'rgba(223, 177, 91, 0.6)');
+      g1.addColorStop(1, 'rgba(0,0,0,0)');
+
+      const g2 = lCtx.createRadialGradient(grad2X, grad2Y, 10, grad2X, grad2Y, 200);
+      g2.addColorStop(0, 'rgba(0, 243, 255, 0.5)');
+      g2.addColorStop(1, 'rgba(0,0,0,0)');
+
+      lCtx.fillStyle = g1;
+      lCtx.fillRect(0, 0, lWidth, lHeight);
+      lCtx.fillStyle = g2;
+      lCtx.fillRect(0, 0, lWidth, lHeight);
+
+      requestAnimationFrame(renderLiquid);
+    }
+    renderLiquid();
+
+
+    /* ==========================================================================
+       6. 3D ACCORDION MECHANICAL EXPANDER
+       ========================================================================== */
+    function toggleFolder(folderElement) {
+      const allFolders = document.querySelectorAll('.folder-item');
+      allFolders.forEach(folder => {
+        if (folder !== folderElement) folder.classList.remove('active');
+      });
+      folderElement.classList.toggle('active');
+    }
+
+
+    /* ==========================================================================
+       7. 3D CYLINDRICAL ARC CAROUSEL WITH MOMENTUM INERTIA PHYSICS
+       ========================================================================== */
+    const carouselStage = document.getElementById('carouselStage');
+    const carouselCylinder = document.getElementById('carouselCylinder');
+    const carouselCards = document.querySelectorAll('.carousel-card');
+
+    const cardCount = carouselCards.length;
+    const radius = 380; // Cylinder radius in PX
+    const angleStep = 360 / cardCount;
+
+    let currentAngle = 0;
+    let targetAngle = 0;
+    let velocity = 0;
+    let isDraggingCarousel = false;
+    let startX = 0;
+
+    // Position items around 3D cylinder
+    function setupCylinder() {
+      carouselCards.forEach((card, index) => {
+        const cardAngle = index * angleStep;
+        card.style.transform = `rotateY(${cardAngle}deg) translateZ(${radius}px)`;
+      });
+    }
+    setupCylinder();
+
+    carouselStage.addEventListener('mousedown', (e) => {
+      isDraggingCarousel = true;
+      startX = e.clientX;
+      velocity = 0;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingCarousel) return;
+      const deltaX = e.clientX - startX;
+      startX = e.clientX;
+      velocity = deltaX * 0.4;
+      targetAngle += velocity;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDraggingCarousel = false;
+    });
+
+    function updateCarousel() {
+      if (!isDraggingCarousel) {
+        targetAngle += velocity;
+        velocity *= 0.92; // Friction Damping
+      }
+
+      currentAngle += (targetAngle - currentAngle) * 0.1;
+      carouselCylinder.style.transform = `rotateY(${currentAngle}deg)`;
+
+      // Identify Active Front Card
+      const normalizedAngle = ((currentAngle % 360) + 360) % 360;
+      carouselCards.forEach((card, index) => {
+        const itemAngle = (index * angleStep) % 360;
+        let diff = Math.abs(((normalizedAngle + itemAngle) % 360) - 360);
+        if (diff > 180) diff = Math.abs(diff - 360);
+
+        card.classList.toggle('active', diff < (angleStep / 2));
+      });
+
+      requestAnimationFrame(updateCarousel);
+    }
+    updateCarousel();
+
+  </script>
+</body>
+</html>

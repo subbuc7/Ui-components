@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Constellation 3D Matrix</title>
+    <style>
+        /* --- RESET & ROOT VARIABLES --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        :root {
+            --bg-dark: #04060a;
+            --accent-cyan: #00f0ff;
+            --accent-blue: #0072ff;
+            --accent-purple: #7000ff;
+            --accent-gold: #ffd700;
+            --accent-emerald: #00ffaa;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --glass-bg: rgba(8, 14, 27, 0.55);
+            --glass-border: rgba(0, 240, 255, 0.15);
+            --glass-border-active: rgba(0, 240, 255, 0.4);
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: var(--font-sans);
+            color: var(--text-main);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(112, 0, 255, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 20% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0, 114, 255, 0.05) 0%, transparent 40%);
+        }
+
+        /* Ambient Fine Grid Background */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* --- LAYOUT STRUCTURE --- */
+        #app-viewport {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: 70px 1fr 90px;
+            z-index: 1;
+        }
+
+        /* 3D Canvas Background Container */
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            cursor: grab;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* UI Overlay Hierarchy */
+        .hud-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* Glassmorphism Panel Base Styling */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* --- HEADER SECTION --- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            background: linear-gradient(180deg, rgba(4, 6, 10, 0.8) 0%, rgba(4, 6, 10, 0) 100%);
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            display: grid;
+            place-items: center;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .brand-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        .brand-text h1 {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ffffff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text span {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            color: var(--accent-cyan);
+            letter-spacing: 0.15em;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+        }
+
+        .status-badge {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            overflow: hidden;
+        }
+
+        /* Layering requirement: Active background strictly lower z-index than text */
+        .status-badge .glow-pill {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: radial-gradient(circle at center, rgba(0, 240, 255, 0.25) 0%, transparent 70%);
+            opacity: 0.5;
+            transition: opacity 0.3s ease, background 0.3s ease;
+        }
+
+        .status-badge .badge-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        .status-indicator-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* --- MAIN CONTENT & HUD PANELS --- */
+        main {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            padding: 0 2rem;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .telemetry-panel {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .panel-header {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .metric-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--text-main);
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .metric-unit {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+        }
+
+        /* Center Target Ring / SVG Overlay */
+        .center-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hud-target-ring {
+            position: absolute;
+            width: 380px;
+            height: 380px;
+            pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .hud-target-ring svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .ring-bg {
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .ring-progress {
+            stroke: var(--accent-cyan);
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+            filter: drop-shadow(0 0 6px var(--accent-cyan));
+        }
+
+        /* Target Node Info Card (Dynamic Hover / Selection) */
+        .node-detail-card {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            opacity: 0.9;
+        }
+
+        .node-stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            padding: 4px 0;
+            border-bottom: 1px stroke rgba(255,255,255,0.03);
+        }
+
+        .node-stat-row span:first-child {
+            color: var(--text-muted);
+        }
+        .node-stat-row span:last-child {
+            font-family: var(--font-mono);
+            color: var(--text-main);
+        }
+
+        /* --- FOOTER / CONTROL DOCK --- */
+        footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 2rem;
+            z-index: 20;
+        }
+
+        .control-dock {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 8px 16px;
+            border-radius: 40px;
+        }
+
+        /* Micro-Interaction Action Button */
+        .action-btn {
+            position: relative;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 30px;
+            padding: 12px 32px;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            overflow: hidden;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+
+        /* Active Glow Pill Layer behind text */
+        .action-btn .btn-glow {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .action-btn .btn-text {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+            border-color: #ffffff;
+        }
+
+        .action-btn:hover .btn-glow {
+            opacity: 0.3;
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .dock-toggle-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dock-toggle-btn:hover {
+            color: var(--text-main);
+            border-color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        .dock-toggle-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* --- SUCCESS MODAL / OVERLAY HUD STATES --- */
+        .success-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 440px;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 30;
+        }
+
+        .success-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.25rem;
+            border-radius: 50%;
+            background: rgba(0, 255, 170, 0.1);
+            border: 1px solid var(--accent-emerald);
+            display: grid;
+            place-items: center;
+            color: var(--accent-emerald);
+            box-shadow: 0 0 25px rgba(0, 255, 170, 0.3);
+        }
+
+        .success-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .success-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Tooltip for Hovering Nodes */
+        #node-tooltip {
+            position: absolute;
+            padding: 6px 12px;
+            background: rgba(4, 6, 10, 0.85);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: #fff;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -120%);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 25;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        #node-tooltip.visible {
+            opacity: 1;
+            transform: translate(-50%, -140%);
+        }
+
+        /* --- RESPONSIVE BEHAVIOR --- */
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            .telemetry-panel, .node-detail-card {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- Canvas Background Container -->
+        <div id="canvas-container">
+            <canvas id="globe-canvas"></canvas>
+        </div>
+
+        <!-- Floating Tooltip -->
+        <div id="node-tooltip">NODE_ID: <span id="tooltip-id">0x00</span></div>
+
+        <!-- HEADER HUD -->
+        <header class="hud-layer">
+            <div class="brand-title">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </div>
+                <div class="brand-text">
+                    <h1>AETHERIS</h1>
+                    <span>QUANTUM MATRIX V4.8</span>
+                </div>
+            </div>
+
+            <div class="system-status">
+                <div class="status-badge">
+                    <div class="glow-pill" id="status-pill-glow"></div>
+                    <div class="badge-content">
+                        <div class="status-indicator-dot" id="status-dot"></div>
+                        <span id="status-text">SYSTEM STANDBY</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN VIEWPORT HUD -->
+        <main class="hud-layer">
+            <!-- Left Telemetry Panel -->
+            <div class="glass-panel telemetry-panel interactive">
+                <div class="panel-header">
+                    <span>TELEMETRY</span>
+                    <span id="live-time">00:00:00</span>
+                </div>
+                
+                <div class="metric-group">
+                    <div class="metric-label">Node Density</div>
+                    <div class="metric-value"><span id="metric-nodes">320</span> <span class="metric-unit">PTS</span></div>
+                </div>
+
+                <div class="metric-group">
+                    <div class="metric-label">Coherence Matrix</div>
+                    <div class="metric-value"><span id="metric-coherence">98.4</span> <span class="metric-unit">%</span></div>
+                </div>
+
+                <div class="metric-group">
+                    <div class="metric-label">Orbital Velocity</div>
+                    <div class="metric-value"><span id="metric-velocity">0.002</span> <span class="metric-unit">RAD/S</span></div>
+                </div>
+
+                <div class="metric-group">
+                    <div class="metric-label">Sync Latency</div>
+                    <div class="metric-value"><span id="metric-latency">1.2</span> <span class="metric-unit">MS</span></div>
+                </div>
+            </div>
+
+            <!-- Center Target HUD Overlay -->
+            <div class="center-stage">
+                <div class="hud-target-ring" id="hud-ring">
+                    <svg viewBox="0 0 360 360">
+                        <circle class="ring-bg" cx="180" cy="180" r="160"></circle>
+                        <circle class="ring-progress" id="progress-circle" cx="180" cy="180" r="160"></circle>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Right Node Detail Panel -->
+            <div class="glass-panel node-detail-card interactive">
+                <div class="panel-header">
+                    <span>ACTIVE TARGET</span>
+                    <span id="target-id">NX-809</span>
+                </div>
+                
+                <div class="node-stat-row">
+                    <span>Cluster ID:</span>
+                    <span id="stat-cluster">ALPHA-9</span>
+                </div>
+                <div class="node-stat-row">
+                    <span>3D Vector X:</span>
+                    <span id="stat-x">+124.5</span>
+                </div>
+                <div class="node-stat-row">
+                    <span>3D Vector Y:</span>
+                    <span id="stat-y">-89.2</span>
+                </div>
+                <div class="node-stat-row">
+                    <span>3D Vector Z:</span>
+                    <span id="stat-z">+210.1</span>
+                </div>
+                <div class="node-stat-row">
+                    <span>Signal Entropy:</span>
+                    <span id="stat-entropy">0.0042</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER DOCK CONTROLS -->
+        <footer class="hud-layer">
+            <div class="glass-panel control-dock interactive">
+                <button class="dock-toggle-btn" id="btn-recenter" title="Recenter Camera Orbit">
+                    <svg viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M2 12h4m12 0h4m-6 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>
+                </button>
+
+                <button class="action-btn" id="main-action-btn">
+                    <div class="btn-glow"></div>
+                    <div class="btn-text" id="btn-text">INITIATE QUANTUM SYNC</div>
+                </button>
+
+                <button class="dock-toggle-btn" id="btn-toggle-density" title="Toggle High/Low Particle Density">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/></svg>
+                </button>
+            </div>
+        </footer>
+
+        <!-- SUCCESS RESOLUTION OVERLAY CARD -->
+        <div class="glass-panel success-overlay interactive" id="success-card">
+            <div class="success-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="success-title">MATRIX SYNCHRONIZED</div>
+            <div class="success-desc">
+                Quantum particle constellation aligned to optimal resonance lattice. Telemetry link locked at 10.4 TFLOPS.
+            </div>
+            <button class="action-btn" id="reset-action-btn" style="width: 100%;">
+                <div class="btn-glow"></div>
+                <div class="btn-text">DISCONNECT / RESET</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- --- JS ENGINE & GRAPHICS LOGIC --- -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        const STATES = {
+            IDLE: 'IDLE',
+            IN_FLIGHT: 'IN_FLIGHT',
+            PROCESSING: 'PROCESSING',
+            SUCCESS: 'SUCCESS'
+        };
+
+        let currentState = STATES.IDLE;
+        let particleCount = 300;
+        let isHighDensity = false;
+
+        // --- CANVAS & 3D SYSTEM SETUP ---
+        const canvas = document.getElementById('globe-canvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('node-tooltip');
+        const tooltipId = document.getElementById('tooltip-id');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        let globeRadius = Math.min(width, height) * 0.28;
+
+        // Sphere Rotation Variables
+        let rotationX = 0;
+        let rotationY = 0;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        let velocityX = 0;
+        let velocityY = 0;
+        let autoRotateSpeedY = 0.002;
+
+        // Drag Interaction
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let mousePosition = { x: -1000, y: -1000 };
+
+        // Data Arrays
+        let particles = [];
+        let burstParticles = [];
+        let hoveredParticle = null;
+
+        // --- PARTICLE CLASS WITH MORPHING & PHYSICS ---
+        class Particle {
+            constructor(id) {
+                this.id = id;
+                this.resetSpherePosition();
+                
+                // Current 3D position
+                this.x = this.baseX;
+                this.y = this.baseY;
+                this.z = this.baseZ;
+
+                // Transformed 3D position
+                this.tx = 0;
+                this.ty = 0;
+                this.tz = 0;
+
+                // Projected 2D position
+                this.px = 0;
+                this.py = 0;
+                this.scale = 1;
+
+                // Morphing Targets
+                this.targetX = this.baseX;
+                this.targetY = this.baseY;
+                this.targetZ = this.baseZ;
+
+                // Styling
+                this.radius = Math.random() * 2 + 1.5;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.color = { r: 0, g: 240, b: 255 };
+            }
+
+            resetSpherePosition() {
+                // Fibonacci Sphere Distribution
+                const phi = Math.acos(1 - 2 * (this.id + 0.5) / particleCount);
+                const theta = Math.PI * (1 + Math.sqrt(5)) * (this.id + 0.5);
+
+                this.baseX = globeRadius * Math.sin(phi) * Math.cos(theta);
+                this.baseY = globeRadius * Math.sin(phi) * Math.sin(theta);
+                this.baseZ = globeRadius * Math.cos(phi);
+            }
+
+            setMorphTarget(type) {
+                if (type === 'SPHERE') {
+                    this.targetX = this.baseX;
+                    this.targetY = this.baseY;
+                    this.targetZ = this.baseZ;
+                    this.color = { r: 0, g: 240, b: 255 };
+                } else if (type === 'ACCELERATE') {
+                    // Compress to dense rotating equator disk
+                    const angle = Math.atan2(this.baseZ, this.baseX);
+                    const ringRadius = globeRadius * 1.2;
+                    this.targetX = Math.cos(angle) * ringRadius;
+                    this.targetY = (Math.random() - 0.5) * 20;
+                    this.targetZ = Math.sin(angle) * ringRadius;
+                    this.color = { r: 112, g: 0, b: 255 };
+                } else if (type === 'EXPAND_MATRIX') {
+                    // Double Ring Lattice
+                    const isOuter = this.id % 2 === 0;
+                    const rScale = isOuter ? 1.4 : 0.8;
+                    const angle = (this.id / particleCount) * Math.PI * 4;
+                    this.targetX = Math.cos(angle) * globeRadius * rScale;
+                    this.targetY = Math.sin(angle) * globeRadius * rScale;
+                    this.targetZ = (isOuter ? 50 : -50) * Math.cos(angle * 2);
+                    this.color = isOuter ? { r: 0, g: 255, b: 170 } : { r: 255, g: 215, b: 0 };
+                }
+            }
+
+            update() {
+                // Lerp current position to morph target
+                this.x += (this.targetX - this.x) * 0.05;
+                this.y += (this.targetY - this.y) * 0.05;
+                this.z += (this.targetZ - this.z) * 0.05;
+
+                // Pulsing size effect
+                this.pulsePhase += 0.03;
+                
+                // 3D Matrix Rotation (Y axis then X axis)
+                let cosY = Math.cos(rotationY), sinY = Math.sin(rotationY);
+                let x1 = this.x * cosY + this.z * sinY;
+                let z1 = -this.x * sinY + this.z * cosY;
+
+                let cosX = Math.cos(rotationX), sinX = Math.sin(rotationX);
+                let y2 = this.y * cosX - z1 * sinX;
+                let z2 = this.y * sinX + z1 * cosX;
+
+                this.tx = x1;
+                this.ty = y2;
+                this.tz = z2;
+
+                // Perspective Projection
+                const fov = 600;
+                this.scale = fov / (fov + this.tz);
+                this.px = this.tx * this.scale + width / 2;
+                this.py = this.ty * this.scale + height / 2;
+            }
+
+            draw() {
+                if (this.scale <= 0) return;
+
+                const depthAlpha = Math.max(0.1, Math.min(1, (this.tz + globeRadius) / (2 * globeRadius)));
+                const currentRadius = (this.radius + Math.sin(this.pulsePhase) * 0.8) * this.scale;
+
+                ctx.beginPath();
+                ctx.arc(this.px, this.py, Math.max(0.5, currentRadius), 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${depthAlpha * 0.9})`;
+                ctx.fill();
+
+                // Glow for closer or hovered particles
+                if (this === hoveredParticle) {
+                    ctx.beginPath();
+                    ctx.arc(this.px, this.py, currentRadius * 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.3)`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        // --- MICRO-PARTICLE BURST EFFECT FOR SUCCESS STATE ---
+        class BurstParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.015;
+                this.color = Math.random() > 0.5 ? '0, 255, 170' : '0, 240, 255';
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.96;
+                this.vy *= 0.96;
+                this.life -= this.decay;
+            }
+
+            draw() {
+                if (this.life <= 0) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, Math.max(0.1, 2.5 * this.life), 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color}, ${this.life})`;
+                ctx.fill();
+            }
+        }
+
+        // --- INITIALIZATION ---
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(i));
+            }
+        }
+
+        initParticles();
+
+        // --- DRAW CONSTELLATION CONNECTIONS ---
+        function drawConstellations() {
+            const maxDistance = 75;
+            const len = particles.length;
+
+            for (let i = 0; i < len; i++) {
+                const p1 = particles[i];
+                if (p1.scale <= 0) continue;
+
+                // Connect to a subset of nearby points for performance & visual clarity
+                for (let j = i + 1; j < len; j++) {
+                    const p2 = particles[j];
+                    if (p2.scale <= 0) continue;
+
+                    const dx = p1.px - p2.px;
+                    const dy = p1.py - p2.py;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDistance) {
+                        const alpha = (1 - dist / maxDistance) * 0.25 * Math.min(p1.scale, p2.scale);
+                        ctx.beginPath();
+                        ctx.moveTo(p1.px, p1.py);
+                        ctx.lineTo(p2.px, p2.py);
+                        
+                        let strokeColor = `rgba(0, 240, 255, ${alpha})`;
+                        if (currentState === STATES.PROCESSING) {
+                            strokeColor = `rgba(112, 0, 255, ${alpha * 1.5})`;
+                        } else if (currentState === STATES.SUCCESS) {
+                            strokeColor = `rgba(0, 255, 170, ${alpha * 1.2})`;
+                        }
+
+                        ctx.strokeStyle = strokeColor;
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // --- INTERACTION & HOVER CHECK ---
+        function checkHover() {
+            if (isDragging) {
+                hoveredParticle = null;
+                tooltip.classList.remove('visible');
+                return;
+            }
+
+            let closest = null;
+            let minDistance = 15;
+
+            for (let p of particles) {
+                const dx = p.px - mousePosition.x;
+                const dy = p.py - mousePosition.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < minDistance && p.tz < 0) { // Hover front-facing particles only
+                    minDistance = dist;
+                    closest = p;
+                }
+            }
+
+            hoveredParticle = closest;
+
+            if (hoveredParticle) {
+                tooltip.classList.add('visible');
+                tooltip.style.left = `${hoveredParticle.px}px`;
+                tooltip.style.top = `${hoveredParticle.py}px`;
+                tooltipId.innerText = `0x${hoveredParticle.id.toString(16).toUpperCase().padStart(4, '0')}`;
+
+                // Dynamically update Node Details Card
+                document.getElementById('target-id').innerText = `NX-${hoveredParticle.id}`;
+                document.getElementById('stat-x').innerText = (hoveredParticle.x > 0 ? '+' : '') + hoveredParticle.x.toFixed(1);
+                document.getElementById('stat-y').innerText = (hoveredParticle.y > 0 ? '+' : '') + hoveredParticle.y.toFixed(1);
+                document.getElementById('stat-z').innerText = (hoveredParticle.z > 0 ? '+' : '') + hoveredParticle.z.toFixed(1);
+            } else {
+                tooltip.classList.remove('visible');
+            }
+        }
+
+        // --- ANIMATION LOOP ---
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Handle Physics & Momentum Inertia
+            if (!isDragging) {
+                rotationY += autoRotateSpeedY;
+                rotationX += velocityX;
+                rotationY += velocityY;
+                velocityX *= 0.92;
+                velocityY *= 0.92;
+            }
+
+            // Depth Sort Particles so farthest draw first
+            particles.sort((a, b) => b.tz - a.tz);
+
+            // Update & Render Particle Points
+            for (let p of particles) {
+                p.update();
+                p.draw();
+            }
+
+            // Render Constellation Lines
+            drawConstellations();
+
+            // Render & Update Burst Particles
+            for (let i = burstParticles.length - 1; i >= 0; i--) {
+                const bp = burstParticles[i];
+                bp.update();
+                bp.draw();
+                if (bp.life <= 0) burstParticles.splice(i, 1);
+            }
+
+            checkHover();
+            updateLiveTelemetry();
+
+            requestAnimationFrame(render);
+        }
+
+        // --- REAL-TIME TELEMETRY DATA SIMULATION ---
+        function updateLiveTelemetry() {
+            const now = new Date();
+            document.getElementById('live-time').innerText = now.toTimeString().split(' ')[0];
+
+            if (currentState === STATES.PROCESSING) {
+                document.getElementById('metric-coherence').innerText = (Math.random() * 10 + 89).toFixed(1);
+                document.getElementById('metric-velocity').innerText = (autoRotateSpeedY * 5).toFixed(3);
+                document.getElementById('metric-latency').innerText = (Math.random() * 0.8 + 0.4).toFixed(1);
+            }
+        }
+
+        // --- STATE TRANSITION CONTROLLER ---
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+        const statusPillGlow = document.getElementById('status-pill-glow');
+        const mainBtn = document.getElementById('main-action-btn');
+        const btnText = document.getElementById('btn-text');
+        const progressCircle = document.getElementById('progress-circle');
+        const successCard = document.getElementById('success-card');
+
+        let progressInterval = null;
+
+        function transitionToState(newState) {
+            currentState = newState;
+
+            if (newState === STATES.IDLE) {
+                // Status HUD
+                statusText.innerText = "SYSTEM STANDBY";
+                statusText.style.color = "var(--text-main)";
+                statusDot.style.backgroundColor = "var(--accent-cyan)";
+                statusDot.style.boxShadow = "0 0 8px var(--accent-cyan)";
+                statusPillGlow.style.background = "radial-gradient(circle at center, rgba(0, 240, 255, 0.25) 0%, transparent 70%)";
+                
+                // Controls
+                btnText.innerText = "INITIATE QUANTUM SYNC";
+                mainBtn.style.borderColor = "var(--accent-cyan)";
+                mainBtn.style.pointerEvents = "auto";
+                
+                // Canvas Physics & SVG HUD
+                autoRotateSpeedY = 0.002;
+                progressCircle.style.strokeDashoffset = "1000";
+                progressCircle.style.stroke = "var(--accent-cyan)";
+                successCard.classList.remove('active');
+
+                particles.forEach(p => p.setMorphTarget('SPHERE'));
+
+            } else if (newState === STATES.IN_FLIGHT) {
+                // Transitioning / Morph State
+                statusText.innerText = "ALIGNING PARTICLES...";
+                statusText.style.color = "var(--accent-purple)";
+                statusDot.style.backgroundColor = "var(--accent-purple)";
+                statusDot.style.boxShadow = "0 0 8px var(--accent-purple)";
+                statusPillGlow.style.background = "radial-gradient(circle at center, rgba(112, 0, 255, 0.35) 0%, transparent 70%)";
+
+                autoRotateSpeedY = 0.012;
+                particles.forEach(p => p.setMorphTarget('ACCELERATE'));
+
+                setTimeout(() => {
+                    transitionToState(STATES.PROCESSING);
+                }, 1200);
+
+            } else if (newState === STATES.PROCESSING) {
+                // Processing / SVG Progress Bar Animation
+                statusText.innerText = "SYNCHRONIZING MATRIX";
+                btnText.innerText = "PROCESSING...";
+                mainBtn.style.pointerEvents = "none";
+
+                let progress = 0;
+                clearInterval(progressInterval);
+                
+                // SVG DashOffset calculation (Total circumference approx 1005)
+                progressInterval = setInterval(() => {
+                    progress += 2;
+                    const offset = 1000 - (progress / 100) * 1000;
+                    progressCircle.style.strokeDashoffset = offset;
+
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        transitionToState(STATES.SUCCESS);
+                    }
+                }, 30);
+
+            } else if (newState === STATES.SUCCESS) {
+                // Success State & Micro-Particle Burst
+                statusText.innerText = "QUANTUM SYNC LOCKED";
+                statusText.style.color = "var(--accent-emerald)";
+                statusDot.style.backgroundColor = "var(--accent-emerald)";
+                statusDot.style.boxShadow = "0 0 10px var(--accent-emerald)";
+                statusPillGlow.style.background = "radial-gradient(circle at center, rgba(0, 255, 170, 0.35) 0%, transparent 70%)";
+
+                progressCircle.style.stroke = "var(--accent-emerald)";
+                
+                // Spawn Micro-Particle Burst from Screen Center
+                for (let i = 0; i < 90; i++) {
+                    burstParticles.push(new BurstParticle(width / 2, height / 2));
+                }
+
+                autoRotateSpeedY = 0.001;
+                particles.forEach(p => p.setMorphTarget('EXPAND_MATRIX'));
+
+                // Show Success Panel
+                successCard.classList.add('active');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        // Main Trigger Button
+        mainBtn.addEventListener('click', () => {
+            if (currentState === STATES.IDLE) {
+                transitionToState(STATES.IN_FLIGHT);
+            }
+        });
+
+        // Reset Button inside Success Overlay
+        document.getElementById('reset-action-btn').addEventListener('click', () => {
+            transitionToState(STATES.IDLE);
+        });
+
+        // Recenter Camera Orbit Button
+        document.getElementById('btn-recenter').addEventListener('click', () => {
+            rotationX = 0;
+            rotationY = 0;
+            velocityX = 0;
+            velocityY = 0;
+        });
+
+        // Toggle Particle Density Button
+        document.getElementById('btn-toggle-density').addEventListener('click', () => {
+            isHighDensity = !isHighDensity;
+            particleCount = isHighDensity ? 500 : 300;
+            document.getElementById('metric-nodes').innerText = particleCount;
+            initParticles();
+            if (currentState !== STATES.IDLE) {
+                transitionToState(STATES.IDLE);
+            }
+        });
+
+        // Canvas Mouse Dragging Handlers
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.interactive')) return;
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mousePosition.x = e.clientX;
+            mousePosition.y = e.clientY;
+
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            velocityY = deltaX * 0.003;
+            velocityX = -deltaY * 0.003;
+
+            rotationY += velocityY;
+            rotationX += velocityX;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Touch Interaction Support for Mobile devices
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1 && !e.target.closest('.interactive')) {
+                isDragging = true;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                velocityY = deltaX * 0.003;
+                velocityX = -deltaY * 0.003;
+
+                rotationY += velocityY;
+                rotationX += velocityX;
+
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        });
+
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        // Dynamic Window Resize Handler
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            globeRadius = Math.min(width, height) * 0.28;
+            initParticles();
+        });
+
+        // --- START ENGINE ---
+        render();
+    </script>
+</body>
+</html>
