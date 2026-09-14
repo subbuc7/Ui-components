@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AETHERIA // Ultra-Premium 3D Dynamic Controller</title>
+  <style>
+    /* ==========================================================================
+       RESET & CORE VARIABLES
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg-base: #030407;
+      --gold-primary: #e5c158;
+      --gold-bright: #fff2c2;
+      --gold-dark: #967423;
+      --gold-gradient: linear-gradient(135deg, #fff3c9 0%, #e5c158 50%, #967423 100%);
+      --gold-glow: rgba(229, 193, 88, 0.25);
+      
+      --glass-bg: rgba(10, 12, 18, 0.65);
+      --glass-surface: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(229, 193, 88, 0.22);
+      --glass-border-subtle: rgba(255, 255, 255, 0.08);
+      
+      --text-main: #f0f3f8;
+      --text-muted: #7a8396;
+      --text-gold: #e5c158;
+
+      --shadow-deep: 0 40px 100px -20px rgba(0, 0, 0, 0.9), 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+      --shadow-glow: 0 0 50px rgba(229, 193, 88, 0.12);
+
+      --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-base);
+      font-family: var(--font-stack);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       BACKGROUND AMBIANCE & GRID
+       ========================================================================== */
+    .viewport-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.35;
+      animation: floatOrb 20s infinite alternate ease-in-out;
+    }
+
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(229, 193, 88, 0.25) 0%, rgba(0,0,0,0) 70%);
+      top: -200px;
+      left: 20%;
+    }
+
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(70, 110, 240, 0.15) 0%, rgba(0,0,0,0) 70%);
+      bottom: -150px;
+      right: 15%;
+      animation-delay: -7s;
+    }
+
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 50px) scale(1.1); }
+    }
+
+    /* ==========================================================================
+       3D SCENE STAGE & ISLAND WRAPPER
+       ========================================================================== */
+    .scene-stage {
+      position: relative;
+      z-index: 10;
+      perspective: 1000px;
+      transform-style: preserve-3d;
+      padding: 40px;
+    }
+
+    .island-container {
+      position: relative;
+      width: 360px;
+      height: 54px;
+      border-radius: 32px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(40px) saturate(210%);
+      -webkit-backdrop-filter: blur(40px) saturate(210%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-deep), var(--shadow-glow);
+      transform-style: preserve-3d;
+      transition: 
+        width 0.7s var(--ease-out-expo),
+        height 0.7s var(--ease-out-expo),
+        border-radius 0.7s var(--ease-out-expo),
+        border-color 0.4s ease,
+        box-shadow 0.5s ease;
+      will-change: transform, width, height;
+      cursor: pointer;
+    }
+
+    .island-container.is-expanded {
+      width: 440px;
+      height: 420px;
+      border-radius: 40px;
+      border-color: rgba(229, 193, 88, 0.35);
+      box-shadow: 
+        0 50px 120px -20px rgba(0, 0, 0, 0.95),
+        0 0 80px rgba(229, 193, 88, 0.2);
+    }
+
+    /* Dynamic Glass Refraction Glare Overlay */
+    .glass-glare {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        600px circle at var(--glare-x, 50%) var(--glare-y, 50%),
+        rgba(255, 245, 220, 0.16) 0%,
+        rgba(255, 255, 255, 0.03) 40%,
+        transparent 70%
+      );
+      pointer-events: none;
+      transform: translateZ(40px);
+      transition: opacity 0.4s ease;
+      z-index: 20;
+    }
+
+    .glass-edge-highlight {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 240, 200, 0.5) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        transparent 60%,
+        rgba(229, 193, 88, 0.3) 100%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      transform: translateZ(10px);
+    }
+
+    /* ==========================================================================
+       COMPACT VIEW LAYOUT
+       ========================================================================== */
+    .compact-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px 0 14px;
+      transform-style: preserve-3d;
+      transform: translateZ(25px);
+      transition: opacity 0.3s ease, transform 0.4s var(--ease-out-expo);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .island-container.is-expanded .compact-layer {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateZ(0px) scale(0.9);
+    }
+
+    .compact-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-orb-wrapper {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .status-orb-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold-primary);
+      border-top-color: transparent;
+      animation: spin 3s linear infinite;
+    }
+
+    .status-orb-core {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gold-gradient);
+      box-shadow: 0 0 12px var(--gold-primary);
+    }
+
+    .compact-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .compact-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .compact-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .compact-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Audio Visualizer Canvas Mini */
+    .mini-eq {
+      width: 32px;
+      height: 16px;
+      display: flex;
+      align-items: flex-end;
+      gap: 2.5px;
+    }
+
+    .eq-bar {
+      flex: 1;
+      background: var(--gold-gradient);
+      border-radius: 2px;
+      animation: eqPulse 1.2s ease-in-out infinite alternate;
+    }
+
+    .eq-bar:nth-child(1) { height: 40%; animation-delay: 0.1s; }
+    .eq-bar:nth-child(2) { height: 85%; animation-delay: 0.4s; }
+    .eq-bar:nth-child(3) { height: 55%; animation-delay: 0.2s; }
+    .eq-bar:nth-child(4) { height: 100%; animation-delay: 0.6s; }
+
+    @keyframes eqPulse {
+      0% { transform: scaleY(0.3); }
+      100% { transform: scaleY(1); }
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ==========================================================================
+       EXPANDED VIEW LAYOUT
+       ========================================================================== */
+    .expanded-layer {
+      position: absolute;
+      inset: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      transform-style: preserve-3d;
+      transform: translateZ(30px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease 0.1s, transform 0.5s var(--ease-out-expo) 0.1s;
+    }
+
+    .island-container.is-expanded .expanded-layer {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateZ(30px);
+    }
+
+    /* Header Nav */
+    .expanded-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      transform: translateZ(15px);
+    }
+
+    .brand-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: var(--gold-primary);
+      stroke-width: 2;
+    }
+
+    .brand-text {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border-subtle);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn.active {
+      background: rgba(229, 193, 88, 0.15);
+      color: var(--gold-bright);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border-subtle);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      transform: scale(1.05);
+    }
+
+    /* Content Pages Wrapper */
+    .tab-content-container {
+      flex: 1;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    .tab-panel {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px) translateZ(10px);
+      transition: all 0.4s var(--ease-out-expo);
+    }
+
+    .tab-panel.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) translateZ(20px);
+    }
+
+    /* --- TAB 1: MEDIA PLAYER --- */
+    .media-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 20px;
+      padding: 16px;
+      transform-style: preserve-3d;
+    }
+
+    .album-art-3d {
+      width: 80px;
+      height: 80px;
+      border-radius: 16px;
+      position: relative;
+      background: linear-gradient(135deg, #1e2430 0%, #0d1017 100%);
+      border: 1px solid rgba(229, 193, 88, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transform: translateZ(15px);
+      overflow: hidden;
+    }
+
+    .vinyl-disc {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #111 30%, #222 31%, #111 32%, #222 50%, #000 70%);
+      border: 1px solid rgba(255,255,255,0.1);
+      animation: rotateDisc 8s linear infinite;
+    }
+
+    .vinyl-disc.paused {
+      animation-play-state: paused;
+    }
+
+    @keyframes rotateDisc {
+      100% { transform: rotate(360deg); }
+    }
+
+    .media-details {
+      flex: 1;
+    }
+
+    .media-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .media-artist {
+      font-size: 12px;
+      color: var(--gold-primary);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .progress-fill {
+      width: 62%;
+      height: 100%;
+      background: var(--gold-gradient);
+      box-shadow: 0 0 10px var(--gold-primary);
+    }
+
+    .media-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 10px;
+      transform: translateZ(20px);
+    }
+
+    .ctrl-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ctrl-btn:hover {
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    .ctrl-btn.play-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--gold-gradient);
+      color: #000;
+      box-shadow: 0 6px 20px rgba(229, 193, 88, 0.4);
+    }
+
+    .ctrl-btn.play-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 25px rgba(229, 193, 88, 0.6);
+    }
+
+    /* --- TAB 2: CLIMATE & ENVIRONMENT --- */
+    .climate-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      height: 100%;
+    }
+
+    .climate-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .dial-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .dial-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .dial-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 6;
+    }
+
+    .dial-value-ring {
+      fill: none;
+      stroke: url(#gold-stroke);
+      stroke-width: 6;
+      stroke-dasharray: 251;
+      stroke-dashoffset: 75;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s ease;
+    }
+
+    .dial-temp {
+      position: absolute;
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .dial-temp span {
+      font-size: 14px;
+      color: var(--gold-primary);
+    }
+
+    .climate-status-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .climate-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .action-row-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-row-btn.active {
+      border-color: var(--gold-primary);
+      background: rgba(229, 193, 88, 0.1);
+      color: var(--gold-bright);
+    }
+
+    /* --- TAB 3: VEHICLE & MODES --- */
+    .system-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 16px;
+    }
+
+    .status-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-value {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+
+    /* Custom Toggle Switch */
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .toggle-switch.is-on {
+      background: var(--gold-primary);
+    }
+
+    .toggle-handle {
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s var(--ease-out-back);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    }
+
+    .toggle-switch.is-on .toggle-handle {
+      transform: translateX(20px);
+      background: #000;
+    }
+
+    /* ==========================================================================
+       BOTTOM ACTION BAR (Inside Expanded)
+       ========================================================================== */
+    .expanded-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      transform: translateZ(10px);
+    }
+
+    .footer-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .footer-stat-val {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .stealth-mode-btn {
+      background: linear-gradient(135deg, rgba(229, 193, 88, 0.2) 0%, rgba(229, 193, 88, 0.05) 100%);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-bright);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .stealth-mode-btn:hover {
+      box-shadow: 0 0 15px rgba(229, 193, 88, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       SVG GRADIENT DEFINITIONS
+       ========================================================================== */
+    .svg-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden SVG Gradients -->
+  <svg class="svg-defs">
+    <defs>
+      <linearGradient id="gold-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fff3c9" />
+        <stop offset="50%" stop-color="#e5c158" />
+        <stop offset="100%" stop-color="#967423" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- Ambient Background Elements -->
+  <div class="viewport-bg">
+    <div class="bg-grid"></div>
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+  </div>
+
+  <!-- 3D Interactive Stage -->
+  <div class="scene-stage" id="stage">
+    
+    <!-- Dynamic Island 3D Controller Card -->
+    <div class="island-container" id="island">
+      
+      <!-- Glass Glare & Highlights -->
+      <div class="glass-glare" id="glare"></div>
+      <div class="glass-edge-highlight"></div>
+
+      <!-- COMPACT BAR LAYER -->
+      <div class="compact-layer" id="compact-layer">
+        <div class="compact-left">
+          <div class="status-orb-wrapper">
+            <div class="status-orb-ring"></div>
+            <div class="status-orb-core"></div>
+          </div>
+          <div class="compact-info">
+            <div class="compact-title">
+              AETHERIA VI
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="var(--gold-primary)"><circle cx="12" cy="12" r="12"/></svg>
+            </div>
+            <div class="compact-sub">STANDBY // 98% FLUID</div>
+          </div>
+        </div>
+
+        <div class="compact-right">
+          <div class="mini-eq">
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPANDED DASHBOARD LAYER -->
+      <div class="expanded-layer" id="expanded-layer">
+        
+        <!-- Header -->
+        <div class="expanded-header">
+          <div class="brand-tag">
+            <svg class="brand-icon" viewBox="0 0 24 24">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polygon points="2 17 12 22 22 17"/>
+              <polygon points="2 12 12 17 22 12"/>
+            </svg>
+            <span class="brand-text">AURUM OS</span>
+          </div>
+
+          <!-- Navigation Tabs -->
+          <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="tab-audio">AUDIO</button>
+            <button class="tab-btn" data-tab="tab-climate">CLIMATE</button>
+            <button class="tab-btn" data-tab="tab-system">SYSTEM</button>
+          </div>
+
+          <button class="close-btn" id="close-btn" title="Collapse">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Tab Pages Container -->
+        <div class="tab-content-container">
+
+          <!-- PAGE 1: AUDIO -->
+          <div class="tab-panel active" id="tab-audio">
+            <div class="media-card">
+              <div class="album-art-3d">
+                <div class="vinyl-disc" id="vinyl"></div>
+              </div>
+              <div class="media-details">
+                <div class="media-title">Midnight Resonance</div>
+                <div class="media-artist">KAVINSKY // HYPERION</div>
+                <div class="progress-bar-container">
+                  <div class="progress-fill"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="media-controls">
+              <button class="ctrl-btn" title="Previous">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+              </button>
+              <button class="ctrl-btn play-btn" id="play-toggle" title="Play/Pause">
+                <svg width="22" height="22" id="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+              <button class="ctrl-btn" title="Next">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- PAGE 2: CLIMATE -->
+          <div class="tab-panel" id="tab-climate">
+            <div class="climate-grid">
+              <div class="climate-card">
+                <div class="dial-wrapper">
+                  <svg class="dial-svg" viewBox="0 0 100 100">
+                    <circle class="dial-bg" cx="50" cy="50" r="40"/>
+                    <circle class="dial-value-ring" id="temp-ring" cx="50" cy="50" r="40"/>
+                  </svg>
+                  <div class="dial-temp" id="temp-val">21.5<span>°C</span></div>
+                </div>
+                <div class="climate-status-text">CABIN TEMP</div>
+              </div>
+
+              <div class="climate-actions">
+                <button class="action-row-btn active">
+                  <span>AERO FLOW</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v18m9-9H3"/></svg>
+                </button>
+                <button class="action-row-btn active">
+                  <span>ION MATRIX</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </button>
+                <button class="action-row-btn">
+                  <span>AMBER SCENT</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGE 3: SYSTEM -->
+          <div class="tab-panel" id="tab-system">
+            <div class="system-status-list">
+              <div class="status-row">
+                <div class="status-label">
+                  <svg width="16" height="16" fill="var(--gold-primary)" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4z"/></svg>
+                  STEALTH SHIELD
+                </div>
+                <div class="toggle-switch is-on" id="toggle-shield">
+                  <div class="toggle-handle"></div>
+                </div>
+              </div>
+
+              <div class="status-row">
+                <div class="status-label">
+                  <svg width="16" height="16" fill="var(--gold-primary)" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  OVERDRIVE MATRIX
+                </div>
+                <div class="toggle-switch" id="toggle-overdrive">
+                  <div class="toggle-handle"></div>
+                </div>
+              </div>
+
+              <div class="status-row">
+                <div class="status-label">
+                  <svg width="16" height="16" fill="var(--gold-primary)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+                  MAG-SUSPENSION
+                </div>
+                <span class="status-value">SPORT +</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer Bar -->
+        <div class="expanded-footer">
+          <div class="footer-stat">
+            BIOMETRICS: <span class="footer-stat-val">AUTHENTICATED</span>
+          </div>
+          <button class="stealth-mode-btn">ENGAGE APEX</button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ==========================================================================
+       INTERACTIVE 3D TILT & CONTROLLER SCRIPT
+       ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const stage = document.getElementById('stage');
+      const island = document.getElementById('island');
+      const glare = document.getElementById('glare');
+      const closeBtn = document.getElementById('close-btn');
+      const playToggle = document.getElementById('play-toggle');
+      const playIcon = document.getElementById('play-icon');
+      const vinyl = document.getElementById('vinyl');
+
+      let isExpanded = false;
+      let isPlaying = true;
+
+      // Card Physics Bounds
+      let bounds = island.getBoundingClientRect();
+
+      function updateBounds() {
+        bounds = island.getBoundingClientRect();
+      }
+
+      window.addEventListener('resize', updateBounds);
+
+      // --- 3D TILT EFFECT (Lerped Smooth Gyro Cursor Tracking) ---
+      let targetRotateX = 0;
+      let targetRotateY = 0;
+      let currentRotateX = 0;
+      let currentRotateY = 0;
+
+      document.addEventListener('mousemove', (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        // Calculate relative offset (-1 to 1)
+        const percentX = (mouseX - centerX) / centerX;
+        const percentY = (mouseY - centerY) / centerY;
+
+        // Max tilt angles (deg)
+        const maxTilt = isExpanded ? 12 : 20;
+        targetRotateX = -percentY * maxTilt;
+        targetRotateY = percentX * maxTilt;
+
+        // Update glare position
+        if (bounds) {
+          const glareX = ((mouseX - bounds.left) / bounds.width) * 100;
+          const glareY = ((mouseY - bounds.top) / bounds.height) * 100;
+          island.style.setProperty('--glare-x', `${glareX}%`);
+          island.style.setProperty('--glare-y', `${glareY}%`);
+        }
+      });
+
+      // Smooth Animation Loop for 3D Tilt
+      function render3D() {
+        currentRotateX += (targetRotateX - currentRotateX) * 0.08;
+        currentRotateY += (targetRotateY - currentRotateY) * 0.08;
+
+        const liftZ = isExpanded ? 'translateZ(20px)' : 'translateZ(0px)';
+        island.style.transform = `rotateX(${currentRotateX.toFixed(2)}deg) rotateY(${currentRotateY.toFixed(2)}deg) ${liftZ}`;
+
+        requestAnimationFrame(render3D);
+      }
+      render3D();
+
+      // Reset tilt on mouse exit
+      document.addEventListener('mouseleave', () => {
+        targetRotateX = 0;
+        targetRotateY = 0;
+      });
+
+      // --- EXPAND / COLLAPSE LOGIC ---
+      island.addEventListener('click', (e) => {
+        // Prevent trigger if clicking internal interactive elements
+        if (e.target.closest('button') || e.target.closest('.toggle-switch') || e.target.closest('.tab-btn')) {
+          return;
+        }
+
+        if (!isExpanded) {
+          expandIsland();
+        }
+      });
+
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        collapseIsland();
+      });
+
+      function expandIsland() {
+        isExpanded = true;
+        island.classList.add('is-expanded');
+        setTimeout(updateBounds, 700);
+      }
+
+      function collapseIsland() {
+        isExpanded = false;
+        island.classList.remove('is-expanded');
+        setTimeout(updateBounds, 700);
+      }
+
+      // --- TAB SWITCHING SYSTEM ---
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabPanels = document.querySelectorAll('.tab-panel');
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetTab = btn.getAttribute('data-tab');
+
+          tabBtns.forEach(b => b.classList.remove('active'));
+          tabPanels.forEach(p => p.classList.remove('active'));
+
+          btn.classList.add('active');
+          document.getElementById(targetTab).classList.add('active');
+        });
+      });
+
+      // --- PLAY / PAUSE MEDIA TOGGLE ---
+      playToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isPlaying = !isPlaying;
+
+        if (isPlaying) {
+          playIcon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+          vinyl.classList.remove('paused');
+        } else {
+          playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+          vinyl.classList.add('paused');
+        }
+      });
+
+      // --- TOGGLE SWITCHES ---
+      const toggles = document.querySelectorAll('.toggle-switch');
+      toggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggle.classList.toggle('is-on');
+        });
+      });
+
+      // --- INTERACTIVE CLIMATE DIAL SCROLL/DRAG DEMO ---
+      const tempVal = document.getElementById('temp-val');
+      const tempRing = document.getElementById('temp-ring');
+      let currentTemp = 21.5;
+
+      document.getElementById('tab-climate').addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          currentTemp = Math.min(30, currentTemp + 0.5);
+        } else {
+          currentTemp = Math.max(16, currentTemp - 0.5);
+        }
+        tempVal.innerHTML = `${currentTemp.toFixed(1)}<span>°C</span>`;
+        
+        // Offset mapping (251 max)
+        const offset = 251 - ((currentTemp - 16) / 14) * 180;
+        tempRing.style.strokeDashoffset = offset;
+      }, { passive: false });
+
+    });
+  </script>
+</body>
+</html>
