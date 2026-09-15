@@ -1,4 +1,83 @@
-      name: Create Instagram Container
+name: Random 3D UI to Instagram Reel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pick-render-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Select 1 Random 3D Component
+        id: selector
+        run: |
+          COMPONENTS=(
+            "neon_battery_pill"
+            "quantum_plasma_chrono_pill"
+            "luxury_dynamic_island"
+            "liquid_metal_charging_dock"
+            "holographic_glass_card"
+            "3d_credit_card_flip"
+            "isometric_dashboard_tile"
+            "cyberpunk_hud_widget"
+            "frosted_glass_profile_badge"
+            "magnetic_fluid_toggle"
+            "3d_floating_action_button"
+            "orbital_ring_slider"
+            "biometric_fingerprint_scanner"
+            "haptic_depth_keypad"
+            "spatial_audio_frequency_sphere"
+            "3d_crypto_portfolio_chart"
+            "holographic_globe_navigator"
+            "futuristic_speedometer_gauge"
+            "particle_ai_voice_orb"
+            "3d_progress_ring_capsule"
+            "voxel_matrix_loader"
+          )
+
+          CHOSEN=$(printf "%s\n" "${COMPONENTS[@]}" | shuf -n 1)
+          FORMATTED_NAME=$(echo "$CHOSEN" | tr '_' ' ' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')
+
+          echo "Selected: $CHOSEN ($FORMATTED_NAME)"
+          echo "component=$CHOSEN" >> $GITHUB_OUTPUT
+          echo "title=$FORMATTED_NAME" >> $GITHUB_OUTPUT
+
+      - name: Generate 3D Video for Selected Component
+        run: |
+          node scripts/render_3d_video.js \
+            --component "${{ steps.selector.outputs.component }}" \
+            --output "output.mp4"
+
+      - name: Upload Video to Cloud CDN
+        id: upload_video
+        env:
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+        run: |
+          PUBLIC_URL=$(node scripts/upload_to_cdn.js output.mp4)
+          echo "Captured Public URL: $PUBLIC_URL"
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "ERROR: Failed to obtain public video URL."
+            exit 1
+          fi
+          echo "video_url=$PUBLIC_URL" >> $GITHUB_OUTPUT
+
+      - name: Create Instagram Container
         id: create_container
         env:
           IG_USER_ID: ${{ secrets.INSTAGRAM_USER_ID || secrets.INSTAGRAM_ACCOUNT_ID }}
@@ -7,17 +86,26 @@
           COMPONENT_TITLE: ${{ steps.selector.outputs.title }}
         run: |
           if [ -z "$IG_USER_ID" ]; then
-            echo "ERROR: INSTAGRAM_USER_ID (or INSTAGRAM_ACCOUNT_ID) secret is missing in this repo!"
+            echo "ERROR: Neither INSTAGRAM_USER_ID nor INSTAGRAM_ACCOUNT_ID is set in this repository's Secrets!"
+            exit 1
+          fi
+          if [ -z "$IG_ACCESS_TOKEN" ]; then
+            echo "ERROR: INSTAGRAM_ACCESS_TOKEN is missing in this repository's Secrets!"
             exit 1
           fi
 
+          echo "Using Instagram Account ID: $IG_USER_ID"
+          echo "Using Video URL: $VIDEO_URL"
+
           CAPTION="3D UI Design: ${COMPONENT_TITLE} ⚡ Rendered automatically. #3dui #webdev #threejs #uidesign #motiongraphics"
 
-          RESPONSE=$(curl -s -X POST "https://graph.facebook.com/v20.0/${IG_USER_ID}/media" \
+          RESPONSE=$(curl -s -X POST "https://graph.facebook.com/v21.0/${IG_USER_ID}/media" \
             -F "media_type=REELS" \
             -F "video_url=${VIDEO_URL}" \
             -F "caption=${CAPTION}" \
             -F "access_token=${IG_ACCESS_TOKEN}")
+
+          echo "Meta Response: $RESPONSE"
 
           CONTAINER_ID=$(echo $RESPONSE | jq -r '.id')
           if [ "$CONTAINER_ID" = "null" ] || [ -z "$CONTAINER_ID" ]; then
@@ -32,12 +120,12 @@
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           CONTAINER_ID: ${{ steps.create_container.outputs.container_id }}
         run: |
-          echo "Waiting for Instagram to process video..."
+          echo "Waiting for Instagram to process video container ($CONTAINER_ID)..."
           STATUS="IN_PROGRESS"
           for i in {1..30}; do
-            CHECK=$(curl -s "https://graph.facebook.com/v20.0/${CONTAINER_ID}?fields=status_code&access_token=${IG_ACCESS_TOKEN}")
+            CHECK=$(curl -s "https://graph.facebook.com/v21.0/${CONTAINER_ID}?fields=status_code&access_token=${IG_ACCESS_TOKEN}")
             STATUS_CODE=$(echo $CHECK | jq -r '.status_code')
-            echo "Status: $STATUS_CODE"
+            echo "Check $i: $STATUS_CODE"
 
             if [ "$STATUS_CODE" = "FINISHED" ]; then
               STATUS="FINISHED"
@@ -60,10 +148,11 @@
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           CONTAINER_ID: ${{ steps.create_container.outputs.container_id }}
         run: |
-          RES=$(curl -s -X POST "https://graph.facebook.com/v20.0/${IG_USER_ID}/media_publish" \
+          RES=$(curl -s -X POST "https://graph.facebook.com/v21.0/${IG_USER_ID}/media_publish" \
             -F "creation_id=${CONTAINER_ID}" \
             -F "access_token=${IG_ACCESS_TOKEN}")
 
+          echo "Publish Response: $RES"
           MEDIA_ID=$(echo $RES | jq -r '.id')
           if [ "$MEDIA_ID" = "null" ] || [ -z "$MEDIA_ID" ]; then
             echo "Failed to publish: $RES"
