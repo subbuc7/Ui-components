@@ -1,1 +1,148 @@
+name: Random 3D UI to Instagram Reel
 
+on:
+  workflow_dispatch: # Single click trigger: no inputs needed
+
+jobs:
+  pick-render-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install System Dependencies (FFmpeg & Chrome)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon-x11-0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+
+      - name: Install Project Dependencies
+        run: npm ci
+
+      - name: Select 1 Random 3D Component
+        id: selector
+        run: |
+          # Pool of 21 distinct 3D UI components
+          COMPONENTS=(
+            "neon_battery_pill"
+            "quantum_plasma_chrono_pill"
+            "luxury_dynamic_island"
+            "liquid_metal_charging_dock"
+            "holographic_glass_card"
+            "3d_credit_card_flip"
+            "isometric_dashboard_tile"
+            "cyberpunk_hud_widget"
+            "frosted_glass_profile_badge"
+            "magnetic_fluid_toggle"
+            "3d_floating_action_button"
+            "orbital_ring_slider"
+            "biometric_fingerprint_scanner"
+            "haptic_depth_keypad"
+            "spatial_audio_frequency_sphere"
+            "3d_crypto_portfolio_chart"
+            "holographic_globe_navigator"
+            "futuristic_speedometer_gauge"
+            "particle_ai_voice_orb"
+            "3d_progress_ring_capsule"
+            "voxel_matrix_loader"
+          )
+
+          # Pick one at random using shuf
+          CHOSEN=$(printf "%s\n" "${COMPONENTS[@]}" | shuf -n 1)
+          
+          # Format a readable title (e.g., "neon_battery_pill" -> "Neon Battery Pill")
+          FORMATTED_NAME=$(echo "$CHOSEN" | tr '_' ' ' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')
+
+          echo "Selected Component: $CHOSEN ($FORMATTED_NAME)"
+          echo "component=$CHOSEN" >> $GITHUB_OUTPUT
+          echo "title=$FORMATTED_NAME" >> $GITHUB_OUTPUT
+
+      - name: Generate 3D Video for Selected Component
+        run: |
+          node scripts/render_3d_video.js \
+            --component "${{ steps.selector.outputs.component }}" \
+            --output "output.mp4"
+
+      - name: Upload Video to Cloud CDN
+        id: upload_video
+        env:
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+        run: |
+          PUBLIC_URL=$(node scripts/upload_to_cdn.js output.mp4)
+          echo "video_url=$PUBLIC_URL" >> $GITHUB_OUTPUT
+
+      - name: Create Instagram Container
+        id: create_container
+        env:
+          IG_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          VIDEO_URL: ${{ steps.upload_video.outputs.video_url }}
+          COMPONENT_TITLE: ${{ steps.selector.outputs.title }}
+        run: |
+          CAPTION="3D UI Design: ${COMPONENT_TITLE} ⚡ Rendered automatically. #3dui #webdev #threejs #uidesign #motiongraphics"
+
+          RESPONSE=$(curl -s -X POST "https://graph.facebook.com/v20.0/${IG_USER_ID}/media" \
+            -F "media_type=REELS" \
+            -F "video_url=${VIDEO_URL}" \
+            -F "caption=${CAPTION}" \
+            -F "access_token=${IG_ACCESS_TOKEN}")
+
+          CONTAINER_ID=$(echo $RESPONSE | jq -r '.id')
+          if [ "$CONTAINER_ID" = "null" ] || [ -z "$CONTAINER_ID" ]; then
+            echo "Failed to create Instagram container: $RESPONSE"
+            exit 1
+          fi
+
+          echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
+
+      - name: Poll Container Status Until Ready
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          CONTAINER_ID: ${{ steps.create_container.outputs.container_id }}
+        run: |
+          echo "Waiting for Instagram to process video..."
+          STATUS="IN_PROGRESS"
+          for i in {1..30}; do
+            CHECK=$(curl -s "https://graph.facebook.com/v20.0/${CONTAINER_ID}?fields=status_code&access_token=${IG_ACCESS_TOKEN}")
+            STATUS_CODE=$(echo $CHECK | jq -r '.status_code')
+            echo "Status: $STATUS_CODE"
+
+            if [ "$STATUS_CODE" = "FINISHED" ]; then
+              STATUS="FINISHED"
+              break
+            elif [ "$STATUS_CODE" = "ERROR" ]; then
+              echo "Processing failed: $CHECK"
+              exit 1
+            fi
+            sleep 10
+          done
+
+          if [ "$STATUS" != "FINISHED" ]; then
+            echo "Timed out waiting for video processing."
+            exit 1
+          fi
+
+      - name: Publish Reel to Instagram
+        env:
+          IG_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          CONTAINER_ID: ${{ steps.create_container.outputs.container_id }}
+        run: |
+          RES=$(curl -s -X POST "https://graph.facebook.com/v20.0/${IG_USER_ID}/media_publish" \
+            -F "creation_id=${CONTAINER_ID}" \
+            -F "access_token=${IG_ACCESS_TOKEN}")
+
+          MEDIA_ID=$(echo $RES | jq -r '.id')
+          if [ "$MEDIA_ID" = "null" ] || [ -z "$MEDIA_ID" ]; then
+            echo "Failed to publish: $RES"
+            exit 1
+          fi
+
+          echo "Successfully published to Instagram! Media ID: $MEDIA_ID"
+          
