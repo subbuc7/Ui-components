@@ -1,7 +1,7 @@
 name: Random 3D UI to Instagram Reel
 
 on:
-  workflow_dispatch: # Single click trigger
+  workflow_dispatch:
 
 jobs:
   pick-render-post:
@@ -16,10 +16,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install System Dependencies (FFmpeg & Chrome)
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon-x11-0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+          sudo apt-get install -y ffmpeg
 
       - name: Install Project Dependencies
         run: npm install
@@ -140,3 +140,4 @@ jobs:
           fi
 
           echo "Successfully published to Instagram! Media ID: $MEDIA_ID"
+          
