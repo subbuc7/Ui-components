@@ -1,0 +1,14 @@
+{
+  "name": "daily-3d-ui-instagram",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "render": "node scripts/render_3d_video.js",
+    "upload": "node scripts/upload_to_cdn.js"
+  },
+  "dependencies": {
+    "cloudinary": "^2.5.0",
+    "puppeteer": "^23.3.0"
+  }
+}
+
