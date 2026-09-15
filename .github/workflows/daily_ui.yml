@@ -11,11 +11,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      -       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
       - name: Install System Dependencies (FFmpeg & Chrome)
         run: |
@@ -23,7 +22,8 @@ jobs:
           sudo apt-get install -y ffmpeg libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon-x11-0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
 
       - name: Install Project Dependencies
-        run: npm ci
+        run: npm install
+        
 
       - name: Select 1 Random 3D Component
         id: selector
