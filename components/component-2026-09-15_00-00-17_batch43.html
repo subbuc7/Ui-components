@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHERIA // Luxury Architectural & Living Experience</title>
+  <style>
+    /* ==========================================================================
+       RESET & BASE DESIGN SYSTEM
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-dark: #04060a;
+      --bg-card: rgba(12, 18, 28, 0.55);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.18);
+      
+      --accent-gold: #dfb15b;
+      --accent-gold-glow: rgba(223, 177, 91, 0.22);
+      --accent-cyan: #00f2fe;
+      --accent-cyan-glow: rgba(0, 242, 254, 0.22);
+
+      --text-main: #f0f4f8;
+      --text-muted: #7a889b;
+      --text-dim: #414d5c;
+
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Background Particle Canvas */
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       MAIN HERO / LANDING PAGE
+       ========================================================================== */
+    .hero-container {
+      position: relative;
+      z-index: 1;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem 4rem;
+      background: radial-gradient(circle at 50% 40%, rgba(10, 20, 35, 0.8) 0%, var(--bg-dark) 70%);
+    }
+
+    /* Main Header Bar */
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.35em;
+      color: var(--text-main);
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    .brand-logo svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--accent-gold);
+    }
+
+    /* Menu Open Trigger Button */
+    .nav-trigger-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0.85rem 1.75rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+      color: var(--text-main);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.4s var(--ease-out-expo), transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo);
+    }
+
+    .nav-trigger-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, var(--accent-gold-glow), transparent);
+      opacity: 0;
+      transition: opacity 0.4s var(--ease-out-expo);
+      z-index: 1;
+    }
+
+    .nav-trigger-btn:hover {
+      border-color: rgba(223, 177, 91, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px var(--accent-gold-glow);
+    }
+
+    .nav-trigger-btn:hover::before {
+      opacity: 1;
+    }
+
+    .nav-trigger-btn .btn-text {
+      position: relative;
+      z-index: 2;
+    }
+
+    .burger-icon {
+      position: relative;
+      z-index: 2;
+      width: 20px;
+      height: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .burger-icon span {
+      display: block;
+      width: 100%;
+      height: 2px;
+      background-color: var(--accent-gold);
+      border-radius: 2px;
+      transition: transform 0.3s var(--ease-out-expo), width 0.3s var(--ease-out-expo);
+    }
+
+    .nav-trigger-btn:hover .burger-icon span:first-child {
+      width: 60%;
+    }
+
+    /* Hero Center Content */
+    .hero-center {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .hero-tag {
+      font-size: 0.75rem;
+      letter-spacing: 0.4em;
+      color: var(--accent-gold);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    .hero-title {
+      font-size: 3.8rem;
+      font-weight: 300;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 2rem;
+      background: linear-gradient(180deg, #ffffff 0%, #8a9bb0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* ==========================================================================
+       CINEMATIC FULL-SCREEN NAVIGATION OVERLAY
+       ========================================================================== */
+    .cinematic-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 100;
+      visibility: hidden;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 2.5rem 4rem;
+      overflow: hidden;
+    }
+
+    .cinematic-overlay.is-open {
+      visibility: visible;
+      pointer-events: all;
+    }
+
+    /* Background Veil & Backdrop Morphing */
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-color: var(--bg-dark);
+      clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+      transition: clip-path 0.9s var(--ease-in-out-cubic);
+    }
+
+    .cinematic-overlay.is-open .overlay-backdrop {
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+
+    /* Ambient Dynamic Glows */
+    .overlay-glow-cyan {
+      position: absolute;
+      top: 20%;
+      left: 15%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--accent-cyan-glow) 0%, rgba(0,0,0,0) 70%);
+      filter: blur(80px);
+      opacity: 0.6;
+      pointer-events: none;
+      z-index: -1;
+      transition: transform 1.2s ease-out;
+    }
+
+    .overlay-glow-gold {
+      position: absolute;
+      bottom: 10%;
+      right: 20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-gold-glow) 0%, rgba(0,0,0,0) 70%);
+      filter: blur(100px);
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: -1;
+      transition: transform 1.2s ease-out;
+    }
+
+    /* Background Dynamic Image Preview Panel */
+    .preview-bg-veil {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      opacity: 0.18;
+      background-size: cover;
+      background-position: center;
+      filter: blur(25px) scale(1.08);
+      transition: background-image 0.8s ease, opacity 0.8s ease;
+    }
+
+    /* Overlay Header */
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.6s var(--ease-out-expo) 0.3s, transform 0.6s var(--ease-out-expo) 0.3s;
+    }
+
+    .cinematic-overlay.is-open .overlay-header {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .status-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+
+    /* Interactive Close Button with Physical SVG Ring */
+    .close-btn {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+    }
+
+    .close-btn svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .close-btn circle.bg-ring {
+      fill: rgba(255, 255, 255, 0.03);
+      stroke: var(--border-subtle);
+      stroke-width: 1.5;
+    }
+
+    .close-btn circle.progress-ring {
+      fill: transparent;
+      stroke: var(--accent-gold);
+      stroke-width: 2;
+      stroke-dasharray: 126; /* 2 * PI * 20 */
+      stroke-dashoffset: 126;
+      transition: stroke-dashoffset 0.5s var(--ease-out-expo);
+    }
+
+    .close-btn:hover circle.progress-ring {
+      stroke-dashoffset: 0;
+    }
+
+    .close-icon-lines {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      z-index: 2;
+    }
+
+    .close-icon-lines::before,
+    .close-icon-lines::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1.5px;
+      background-color: var(--text-main);
+      transition: transform 0.4s var(--ease-out-expo), background-color 0.3s ease;
+    }
+
+    .close-icon-lines::before { transform: translateY(-50%) rotate(45deg); }
+    .close-icon-lines::after { transform: translateY(-50%) rotate(-45deg); }
+
+    .close-btn:hover .close-icon-lines::before,
+    .close-btn:hover .close-icon-lines::after {
+      background-color: var(--accent-gold);
+    }
+
+    /* Overlay Main Content Body Grid */
+    .overlay-body {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      align-items: center;
+      gap: 4rem;
+      position: relative;
+      z-index: 10;
+      height: 100%;
+    }
+
+    /* Staggered Navigation Link List */
+    .nav-links-list {
+      list-style: none;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    /* Shared Translucent Active Glow Pill (Layering Req: Always z-index: 1 behind content) */
+    .active-glow-pill {
+      position: absolute;
+      left: -1.5rem;
+      width: calc(100% + 3rem);
+      height: 72px;
+      background: linear-gradient(90deg, rgba(223, 177, 91, 0.12) 0%, rgba(0, 242, 254, 0.04) 100%);
+      border: 1px solid rgba(223, 177, 91, 0.25);
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 1; /* Under text & icons (z-index: 2) */
+      opacity: 0;
+      transform: translateY(0);
+      transition: transform 0.4s var(--ease-out-expo), opacity 0.3s ease, height 0.3s ease;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Staggered Link Items */
+    .nav-item {
+      position: relative;
+      opacity: 0;
+      transform: translateY(40px) rotateX(-15deg);
+      transition: opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo);
+      perspective: 1000px;
+    }
+
+    .cinematic-overlay.is-open .nav-item {
+      opacity: 1;
+      transform: translateY(0) rotateX(0deg);
+      transition-delay: calc(0.2s + var(--stagger-idx) * 0.08s);
+    }
+
+    .nav-link {
+      position: relative;
+      z-index: 2; /* Foreground text over glow pill */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1rem;
+      text-decoration: none;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .link-left {
+      display: flex;
+      align-items: baseline;
+      gap: 2rem;
+    }
+
+    .link-num {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--accent-gold);
+      font-family: monospace;
+      opacity: 0.7;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .link-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .link-title {
+      font-size: 2.2rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.3s ease, transform 0.4s var(--ease-out-expo);
+      line-height: 1.1;
+    }
+
+    .link-sub {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 0.35rem;
+      transition: color 0.3s ease;
+    }
+
+    /* Morphing SVG Arrow Indicator */
+    .link-arrow-svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--text-muted);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.3;
+      transform: translateX(-10px);
+      transition: transform 0.4s var(--ease-out-expo), stroke 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* Hover States for Links */
+    .nav-item:hover .link-title {
+      color: #ffffff;
+      transform: translateX(6px);
+    }
+
+    .nav-item:hover .link-sub {
+      color: var(--accent-cyan);
+    }
+
+    .nav-item:hover .link-num {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    .nav-item:hover .link-arrow-svg {
+      opacity: 1;
+      stroke: var(--accent-gold);
+      transform: translateX(0);
+    }
+
+    /* Link Click Processing State */
+    .nav-item.is-selected .link-title {
+      color: var(--accent-gold);
+    }
+
+    /* Right Preview Card Component */
+    .preview-card-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      justify-self: end;
+      opacity: 0;
+      transform: translateX(30px) scale(0.96);
+      transition: opacity 0.8s var(--ease-out-expo) 0.4s, transform 0.8s var(--ease-out-expo) 0.4s;
+    }
+
+    .cinematic-overlay.is-open .preview-card-container {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+
+    .preview-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .card-image-frame {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.05);
+      transition: transform 0.8s var(--ease-out-expo), opacity 0.5s ease;
+    }
+
+    .preview-card:hover .card-img {
+      transform: scale(1);
+    }
+
+    /* SVG HUD Crosshairs & Scanning Overlay */
+    .card-hud-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1rem;
+    }
+
+    .hud-line-top {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+      opacity: 0.5;
+    }
+
+    .hud-corners {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .hud-corner {
+      width: 8px;
+      height: 8px;
+      border-color: var(--accent-gold);
+      border-style: solid;
+      opacity: 0.6;
+    }
+
+    .hud-corner.tl { border-width: 1px 0 0 1px; }
+    .hud-corner.tr { border-width: 1px 1px 0 0; }
+    .hud-corner.bl { border-width: 0 0 1px 1px; }
+    .hud-corner.br { border-width: 0 1px 1px 0; }
+
+    .card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .card-tag {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: var(--accent-gold);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .card-heading {
+      font-size: 1.1rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      color: var(--text-main);
+    }
+
+    .card-desc {
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Overlay Footer Bar */
+    .overlay-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s var(--ease-out-expo) 0.5s, transform 0.6s var(--ease-out-expo) 0.5s;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1.5rem;
+    }
+
+    .cinematic-overlay.is-open .overlay-footer {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .footer-coordinates {
+      font-family: monospace;
+      color: var(--text-dim);
+    }
+
+    .social-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .social-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .social-links a:hover {
+      color: var(--accent-gold);
+    }
+
+    /* ==========================================================================
+       MULTI-STAGE INTERACTION STATE OVERLAY
+       ========================================================================== */
+    .stage-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(4, 6, 10, 0.92);
+      backdrop-filter: blur(24px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s var(--ease-out-expo);
+    }
+
+    .stage-modal-overlay.is-active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .stage-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 420px;
+      padding: 3rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 40px var(--accent-gold-glow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* SVG Multi-Stage Loader Ring */
+    .stage-loader-svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 2rem;
+    }
+
+    .stage-loader-svg circle.bg-circle {
+      fill: none;
+      stroke: var(--border-subtle);
+      stroke-width: 3;
+    }
+
+    .stage-loader-svg circle.anim-circle {
+      fill: none;
+      stroke: url(#stageGradient);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-dasharray: 220;
+      stroke-dashoffset: 220;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    .stage-status-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--text-main);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .stage-status-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      min-height: 2.4em;
+    }
+
+    .stage-progress-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stage-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan));
+      border-radius: 10px;
+      transition: width 0.1s linear;
+    }
+
+    /* Success Icon Checkmark Drawing */
+    .success-checkmark {
+      display: none;
+      width: 48px;
+      height: 48px;
+      stroke: var(--accent-gold);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      margin-bottom: 2rem;
+    }
+
+    .success-checkmark path {
+      stroke-dasharray: 60;
+      stroke-dashoffset: 60;
+    }
+
+    .stage-modal-overlay.is-success .stage-loader-svg { display: none; }
+    .stage-modal-overlay.is-success .success-checkmark { display: block; }
+    .stage-modal-overlay.is-success .success-checkmark path {
+      animation: drawCheck 0.6s var(--ease-out-expo) forwards;
+    }
+
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Responsive Scaling */
+    @media (max-width: 1024px) {
+      .overlay-body {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .preview-card-container {
+        display: none;
+      }
+      .hero-title {
+        font-size: 2.5rem;
+      }
+      .cinematic-overlay {
+        padding: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Particle Physics Canvas -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- Main Hero View -->
+  <main class="hero-container">
+    <header class="hero-header">
+      <a href="#" class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 19h20L12 2zm0 4.1L18.2 17H5.8L12 6.1z"/>
+        </svg>
+        AETHERIA
+      </a>
+
+      <button class="nav-trigger-btn" id="openNavBtn" aria-label="Open Navigation">
+        <span class="btn-text">EXPLORE MENU</span>
+        <div class="burger-icon">
+          <span></span>
+          <span></span>
+        </div>
+      </button>
+    </header>
+
+    <section class="hero-center">
+      <span class="hero-tag">PRIVATE LIVING & ARCHITECTURE</span>
+      <h1 class="hero-title">Redefining Sanctuary Through Spatial Precision</h1>
+    </section>
+
+    <footer class="hero-footer">
+      <span>LAT: 36.3932° N // LON: 25.4615° E</span>
+      <span>SCROLL TO DISCOVER</span>
+    </footer>
+  </main>
+
+  <!-- Cinematic Navigation Overlay Screen -->
+  <div class="cinematic-overlay" id="cinematicNav" aria-hidden="true">
+    <div class="overlay-backdrop"></div>
+    <div class="preview-bg-veil" id="bgVeil"></div>
+    <div class="overlay-glow-cyan" id="glowCyan"></div>
+    <div class="overlay-glow-gold" id="glowGold"></div>
+
+    <!-- Overlay Header -->
+    <header class="overlay-header">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 19h20L12 2zm0 4.1L18.2 17H5.8L12 6.1z"/>
+        </svg>
+        AETHERIA
+      </div>
+
+      <div class="system-status">
+        <span class="status-pulse"></span>
+        <span id="systemClock">00:00:00 UTC</span>
+      </div>
+
+      <button class="close-btn" id="closeNavBtn" aria-label="Close Navigation">
+        <svg viewBox="0 0 44 44">
+          <circle class="bg-ring" cx="22" cy="22" r="20"/>
+          <circle class="progress-ring" cx="22" cy="22" r="20"/>
+        </svg>
+        <div class="close-icon-lines"></div>
+      </button>
+    </header>
+
+    <!-- Overlay Body (Links + Preview Card) -->
+    <div class="overlay-body">
+      <nav class="nav-links-container" id="navLinksContainer">
+        <!-- Translucent Active Glow Pill (Positioned dynamically via JS behind text) -->
+        <div class="active-glow-pill" id="activeGlowPill"></div>
+
+        <ul class="nav-links-list" id="navList">
+
+          <li class="nav-item" style="--stagger-idx: 0;"
+              data-tag="ESTATE ARCHITECTURE"
+              data-title="Monolithic Cliffside Villa"
+              data-desc="Seamless integration of structural glass and obsidian stone cantilevered over Mediterranean waters."
+              data-img="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80">
+            <a href="#architecture" class="nav-link">
+              <div class="link-left">
+                <span class="link-num">01</span>
+                <div class="link-title-wrap">
+                  <span class="link-title">ARCHITECTURE</span>
+                  <span class="link-sub">Residences & Spatial Art</span>
+                </div>
+              </div>
+              <svg class="link-arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </li>
+
+          <li class="nav-item" style="--stagger-idx: 1;"
+              data-tag="PRIVATE SANCTUARIES"
+              data-title="Sub-Zero Wellness Pavilions"
+              data-desc="Hydrothermal therapy suites and acoustic isolation chambers built with natural geothermal heating."
+              data-img="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80">
+            <a href="#sanctuaries" class="nav-link">
+              <div class="link-left">
+                <span class="link-num">02</span>
+                <div class="link-title-wrap">
+                  <span class="link-title">SANCTUARIES</span>
+                  <span class="link-sub">Hydrothermal & Wellness Suites</span>
+                </div>
+              </div>
+              <svg class="link-arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </li>
+
+          <li class="nav-item" style="--stagger-idx: 2;"
+              data-tag="AVIATION & MOBILITY"
+              data-title="Helipad & Sub-Surface Garage"
+              data-desc="Private transit nodes with automated climate vaults and direct executive air travel access."
+              data-img="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80">
+            <a href="#aviation" class="nav-link">
+              <div class="link-left">
+                <span class="link-num">03</span>
+                <div class="link-title-wrap">
+                  <span class="link-title">PRIVATE MOBILITY</span>
+                  <span class="link-sub">Aviation & Underground Storage</span>
+                </div>
+              </div>
+              <svg class="link-arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </li>
+
+          <li class="nav-item" style="--stagger-idx: 3;"
+              data-tag="CULINARY EXPERIENCE"
+              data-title="Sub-Oceanic Cellars & Dining"
+              data-desc="Curated rare vintage vaults and private dining spaces surrounded by natural marine biospheres."
+              data-img="https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=1200&q=80">
+            <a href="#culinary" class="nav-link">
+              <div class="link-left">
+                <span class="link-num">04</span>
+                <div class="link-title-wrap">
+                  <span class="link-title">CULINARY ARTS</span>
+                  <span class="link-sub">Private Cellars & Gastronomy</span>
+                </div>
+              </div>
+              <svg class="link-arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </li>
+
+          <li class="nav-item" style="--stagger-idx: 4;"
+              data-tag="ESTATE PORTFOLIO"
+              data-title="Global Acquisition Enquiries"
+              data-desc="Direct access for private family offices, architectural commissions, and confidential acquisitions."
+              data-img="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80">
+            <a href="#contact" class="nav-link">
+              <div class="link-left">
+                <span class="link-num">05</span>
+                <div class="link-title-wrap">
+                  <span class="link-title">INQUIRIES</span>
+                  <span class="link-sub">Private Concierge & Access</span>
+                </div>
+              </div>
+              <svg class="link-arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+
+      <!-- Dynamic Visual Preview Card -->
+      <div class="preview-card-container">
+        <div class="preview-card">
+          <div class="card-image-frame">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80" id="cardImg" alt="Preview Image" class="card-img" />
+            <div class="card-hud-overlay">
+              <div class="hud-line-top"></div>
+              <div class="hud-corners">
+                <div class="hud-corner tl"></div>
+                <div class="hud-corner tr"></div>
+              </div>
+              <div class="hud-corners">
+                <div class="hud-corner bl"></div>
+                <div class="hud-corner br"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="card-tag" id="cardTag">ESTATE ARCHITECTURE</span>
+            <h3 class="card-heading" id="cardTitle">Monolithic Cliffside Villa</h3>
+            <p class="card-desc" id="cardDesc">Seamless integration of structural glass and obsidian stone cantilevered over Mediterranean waters.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay Footer -->
+    <footer class="overlay-footer">
+      <div class="footer-coordinates">COORD: 36.3932° N, 25.4615° E</div>
+      <ul class="social-links">
+        <li><a href="#">INSTAGRAM</a></li>
+        <li><a href="#">ARCHDAILY</a></li>
+        <li><a href="#">PRIVATE PORTAL</a></li>
+      </ul>
+      <div>© AETHERIA GROUP</div>
+    </footer>
+  </div>
+
+  <!-- Multi-Stage Interaction Modal (State Processing Animation Flow) -->
+  <div class="stage-modal-overlay" id="stageModal">
+    <div class="stage-card">
+      <svg class="stage-loader-svg" viewBox="0 0 80 80">
+        <defs>
+          <linearGradient id="stageGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--accent-gold)" />
+            <stop offset="100%" stop-color="var(--accent-cyan)" />
+          </linearGradient>
+        </defs>
+        <circle class="bg-circle" cx="40" cy="40" r="35"/>
+        <circle class="anim-circle" id="loaderCircle" cx="40" cy="40" r="35"/>
+      </svg>
+
+      <svg class="success-checkmark" viewBox="0 0 24 24">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+
+      <div class="stage-status-title" id="stageTitle">INITIALIZING EXPERIENCE</div>
+      <div class="stage-status-sub" id="stageSub">Establishing secure connection to spatial telemetry stream...</div>
+
+      <div class="stage-progress-track">
+        <div class="stage-progress-bar" id="stageBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      /* ==========================================================================
+         1. CANVAS MICRO-PARTICLE PHYSICS SYSTEM
+         ========================================================================== */
+      const canvas = document.getElementById('particleCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = (canvas.width = window.innerWidth);
+      let height = (canvas.height = window.innerHeight);
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      class Particle {
+        constructor(x, y, isBurst = false) {
+          this.x = x !== undefined ? x : Math.random() * width;
+          this.y = y !== undefined ? y : Math.random() * height;
+          this.radius = isBurst ? Math.random() * 2.5 + 1 : Math.random() * 1.2 + 0.5;
+          this.vx = isBurst ? (Math.random() - 0.5) * 8 : (Math.random() - 0.5) * 0.4;
+          this.vy = isBurst ? (Math.random() - 0.5) * 8 : (Math.random() - 0.5) * 0.4;
+          this.alpha = isBurst ? 1 : Math.random() * 0.5 + 0.2;
+          this.color = Math.random() > 0.4 ? '#dfb15b' : '#00f2fe';
+          this.isBurst = isBurst;
+          this.decay = Math.random() * 0.02 + 0.015;
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+
+          if (this.isBurst) {
+            this.vx *= 0.94;
+            this.vy *= 0.94;
+            this.alpha -= this.decay;
+          } else {
+            if (this.x < 0) this.x = width;
+            if (this.x > width) this.x = 0;
+            if (this.y < 0) this.y = height;
+            if (this.y > height) this.y = 0;
+          }
+        }
+
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, this.alpha);
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      const particles = [];
+      const ambientCount = 60;
+
+      for (let i = 0; i < ambientCount; i++) {
+        particles.push(new Particle());
+      }
+
+      function createBurst(x, y, count = 30) {
+        for (let i = 0; i < count; i++) {
+          particles.push(new Particle(x, y, true));
+        }
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, width, height);
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.update();
+          p.draw();
+
+          if (p.isBurst && p.alpha <= 0) {
+            particles.splice(i, 1);
+          }
+        }
+        requestAnimationFrame(animateParticles);
+      }
+
+      animateParticles();
+
+      /* ==========================================================================
+         2. SYSTEM CLOCK
+         ========================================================================== */
+      const systemClock = document.getElementById('systemClock');
+      function updateClock() {
+        const now = new Date();
+        const hrs = String(now.getUTCHours()).padStart(2, '0');
+        const mins = String(now.getUTCMinutes()).padStart(2, '0');
+        const secs = String(now.getUTCSeconds()).padStart(2, '0');
+        systemClock.textContent = `${hrs}:${mins}:${secs} UTC`;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      /* ==========================================================================
+         3. OVERLAY TOGGLE & INTERACTION
+         ========================================================================== */
+      const openNavBtn = document.getElementById('openNavBtn');
+      const closeNavBtn = document.getElementById('closeNavBtn');
+      const cinematicNav = document.getElementById('cinematicNav');
+
+      function openMenu(e) {
+        const rect = openNavBtn.getBoundingClientRect();
+        createBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 45);
+
+        cinematicNav.classList.add('is-open');
+        cinematicNav.setAttribute('aria-hidden', 'false');
+
+        // Set default position for glow pill on first open
+        setTimeout(() => {
+          const firstItem = document.querySelector('.nav-item');
+          if (firstItem) updateGlowPill(firstItem);
+        }, 300);
+      }
+
+      function closeMenu() {
+        cinematicNav.classList.remove('is-open');
+        cinematicNav.setAttribute('aria-hidden', 'true');
+        glowPill.style.opacity = '0';
+      }
+
+      openNavBtn.addEventListener('click', openMenu);
+      closeNavBtn.addEventListener('click', closeMenu);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && cinematicNav.classList.contains('is-open')) {
+          closeMenu();
+        }
+      });
+
+      /* ==========================================================================
+         4. Dynamic Active Glow Pill & Preview Card Sync
+         ========================================================================== */
+      const glowPill = document.getElementById('activeGlowPill');
+      const navItems = document.querySelectorAll('.nav-item');
+      const cardImg = document.getElementById('cardImg');
+      const cardTag = document.getElementById('cardTag');
+      const cardTitle = document.getElementById('cardTitle');
+      const cardDesc = document.getElementById('cardDesc');
+      const bgVeil = document.getElementById('bgVeil');
+      const glowCyan = document.getElementById('glowCyan');
+      const glowGold = document.getElementById('glowGold');
+
+      function updateGlowPill(item) {
+        const navListRect = document.getElementById('navList').getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+
+        const relativeTop = itemRect.top - navListRect.top;
+        const itemHeight = itemRect.height;
+
+        glowPill.style.transform = `translateY(${relativeTop}px)`;
+        glowPill.style.height = `${itemHeight}px`;
+        glowPill.style.opacity = '1';
+      }
+
+      navItems.forEach((item, index) => {
+        item.addEventListener('mouseenter', (e) => {
+          updateGlowPill(item);
+
+          // Extract Data Attributes
+          const img = item.getAttribute('data-img');
+          const tag = item.getAttribute('data-tag');
+          const title = item.getAttribute('data-title');
+          const desc = item.getAttribute('data-desc');
+
+          // Smooth Preview Card Update
+          cardImg.style.opacity = '0';
+          setTimeout(() => {
+            cardImg.src = img;
+            cardTag.textContent = tag;
+            cardTitle.textContent = title;
+            cardDesc.textContent = desc;
+            cardImg.style.opacity = '1';
+          }, 150);
+
+          // Update Ambient Background Veil & Glow Shift
+          bgVeil.style.backgroundImage = `url('${img}')`;
+
+          const offsetX = (index % 2 === 0 ? 50 : -50);
+          const offsetY = index * 20;
+          glowCyan.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+          glowGold.style.transform = `translate(${-offsetX}px, ${-offsetY}px)`;
+        });
+
+        // Click Multi-Stage Processing Pipeline Initiation
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const rect = item.getBoundingClientRect();
+          createBurst(e.clientX, e.clientY, 35);
+          
+          startStagePipeline(item);
+        });
+      });
+
+      /* ==========================================================================
+         5. MULTI-STAGE STATE TRANSITION PIPELINE
+            (Idle -> In-Flight -> Processing -> Success Resolution -> Reset)
+         ========================================================================== */
+      const stageModal = document.getElementById('stageModal');
+      const loaderCircle = document.getElementById('loaderCircle');
+      const stageTitle = document.getElementById('stageTitle');
+      const stageSub = document.getElementById('stageSub');
+      const stageBar = document.getElementById('stageBar');
+
+      function startStagePipeline(item) {
+        const title = item.querySelector('.link-title').textContent;
+        
+        // Stage 1: Initialize Stage Modal
+        stageModal.classList.remove('is-success');
+        stageModal.classList.add('is-active');
+        stageBar.style.width = '0%';
+        loaderCircle.style.strokeDashoffset = '220';
+        stageTitle.textContent = "INITIALIZING EXPERIENCE";
+        stageSub.textContent = `Connecting to ${title} spatial telemetric feed...`;
+
+        let progress = 0;
+        const totalDuration = 1800; // 1.8s
+        const intervalTime = 30;
+        const increment = 100 / (totalDuration / intervalTime);
+
+        const interval = setInterval(() => {
+          progress += increment;
+          if (progress > 100) progress = 100;
+
+          // Physical updates
+          stageBar.style.width = `${progress}%`;
+          const dashOffset = 220 - (220 * progress) / 100;
+          loaderCircle.style.strokeDashoffset = dashOffset;
+
+          // Mid-stage Progress updates
+          if (progress > 40 && progress < 75) {
+            stageTitle.textContent = "PROCESSING SPATIAL DATA";
+            stageSub.textContent = "Rendering high-fidelity environment & acoustic profiles...";
+          } else if (progress >= 75 && progress < 100) {
+            stageTitle.textContent = "FINALIZING ACCESS";
+            stageSub.textContent = "Decrypting private clearance level 1 token...";
+          }
+
+          // Stage Complete -> Success Resolution State
+          if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              // Transition to Stage 3: Success Resolution
+              stageModal.classList.add('is-success');
+              stageTitle.textContent = "ACCESS GRANTED";
+              stageSub.textContent = `Welcome to the ${title} sanctuary floorplan.`;
+              
+              // Trigger final explosion particle pulse
+              createBurst(window.innerWidth / 2, window.innerHeight / 2, 60);
+
+              // Reset Stage Modal & Overlay after confirmation delay
+              setTimeout(() => {
+                stageModal.classList.remove('is-active');
+                closeMenu();
+              }, 1400);
+
+            }, 200);
+          }
+        }, intervalTime);
+      }
+    });
+  </script>
+</body>
+</html>

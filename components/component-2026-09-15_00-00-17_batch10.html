@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holographic 3D Asset Vault</title>
+    <style>
+        :root {
+            --bg-deep: #04060a;
+            --card-bg: rgba(10, 16, 28, 0.72);
+            --gold-primary: #e6c875;
+            --gold-glow: rgba(230, 200, 117, 0.4);
+            --cyan-primary: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.35);
+            --purple-holo: #8a2be2;
+            --text-main: #f0f4f8;
+            --text-muted: #64748b;
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --rx: 0deg;
+            --ry: 0deg;
+            --mx: 50%;
+            --my: 50%;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            perspective: 1400px;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(230, 200, 117, 0.05) 0%, transparent 45%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Container & 3D Rig */
+        .vault-scene {
+            position: relative;
+            width: 420px;
+            padding: 20px;
+            perspective: 1200px;
+        }
+
+        .vault-card {
+            position: relative;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 28px;
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            padding: 28px;
+            transform-style: preserve-3d;
+            transform: rotateX(var(--rx)) rotateY(var(--ry));
+            transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.4s ease;
+            box-shadow: 
+                0 30px 60px -12px rgba(0, 0, 0, 0.85),
+                0 0 40px -10px rgba(0, 240, 255, 0.15),
+                inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+        }
+
+        /* Metallic Sheen Overlay */
+        .vault-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+                800px circle at var(--mx) var(--my),
+                rgba(255, 255, 255, 0.16),
+                transparent 40%
+            );
+            pointer-events: none;
+            z-index: 3;
+            border-radius: 28px;
+        }
+
+        /* Holographic Foil Layer */
+        .holo-foil {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                115deg,
+                transparent 20%,
+                rgba(255, 0, 128, 0.12) 35%,
+                rgba(0, 255, 200, 0.18) 50%,
+                rgba(255, 215, 0, 0.15) 65%,
+                transparent 80%
+            );
+            background-size: 200% 200%;
+            background-position: calc(var(--mx) / 2) calc(var(--my) / 2);
+            mix-blend-mode: color-dodge;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 3;
+            border-radius: 28px;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Micro Particle Physics Canvas */
+        .particle-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            border-radius: 28px;
+        }
+
+        /* Layering Architecture (z-indexes strictly mapped) */
+        .layer-bg-pill {
+            position: absolute;
+            z-index: 1;
+            border-radius: 999px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            backdrop-filter: blur(8px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .layer-fg {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header Layout */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            transform: translateZ(30px);
+        }
+
+        /* Status Badge with Layered Background Pill */
+        .status-badge-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+        }
+
+        .status-badge-wrap .layer-bg-pill {
+            inset: 0;
+        }
+
+        .status-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan-primary);
+            box-shadow: 0 0 8px var(--cyan-primary);
+            margin-right: 8px;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .status-text {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-main);
+        }
+
+        .vault-id {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+        }
+
+        /* 3D Central Holographic Emblem */
+        .emblem-stage {
+            position: relative;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            transform-style: preserve-3d;
+            transform: translateZ(50px);
+        }
+
+        .emblem-svg {
+            width: 140px;
+            height: 140px;
+            filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.4));
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
+        }
+
+        .emblem-ring {
+            transform-origin: center;
+            animation: rotateRing 20s linear infinite;
+        }
+
+        .emblem-ring-reverse {
+            transform-origin: center;
+            animation: rotateRingRev 15s linear infinite;
+        }
+
+        .laser-scanner {
+            position: absolute;
+            top: 0;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan-primary), transparent);
+            box-shadow: 0 0 12px var(--cyan-primary);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        /* Main Asset Specs */
+        .asset-info {
+            text-align: center;
+            margin-bottom: 24px;
+            transform: translateZ(35px);
+        }
+
+        .asset-title {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .asset-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 30%, var(--gold-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .asset-subvalue {
+            font-size: 0.85rem;
+            color: var(--gold-primary);
+            font-weight: 600;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+
+        /* State Containers (Idle / Processing / Success) */
+        .state-container {
+            position: relative;
+            transform: translateZ(40px);
+            min-height: 80px;
+        }
+
+        .state-panel {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px) scale(0.98);
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .state-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+            position: relative;
+        }
+
+        /* Action Buttons */
+        .btn-vault {
+            position: relative;
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            overflow: hidden;
+            outline: none;
+        }
+
+        .btn-vault .layer-bg-pill {
+            inset: 0;
+            background: linear-gradient(135deg, rgba(230, 200, 117, 0.2), rgba(0, 240, 255, 0.15));
+            border: 1px solid rgba(230, 200, 117, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-vault:hover .layer-bg-pill {
+            background: linear-gradient(135deg, rgba(230, 200, 117, 0.35), rgba(0, 240, 255, 0.25));
+            border-color: var(--gold-primary);
+            box-shadow: 0 10px 25px rgba(230, 200, 117, 0.25);
+        }
+
+        .btn-vault:active {
+            transform: scale(0.98);
+        }
+
+        .btn-text {
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Processing State UI */
+        .progress-bar-track {
+            position: relative;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan-primary), var(--gold-primary));
+            border-radius: 999px;
+            box-shadow: 0 0 12px var(--cyan-primary);
+            transition: width 0.1s linear;
+        }
+
+        .processing-status-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        /* Success State UI */
+        .success-box {
+            text-align: center;
+            padding: 12px;
+            background: rgba(0, 240, 255, 0.03);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 14px;
+        }
+
+        .tx-hash {
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: var(--cyan-primary);
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        /* Keyframe Animations */
+        @keyframes rotateRing {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes rotateRingRev {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+
+        @keyframes laserScan {
+            0% { top: 10%; opacity: 0; }
+            30% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { top: 85%; opacity: 0; }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.4)); }
+            50% { filter: drop-shadow(0 0 28px rgba(230, 200, 117, 0.7)); }
+        }
+
+        .vault-card.animating-scan .laser-scanner {
+            animation: laserScan 1.6s ease-in-out infinite;
+        }
+
+        .vault-card.animating-scan .emblem-svg {
+            animation: pulseGlow 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="vault-scene" id="scene">
+        <div class="vault-card" id="card">
+            
+            <!-- Dynamic Micro-Particle Physics Canvas -->
+            <canvas class="particle-canvas" id="particleCanvas"></canvas>
+            
+            <!-- Holographic Foil Overlay -->
+            <div class="holo-foil"></div>
+            
+            <!-- Laser Scanning Beam (Activated in-flight) -->
+            <div class="laser-scanner"></div>
+
+            <!-- Header Section -->
+            <div class="card-header layer-fg">
+                <div class="status-badge-wrap">
+                    <div class="layer-bg-pill" id="statusPill"></div>
+                    <div class="layer-fg" style="display: flex; align-items: center;">
+                        <span class="status-indicator" id="statusDot"></span>
+                        <span class="status-text" id="statusText">ENCRYPTED</span>
+                    </div>
+                </div>
+                <div class="vault-id">VAULT // 8890-X</div>
+            </div>
+
+            <!-- 3D Holographic Emblem -->
+            <div class="emblem-stage layer-fg">
+                <svg class="emblem-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Dynamic Glowing Rings -->
+                    <circle class="emblem-ring" cx="100" cy="100" r="85" stroke="url(#cyanGrad)" stroke-width="1.5" stroke-dasharray="8 6" />
+                    <circle class="emblem-ring-reverse" cx="100" cy="100" r="70" stroke="url(#goldGrad)" stroke-width="2" stroke-dasharray="40 20 10 20" />
+                    <circle cx="100" cy="100" r="52" stroke="rgba(255,255,255,0.15)" stroke-width="1" />
+                    
+                    <!-- SVG Geometric Vault Core -->
+                    <path id="coreLockPath" d="M100 65 L130 82 V118 L100 135 L70 118 V82 Z" fill="url(#coreGrad)" stroke="var(--cyan-primary)" stroke-width="2"/>
+                    
+                    <!-- Animated Lock Shackle/Icon -->
+                    <path id="shacklePath" d="M92 88 V80 A8 8 0 0 1 108 80 V88" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" style="transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: 100px 88px;"/>
+                    <circle id="keyhole" cx="100" cy="102" r="4" fill="#ffffff"/>
+
+                    <!-- Success Checkmark Path (Hidden by default) -->
+                    <path id="successCheck" d="M85 102 L95 112 L118 88" stroke="var(--cyan-primary)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-dasharray="60" stroke-dashoffset="60" style="transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);" />
+
+                    <!-- Gradients definition -->
+                    <defs>
+                        <linearGradient id="cyanGrad" x1="0" y1="0" x2="200" y2="200">
+                            <stop offset="0%" stop-color="#00f0ff"/>
+                            <stop offset="100%" stop-color="#7000ff"/>
+                        </linearGradient>
+                        <linearGradient id="goldGrad" x1="200" y1="0" x2="0" y2="200">
+                            <stop offset="0%" stop-color="#e6c875"/>
+                            <stop offset="100%" stop-color="#ff0055"/>
+                        </linearGradient>
+                        <linearGradient id="coreGrad" x1="70" y1="65" x2="130" y2="135">
+                            <stop offset="0%" stop-color="rgba(0, 240, 255, 0.25)"/>
+                            <stop offset="100%" stop-color="rgba(230, 200, 117, 0.05)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+
+            <!-- Asset Metrics -->
+            <div class="asset-info layer-fg">
+                <div class="asset-title">Sovereign Asset Reserve</div>
+                <div class="asset-value" id="assetAmount">128.4500 ETH</div>
+                <div class="asset-subvalue" id="assetFiat">$412,890.00 USD</div>
+            </div>
+
+            <!-- Multi-State Container -->
+            <div class="state-container layer-fg">
+                
+                <!-- State 01: IDLE -->
+                <div class="state-panel active" id="panelIdle">
+                    <button class="btn-vault" id="btnUnlock">
+                        <div class="layer-bg-pill"></div>
+                        <div class="btn-text layer-fg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            Authorize Vault Unlock
+                        </div>
+                    </button>
+                </div>
+
+                <!-- State 02: PROCESSING -->
+                <div class="state-panel" id="panelProcessing">
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="progressFill"></div>
+                    </div>
+                    <div class="processing-status-text">
+                        <span id="processingStep">INITIALIZING QUANTUM PROOF...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                </div>
+
+                <!-- State 03: SUCCESS RESOLUTION -->
+                <div class="state-panel" id="panelSuccess">
+                    <div class="success-box">
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase;">TRANSFER CLEARANCE GRANTED</div>
+                        <div class="tx-hash" id="txHashDisplay">0x7F9a...B409</div>
+                    </div>
+                    <button class="btn-vault" id="btnReset" style="margin-top: 4px;">
+                        <div class="layer-bg-pill" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2);"></div>
+                        <div class="btn-text layer-fg" style="color: var(--text-main);">
+                            Relock Vault Key
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Gyroscopic 3D Tilt & Metallic Sheen Controller ---
+        const scene = document.getElementById('scene');
+        const card = document.getElementById('card');
+        
+        let bounds;
+        function updateBounds() {
+            bounds = card.getBoundingClientRect();
+        }
+        updateBounds();
+        window.addEventListener('resize', updateBounds);
+
+        let targetRx = 0, targetRy = 0;
+        let currentRx = 0, currentRy = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX - bounds.left;
+            const y = e.clientY - bounds.top;
+            
+            const xPct = x / bounds.width;
+            const yPct = y / bounds.height;
+            
+            // Calculate rotational offsets (-15deg to +15deg)
+            targetRy = (xPct - 0.5) * 28;
+            targetRx = (0.5 - yPct) * 28;
+            
+            // CSS Mouse Vars for Sheen Gradient positioning
+            card.style.setProperty('--mx', `${xPct * 100}%`);
+            card.style.setProperty('--my', `${yPct * 100}%`);
+        });
+
+        // Smooth Lerp loop for fluid physics tilt
+        function animateTilt() {
+            currentRx += (targetRx - currentRx) * 0.1;
+            currentRy += (targetRy - currentRy) * 0.1;
+            
+            card.style.setProperty('--rx', `${currentRx.toFixed(2)}deg`);
+            card.style.setProperty('--ry', `${currentRy.toFixed(2)}deg`);
+            
+            requestAnimationFrame(animateTilt);
+        }
+        animateTilt();
+
+        // Reset Card Rotation when mouse leaves window
+        document.addEventListener('mouseleave', () => {
+            targetRx = 0;
+            targetRy = 0;
+            card.style.setProperty('--mx', '50%');
+            card.style.setProperty('--my', '50%');
+        });
+
+        // Dynamic Touch Gyro / Mobile Orientation support
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (e) => {
+                if (!e.gamma || !e.beta) return;
+                targetRy = Math.min(Math.max(e.gamma, -20), 20);
+                targetRx = Math.min(Math.max(e.beta - 45, -20), 20);
+            });
+        }
+
+
+        // --- 2. Micro-Particle Physics Canvas System ---
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = card.clientWidth;
+            canvas.height = card.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor(mode = 'idle') {
+                this.reset(mode);
+            }
+
+            reset(mode = 'idle') {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.6;
+                this.vy = (Math.random() - 0.5) * 0.6;
+                this.size = Math.random() * 2 + 0.5;
+                this.alpha = Math.random() * 0.5 + 0.1;
+                this.color = Math.random() > 0.5 ? '#00f0ff' : '#e6c875';
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+                this.mode = mode;
+            }
+
+            update() {
+                if (this.mode === 'vortex') {
+                    // Attract particles toward center emblem (x: width/2, y: 130)
+                    const cx = canvas.width / 2;
+                    const cy = 130;
+                    const dx = cx - this.x;
+                    const dy = cy - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    this.vx += (dx / dist) * 0.15;
+                    this.vy += (dy / dist) * 0.15;
+                    this.vx *= 0.92;
+                    this.vy *= 0.92;
+                } else if (this.mode === 'burst') {
+                    this.vx *= 0.96;
+                    this.vy *= 0.96;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+
+                if (this.life <= 0) {
+                    this.reset(this.mode);
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, (this.life / this.maxLife) * this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = Array.from({ length: 35 }, () => new Particle('idle'));
+
+        function explodeParticles() {
+            const cx = canvas.width / 2;
+            const cy = 130;
+            particles.forEach(p => {
+                p.x = cx;
+                p.y = cy;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 3;
+                p.vx = Math.cos(angle) * speed;
+                p.vy = Math.sin(angle) * speed;
+                p.life = 80;
+                p.maxLife = 80;
+                p.mode = 'burst';
+                p.color = Math.random() > 0.3 ? '#00f0ff' : '#ffffff';
+                p.size = Math.random() * 3 + 1;
+            });
+        }
+
+        function renderParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(renderParticles);
+        }
+        renderParticles();
+
+
+        // --- 3. Multi-Stage Physical Transition State Machine ---
+        const btnUnlock = document.getElementById('btnUnlock');
+        const btnReset = document.getElementById('btnReset');
+        
+        const panelIdle = document.getElementById('panelIdle');
+        const panelProcessing = document.getElementById('panelProcessing');
+        const panelSuccess = document.getElementById('panelSuccess');
+
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const statusPill = document.getElementById('statusPill');
+        
+        const shacklePath = document.getElementById('shacklePath');
+        const keyhole = document.getElementById('keyhole');
+        const successCheck = document.getElementById('successCheck');
+        const coreLockPath = document.getElementById('coreLockPath');
+
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const processingStep = document.getElementById('processingStep');
+        const txHashDisplay = document.getElementById('txHashDisplay');
+
+        // State Machine Trigger
+        btnUnlock.addEventListener('click', () => {
+            transitionToProcessing();
+        });
+
+        btnReset.addEventListener('click', () => {
+            transitionToIdle();
+        });
+
+        function transitionToProcessing() {
+            // Stage 1: In-Flight Scanning & Morphing
+            panelIdle.classList.remove('active');
+            card.classList.add('animating-scan');
+            
+            // Set particles into central suction vortex
+            particles.forEach(p => p.mode = 'vortex');
+
+            // Visual Status Shift
+            statusDot.style.background = 'var(--gold-primary)';
+            statusDot.style.boxShadow = '0 0 10px var(--gold-primary)';
+            statusText.textContent = 'DECRYPTING';
+            statusPill.style.background = 'rgba(230, 200, 117, 0.12)';
+            statusPill.style.borderColor = 'rgba(230, 200, 117, 0.3)';
+
+            setTimeout(() => {
+                panelProcessing.classList.add('active');
+                runProgressSequence();
+            }, 300);
+        }
+
+        function runProgressSequence() {
+            let progress = 0;
+            const steps = [
+                { pct: 25, text: "SYNTHESIZING ZERO-KNOWLEDGE PROOF..." },
+                { pct: 60, text: "VERIFYING BIOMETRIC SIGNATURE..." },
+                { pct: 85, text: "DECRYPTING HARDWARE ENCLAVE..." },
+                { pct: 100, text: "ACCESS GRANTED" }
+            ];
+
+            let stepIdx = 0;
+
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress > 100) progress = 100;
+
+                progressFill.style.width = `${progress}%`;
+                progressPercent.textContent = `${progress}%`;
+
+                if (stepIdx < steps.length && progress >= steps[stepIdx].pct) {
+                    processingStep.textContent = steps[stepIdx].text;
+                    stepIdx++;
+                }
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(transitionToSuccess, 400);
+                }
+            }, 40);
+        }
+
+        function transitionToSuccess() {
+            card.classList.remove('animating-scan');
+            panelProcessing.classList.remove('active');
+
+            // SVG Core Animations: Open lock, show checkmark
+            shacklePath.style.transform = 'translateY(-10px) rotate(-25deg)';
+            keyhole.style.opacity = '0';
+            
+            setTimeout(() => {
+                successCheck.style.strokeDashoffset = '0';
+                coreLockPath.style.fill = 'rgba(0, 240, 255, 0.35)';
+            }, 200);
+
+            // Trigger physics burst explosion
+            explodeParticles();
+
+            // Status Badge -> Unlocked
+            statusDot.style.background = 'var(--cyan-primary)';
+            statusDot.style.boxShadow = '0 0 12px var(--cyan-primary)';
+            statusText.textContent = 'UNLOCKED';
+            statusPill.style.background = 'rgba(0, 240, 255, 0.15)';
+            statusPill.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+
+            // Generate Pseudo Random TX Hash
+            txHashDisplay.textContent = '0x' + Array.from({length: 16}, () => Math.floor(Math.random()*16).toString(16)).join('').toUpperCase();
+
+            setTimeout(() => {
+                panelSuccess.classList.add('active');
+            }, 300);
+        }
+
+        function transitionToIdle() {
+            panelSuccess.classList.remove('active');
+
+            // Reset SVG Mechanics
+            shacklePath.style.transform = 'translateY(0) rotate(0deg)';
+            keyhole.style.opacity = '1';
+            successCheck.style.strokeDashoffset = '60';
+            coreLockPath.style.fill = 'url(#coreGrad)';
+
+            // Reset Particle Physics to gentle ambient floating
+            particles.forEach(p => p.reset('idle'));
+
+            // Status Badge -> Encrypted
+            statusDot.style.background = 'var(--cyan-primary)';
+            statusDot.style.boxShadow = '0 0 8px var(--cyan-primary)';
+            statusText.textContent = 'ENCRYPTED';
+            statusPill.style.background = 'rgba(0, 240, 255, 0.08)';
+            statusPill.style.borderColor = 'rgba(0, 240, 255, 0.2)';
+
+            // Reset Progress Bar Width
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+
+            setTimeout(() => {
+                panelIdle.classList.add('active');
+            }, 300);
+        }
+    </script>
+</body>
+</html>

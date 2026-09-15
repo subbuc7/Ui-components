@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultra-Premium Shred & Purge UI</title>
+  <style>
+    /* ==========================================
+       1. CORE SYSTEM & THEME VARIABLES
+       ========================================== */
+    :root {
+      --bg-base: #04060a;
+      --card-bg: rgba(12, 16, 26, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      
+      --gold-primary: #d4af37;
+      --gold-light: #f6e6a7;
+      --gold-glow: rgba(212, 175, 55, 0.35);
+      
+      --cyan-primary: #00f2fe;
+      --cyan-glow: rgba(0, 242, 254, 0.35);
+
+      --danger-red: #ff3b30;
+      --danger-glow: rgba(255, 59, 48, 0.3);
+
+      --success-green: #34c759;
+      --success-glow: rgba(52, 199, 89, 0.35);
+
+      --text-main: #f0f4f8;
+      --text-muted: #7a889b;
+      --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Elements */
+    .ambient-bg {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .ambient-glow-1 {
+      position: absolute;
+      top: 20%;
+      left: 30%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--gold-glow) 0%, rgba(0,0,0,0) 70%);
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: floatAmbient 18s ease-in-out infinite alternate;
+    }
+
+    .ambient-glow-2 {
+      position: absolute;
+      bottom: 15%;
+      right: 25%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--cyan-glow) 0%, rgba(0,0,0,0) 70%);
+      filter: blur(100px);
+      opacity: 0.25;
+      animation: floatAmbient 22s ease-in-out infinite alternate-reverse;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 80%);
+    }
+
+    @keyframes floatAmbient {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, -30px) scale(1.15); }
+    }
+
+    /* ==========================================
+       2. GLASS CARD CONTAINER
+       ========================================== */
+    .stage-card {
+      position: relative;
+      z-index: 2;
+      width: 440px;
+      padding: 36px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-primary);
+      font-weight: 600;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .security-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      font-size: 0.7rem;
+      color: var(--gold-light);
+      font-weight: 500;
+    }
+
+    .security-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold-primary);
+      box-shadow: 0 0 8px var(--gold-primary);
+    }
+
+    /* File Target Display */
+    .file-target-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .file-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 59, 48, 0.1);
+      border: 1px solid rgba(255, 59, 48, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ff6b6b;
+      flex-shrink: 0;
+      transition: all 0.4s ease;
+    }
+
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-grow: 1;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.3s ease;
+    }
+
+    .file-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Shred Effect overlay on target card */
+    .file-target-card.shredded {
+      opacity: 0.3;
+      transform: scale(0.96);
+      filter: blur(2px);
+      border-color: rgba(255, 255, 255, 0.04);
+    }
+
+    /* Audio Control Switch */
+    .audio-toggle {
+      position: absolute;
+      top: -42px;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .audio-toggle:hover {
+      color: var(--text-main);
+    }
+
+    /* ==========================================
+       3. ULTRA-PREMIUM INTERACTIVE BUTTON UI
+       ========================================== */
+    .action-container {
+      position: relative;
+      width: 100%;
+      height: 64px;
+      margin-top: 8px;
+    }
+
+    /* Layer 1: Ambient Active Pill Glow Behind Text & Icon */
+    .btn-glow-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: linear-gradient(90deg, var(--danger-red), var(--gold-primary));
+      opacity: 0;
+      filter: blur(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Layer 2: Main Interactive Button Container */
+    .shred-btn {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(180deg, rgba(30, 36, 50, 0.8) 0%, rgba(15, 18, 26, 0.9) 100%);
+      cursor: pointer;
+      overflow: hidden;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    .shred-btn:hover {
+      border-color: rgba(255, 59, 48, 0.4);
+      transform: translateY(-1px);
+      box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .shred-btn:hover ~ .btn-glow-layer {
+      opacity: 0.25;
+    }
+
+    .shred-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Micro Glass Rim highlight */
+    .btn-glass-rim {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0) 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* Foreground Typography & Labels */
+    .btn-label-wrapper {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .btn-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-main);
+      transition: all 0.3s ease;
+    }
+
+    /* SVG Trash / Shredder Icon Canvas */
+    .trash-icon-stage {
+      position: relative;
+      width: 28px;
+      height: 32px;
+      z-index: 2;
+    }
+
+    .trash-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Structural Animation Transforms */
+    .trash-lid-group {
+      transform-origin: 22px 8px;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .trash-paper-sheet {
+      transform-origin: center top;
+      opacity: 0;
+      transform: translateY(-12px) scaleY(0.3);
+    }
+
+    .laser-shred-line {
+      opacity: 0;
+      stroke-dasharray: 24;
+      stroke-dashoffset: 24;
+    }
+
+    /* Confetti/Shred Particle Canvas Layer */
+    #shred-particle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Progress Fill Bar (Inside Button Base Layer) */
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(0, 242, 254, 0.25));
+      border-right: 2px solid var(--cyan-primary);
+      z-index: 1;
+      pointer-events: none;
+      transition: width 0.1s linear;
+      opacity: 0;
+    }
+
+    /* Success / Checkmark Graphic */
+    .success-path {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      transition: stroke-dashoffset 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+    }
+
+    /* ==========================================
+       4. MULTI-STAGE ANIMATION STATE CLASSES
+       ========================================== */
+    
+    /* STAGE 1: Opening Lid & Paper Slide In */
+    .stage-opening .trash-lid-group {
+      transform: rotate(-75deg) translateY(-2px);
+    }
+
+    .stage-opening .trash-paper-sheet {
+      animation: feedPaperIntoBin 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.15s;
+    }
+
+    @keyframes feedPaperIntoBin {
+      0% {
+        opacity: 0;
+        transform: translateY(-14px) scaleY(0.4);
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(8px) scaleY(1);
+      }
+    }
+
+    /* STAGE 2: Processing / Shredding */
+    .stage-shredding .shred-btn {
+      border-color: rgba(0, 242, 254, 0.4);
+      background: rgba(10, 14, 22, 0.95);
+    }
+
+    .stage-shredding .btn-glow-layer {
+      opacity: 0.3;
+      background: linear-gradient(90deg, var(--gold-primary), var(--cyan-primary));
+    }
+
+    .stage-shredding .trash-paper-sheet {
+      animation: shredPaperDown 0.8s linear infinite;
+    }
+
+    @keyframes shredPaperDown {
+      0% {
+        transform: translateY(8px) scaleY(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(22px) scaleY(0.1);
+        opacity: 0;
+      }
+    }
+
+    .stage-shredding .laser-shred-line {
+      opacity: 1;
+      stroke-dashoffset: 0;
+      animation: laserPulse 0.3s ease-in-out infinite alternate;
+    }
+
+    @keyframes laserPulse {
+      0% { stroke: var(--gold-primary); filter: drop-shadow(0 0 2px var(--gold-primary)); }
+      100% { stroke: var(--cyan-primary); filter: drop-shadow(0 0 6px var(--cyan-primary)); }
+    }
+
+    .stage-shredding .progress-fill {
+      opacity: 1;
+    }
+
+    .stage-shredding .trash-lid-group {
+      transform: rotate(-80deg) translateY(-2px);
+      animation: lidJitter 0.1s ease-in-out infinite alternate;
+    }
+
+    @keyframes lidJitter {
+      0% { transform: rotate(-78deg) translateY(-2px); }
+      100% { transform: rotate(-82deg) translateY(-1px); }
+    }
+
+    /* STAGE 3: Success Resolution */
+    .stage-success .shred-btn {
+      border-color: rgba(52, 199, 89, 0.5);
+      background: rgba(8, 24, 16, 0.85);
+      box-shadow: 0 0 30px rgba(52, 199, 89, 0.25);
+    }
+
+    .stage-success .btn-glow-layer {
+      opacity: 0.4;
+      background: var(--success-green);
+    }
+
+    .stage-success .trash-lid-group {
+      transform: rotate(0deg) translateY(0);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .stage-success .success-path {
+      stroke-dashoffset: 0;
+    }
+
+    .stage-success .btn-text {
+      color: #6ee7b7;
+    }
+
+    /* Reset / Undo Bar Component */
+    .undo-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      margin-top: -8px;
+    }
+
+    .undo-bar.visible {
+      opacity: 1;
+      height: 36px;
+      margin-top: 0;
+    }
+
+    .undo-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .undo-btn {
+      background: transparent;
+      border: none;
+      color: var(--gold-primary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .undo-btn:hover {
+      background: rgba(212, 175, 55, 0.12);
+      color: var(--gold-light);
+    }
+
+    /* Utility Helpers */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light Effects -->
+  <div class="ambient-bg">
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Main Luxury UI Card Container -->
+  <main class="stage-card">
+    
+    <!-- Audio Mute/Unmute Toggle -->
+    <button class="audio-toggle" id="audio-toggle-btn" aria-label="Toggle Audio">
+      <svg id="audio-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      </svg>
+      <span id="audio-status-text">Audio FX On</span>
+    </button>
+
+    <!-- Card Header -->
+    <header class="card-header">
+      <div class="card-title-group">
+        <span class="card-subtitle">Purge Protocol</span>
+        <h1 class="card-title">Data Destruction</h1>
+      </div>
+      <div class="security-badge">
+        <span class="security-badge-dot"></span>
+        <span>AES-256 Shred</span>
+      </div>
+    </header>
+
+    <!-- Targeted File Preview Card -->
+    <div class="file-target-card" id="file-card">
+      <div class="file-icon-box" id="file-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <div class="file-info">
+        <span class="file-name" id="file-name-text">financial_vault_2025_keys.enc</span>
+        <span class="file-meta" id="file-meta-text">4.8 MB • Confidential Hash Block</span>
+      </div>
+    </div>
+
+    <!-- Main Dynamic Trash Shredder Interactive Control -->
+    <div class="action-container" id="action-container">
+      
+      <!-- Particle Emission Canvas for Shredded Strips -->
+      <canvas id="shred-particle-canvas"></canvas>
+
+      <!-- Glow Pill Active Effect Layer (z-index: 1) -->
+      <div class="btn-glow-layer" id="btn-glow"></div>
+
+      <!-- Main Trigger Button -->
+      <button class="shred-btn" id="shred-btn" aria-label="Permanently Delete Record">
+        <div class="btn-glass-rim"></div>
+        <div class="progress-fill" id="progress-fill"></div>
+
+        <!-- Trash Can Physical SVG Vector -->
+        <div class="trash-icon-stage">
+          <svg class="trash-svg" viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            
+            <!-- Document Sheet sliding into bin -->
+            <g class="trash-paper-sheet" id="paper-sheet">
+              <rect x="10" y="2" width="12" height="14" rx="1.5" fill="#f0f4f8" fill-opacity="0.9" />
+              <line x1="13" y1="6" x2="19" y2="6" stroke="#0a0e17" stroke-width="1" stroke-linecap="round"/>
+              <line x1="13" y1="9" x2="17" y2="9" stroke="#0a0e17" stroke-width="1" stroke-linecap="round"/>
+            </g>
+
+            <!-- Trash Lid Assembly (Rotates open) -->
+            <g class="trash-lid-group" id="trash-lid">
+              <path d="M6 10H26" stroke="#f0f4f8" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M12 10V7C12 6.17157 12.6716 5.5 13.5 5.5H18.5C19.3284 5.5 20 6.17157 20 7V10" stroke="#f0f4f8" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <!-- Trash Can Main Body & Shredder Slot -->
+            <g id="trash-body">
+              <!-- Bin Container -->
+              <path d="M8 12L9.6 28.4C9.7716 30.116 11.2132 31.4 12.9379 31.4H19.0621C20.7868 31.4 22.2284 30.116 22.4 28.4L24 12" stroke="#f0f4f8" stroke-width="2" stroke-linecap="round"/>
+              
+              <!-- Inner Vertical Shred Ribs -->
+              <line x1="12" y1="16" x2="13" y2="26" stroke="#7a889b" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6"/>
+              <line x1="16" y1="16" x2="16" y2="26" stroke="#7a889b" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6"/>
+              <line x1="20" y1="16" x2="19" y2="26" stroke="#7a889b" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6"/>
+            </g>
+
+            <!-- Laser Shredder Cutter Line (Glows during shredding) -->
+            <line class="laser-shred-line" id="laser-line" x1="7" y1="12" x2="25" y2="12" stroke="#00f2fe" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Success Checkmark Stroke Path -->
+            <path class="success-path" id="success-check" d="M9 18L14 23L23 12" stroke="#34c759" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <!-- Button Label & Status Text -->
+        <div class="btn-label-wrapper">
+          <span class="btn-text" id="btn-text">Purge Record</span>
+        </div>
+      </button>
+
+    </div>
+
+    <!-- Undo Option Overlay Bar -->
+    <div class="undo-bar" id="undo-bar">
+      <span class="undo-text">Record destroyed successfully.</span>
+      <button class="undo-btn" id="undo-btn">Restore Data</button>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+     5. INTERACTIVE LOGIC & PHYSICAL SIMULATION
+     ========================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Elements
+      const shredBtn = document.getElementById('shred-btn');
+      const actionContainer = document.getElementById('action-container');
+      const btnText = document.getElementById('btn-text');
+      const progressFill = document.getElementById('progress-fill');
+      const fileCard = document.getElementById('file-card');
+      const fileNameText = document.getElementById('file-name-text');
+      const fileMetaText = document.getElementById('file-meta-text');
+      const undoBar = document.getElementById('undo-bar');
+      const undoBtn = document.getElementById('undo-btn');
+      const canvas = document.getElementById('shred-particle-canvas');
+      const ctx = canvas.getContext('2d');
+      const audioToggleBtn = document.getElementById('audio-toggle-btn');
+      const audioStatusText = document.getElementById('audio-status-text');
+
+      // State Flags
+      let currentState = 'idle'; // 'idle' | 'opening' | 'shredding' | 'success'
+      let progress = 0;
+      let progressInterval = null;
+      let audioEnabled = true;
+      let audioCtx = null;
+
+      // Resize Particle Canvas
+      function resizeCanvas() {
+        canvas.width = actionContainer.offsetWidth;
+        canvas.height = actionContainer.offsetHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Web Audio API Synthesizer (Zero External Audio Files)
+      function initAudio() {
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            audioCtx = new AudioContext();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      function playSound(type) {
+        if (!audioEnabled) return;
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'open') {
+          // Latch flip / mechanical lid click sound
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+
+        } else if (type === 'shred') {
+          // Rapid noise burst simulate mechanical cutter shredding paper
+          const bufferSize = audioCtx.sampleRate * 0.08;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1200 + Math.random() * 400, now);
+          filter.Q.setValueAtTime(3, now);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+          noise.start(now);
+
+        } else if (type === 'success') {
+          // Premium chime chord (Gold / Clean confirmation)
+          const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+            
+            gain.gain.setValueAtTime(0.001, now + idx * 0.04);
+            gain.gain.linearRampToValueAtTime(0.15, now + idx * 0.04 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.04 + 0.6);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.04);
+            osc.stop(now + idx * 0.04 + 0.6);
+          });
+        }
+      }
+
+      // Toggle Audio FX
+      audioToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        audioEnabled = !audioEnabled;
+        audioStatusText.textContent = audioEnabled ? 'Audio FX On' : 'Muted';
+        audioToggleBtn.style.opacity = audioEnabled ? '1' : '0.5';
+      });
+
+      // Micro Particle System (Physics simulation for shredded foil/paper strips)
+      let particles = [];
+
+      class Particle {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          // Velocity radiating downwards & outwards from shredder slot
+          this.vx = (Math.random() - 0.5) * 4;
+          this.vy = Math.random() * 3 + 2;
+          this.sizeW = Math.random() * 2 + 1.5;
+          this.sizeH = Math.random() * 7 + 4;
+          this.rotation = Math.random() * Math.PI * 2;
+          this.vRot = (Math.random() - 0.5) * 0.2;
+          this.opacity = 1;
+          this.gravity = 0.12;
+          this.drag = 0.98;
+
+          // Color palette matching luxury gold / cyber cyan micro particles
+          const colors = ['#d4af37', '#f6e6a7', '#00f2fe', '#ffffff', '#ff3b30'];
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        update() {
+          this.vx *= this.drag;
+          this.vy += this.gravity;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.rotation += this.vRot;
+          this.opacity -= 0.018;
+        }
+
+        draw(context) {
+          context.save();
+          context.translate(this.x, this.y);
+          context.rotate(this.rotation);
+          context.globalAlpha = Math.max(0, this.opacity);
+          context.fillStyle = this.color;
+          context.fillRect(-this.sizeW / 2, -this.sizeH / 2, this.sizeW, this.sizeH);
+          context.restore();
+        }
+      }
+
+      function spawnShredParticles() {
+        // Emit particles around the trash can slot center
+        const rect = actionContainer.getBoundingClientRect();
+        // Calculate center X of the SVG icon relative to container
+        const originX = 36 + 14; // Padding + offset
+        const originY = 32;
+
+        for (let i = 0; i < 4; i++) {
+          particles.push(new Particle(originX + (Math.random() - 0.5) * 12, originY));
+        }
+      }
+
+      function renderParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.update();
+          p.draw(ctx);
+          if (p.opacity <= 0 || p.y > canvas.height) {
+            particles.splice(i, 1);
+          }
+        }
+
+        if (currentState === 'shredding' || particles.length > 0) {
+          requestAnimationFrame(renderParticles);
+        }
+      }
+
+      // ==========================================
+      // STAGE STATE MACHINE TRANSITIONS
+      // ==========================================
+      
+      shredBtn.addEventListener('click', () => {
+        if (currentState !== 'idle') return;
+        startPurgeSequence();
+      });
+
+      function startPurgeSequence() {
+        currentState = 'opening';
+        initAudio();
+        
+        // Hide previous undo bar if active
+        undoBar.classList.remove('visible');
+
+        // STAGE 1: Lid Flips Open
+        actionContainer.className = 'action-container stage-opening';
+        btnText.textContent = 'Opening Vault...';
+        playSound('open');
+
+        // STAGE 2: Slide Paper & Start Shredding (after lid animation delay)
+        setTimeout(() => {
+          currentState = 'shredding';
+          actionContainer.className = 'action-container stage-shredding';
+          btnText.textContent = 'Shredding Record...';
+          fileCard.classList.add('shredded');
+
+          // Particle loop start
+          requestAnimationFrame(renderParticles);
+
+          // Progress fill & shred noise loop
+          progress = 0;
+          progressFill.style.width = '0%';
+
+          const shredAudioInterval = setInterval(() => {
+            if (currentState === 'shredding') {
+              playSound('shred');
+              spawnShredParticles();
+            } else {
+              clearInterval(shredAudioInterval);
+            }
+          }, 90);
+
+          progressInterval = setInterval(() => {
+            progress += 3.5;
+            progressFill.style.width = `${Math.min(progress, 100)}%`;
+
+            if (progress >= 100) {
+              clearInterval(progressInterval);
+              clearInterval(shredAudioInterval);
+              triggerSuccessState();
+            }
+          }, 40);
+
+        }, 450);
+      }
+
+      // STAGE 3: Success Resolution
+      function triggerSuccessState() {
+        currentState = 'success';
+        actionContainer.className = 'action-container stage-success';
+        btnText.textContent = 'Record Destroyed';
+        playSound('success');
+
+        // Reveal Undo Option after slight pause
+        setTimeout(() => {
+          undoBar.classList.add('visible');
+        }, 600);
+      }
+
+      // RESET / UNDO ACTION
+      undoBtn.addEventListener('click', () => {
+        if (currentState !== 'success') return;
+        
+        // Reset State Machine
+        currentState = 'idle';
+        actionContainer.className = 'action-container';
+        btnText.textContent = 'Purge Record';
+        progressFill.style.width = '0%';
+        fileCard.classList.remove('shredded');
+        undoBar.classList.remove('visible');
+
+        playSound('open');
+      });
+    });
+  </script>
+</body>
+</html>
