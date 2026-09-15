@@ -1,11 +1,7 @@
 const cloudinary = require('cloudinary').v2;
 
-// Must be index to get the file name string "output.mp4"
-const filePath = process.argv;
-if (!filePath) {
-  console.error('Error: File path argument missing');
-  process.exit(1);
-}
+// Hardcoded string path — guarantees no Array type errors
+const filePath = 'output.mp4';
 
 cloudinary.config();
 
@@ -18,7 +14,6 @@ cloudinary.uploader.upload(filePath, {
     console.error('Upload failed, no secure_url returned:', result);
     process.exit(1);
   }
-  // Prints only the URL so GitHub Actions can capture it
   console.log(result.secure_url);
 })
 .catch(err => {
