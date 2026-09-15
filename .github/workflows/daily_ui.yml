@@ -1,4 +1,4 @@
-      - name: Create Instagram Container
+      name: Create Instagram Container
         id: create_container
         env:
           IG_USER_ID: ${{ secrets.INSTAGRAM_USER_ID || secrets.INSTAGRAM_ACCOUNT_ID }}
