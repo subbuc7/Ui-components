@@ -1,7 +1,7 @@
 name: Random 3D UI to Instagram Reel
 
 on:
-  workflow_dispatch: # Single click trigger: no inputs needed
+  workflow_dispatch: # Single click trigger
 
 jobs:
   pick-render-post:
@@ -11,7 +11,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      -       - name: Set up Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -23,12 +23,10 @@ jobs:
 
       - name: Install Project Dependencies
         run: npm install
-        
 
       - name: Select 1 Random 3D Component
         id: selector
         run: |
-          # Pool of 21 distinct 3D UI components
           COMPONENTS=(
             "neon_battery_pill"
             "quantum_plasma_chrono_pill"
@@ -53,13 +51,10 @@ jobs:
             "voxel_matrix_loader"
           )
 
-          # Pick one at random using shuf
           CHOSEN=$(printf "%s\n" "${COMPONENTS[@]}" | shuf -n 1)
-          
-          # Format a readable title (e.g., "neon_battery_pill" -> "Neon Battery Pill")
           FORMATTED_NAME=$(echo "$CHOSEN" | tr '_' ' ' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')
 
-          echo "Selected Component: $CHOSEN ($FORMATTED_NAME)"
+          echo "Selected: $CHOSEN ($FORMATTED_NAME)"
           echo "component=$CHOSEN" >> $GITHUB_OUTPUT
           echo "title=$FORMATTED_NAME" >> $GITHUB_OUTPUT
 
@@ -145,4 +140,3 @@ jobs:
           fi
 
           echo "Successfully published to Instagram! Media ID: $MEDIA_ID"
-          
