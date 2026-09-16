@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Luxury Credit Card Terminal</title>
+    <style>
+        /* --- RESET & SYSTEM SETUP --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        :root {
+            --bg-base: #04060a;
+            --glass-surface: rgba(13, 19, 33, 0.75);
+            --glass-border: rgba(212, 175, 55, 0.25);
+            --glass-border-focus: rgba(0, 242, 254, 0.6);
+            --gold-primary: #d4af37;
+            --gold-light: #fef0a0;
+            --gold-gradient: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%);
+            --cyan-accent: #00f2fe;
+            --cyan-glow: rgba(0, 242, 254, 0.35);
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --text-gold: #e2c044;
+            --card-width: 380px;
+            --card-height: 235px;
+            --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            font-family: var(--font-family);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+            perspective: 1200px;
+        }
+
+        /* --- BACKGROUND CANVAS & GLOWS --- */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, rgba(0, 242, 254, 0.04) 45%, rgba(4, 6, 10, 0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+            animation: pulseGlow 10s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        }
+
+        /* --- CONTAINER APP LAYOUT --- */
+        .app-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            padding: 24px;
+            margin: auto;
+        }
+
+        .header-panel {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header-panel .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold-light);
+            margin-bottom: 8px;
+        }
+
+        .header-panel h1 {
+            font-size: 1.6rem;
+            font-weight: 400;
+            letter-spacing: 1px;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* --- 3D CARD STAGE --- */
+        .card-stage {
+            width: var(--card-width);
+            height: var(--card-height);
+            margin: 0 auto 32px auto;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .credit-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+
+        .credit-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* CARD FACES (FRONT & BACK) */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85),
+                        0 0 15px rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: linear-gradient(135deg, rgba(20, 26, 40, 0.95) 0%, rgba(8, 11, 18, 0.98) 100%);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Micro texture pattern for card */
+        .card-face::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.12) 0%, transparent 50%),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 10px);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Foil Shimmer effect */
+        .card-shimmer {
+            position: absolute;
+            top: -100%;
+            left: -100%;
+            width: 300%;
+            height: 300%;
+            background: linear-gradient(
+                115deg,
+                transparent 40%,
+                rgba(255, 255, 255, 0.08) 45%,
+                rgba(212, 175, 55, 0.18) 50%,
+                rgba(0, 242, 254, 0.15) 55%,
+                transparent 60%
+            );
+            transform: rotate(-20deg);
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.7;
+        }
+
+        .credit-card:hover .card-shimmer {
+            animation: shimmerSweep 3s infinite;
+        }
+
+        @keyframes shimmerSweep {
+            0% { transform: translate(-30%, -30%) rotate(-20deg); }
+            100% { transform: translate(30%, 30%) rotate(-20deg); }
+        }
+
+        /* FRONT CONTENT */
+        .card-front {
+            transform: rotateY(0deg);
+        }
+
+        .card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 3;
+        }
+
+        .chip-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .emv-chip {
+            width: 44px;
+            height: 32px;
+            background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+        }
+
+        .emv-chip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(0,0,0,0.4);
+        }
+
+        .emv-chip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+        }
+
+        .contactless-icon {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+
+        .brand-logo-container {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .card-brand-svg {
+            height: 28px;
+            width: auto;
+            transition: all 0.4s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        .card-number-display {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.35rem;
+            letter-spacing: 3px;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 3;
+            margin: 18px 0 10px 0;
+            word-spacing: 4px;
+        }
+
+        .card-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 3;
+        }
+
+        .card-holder-details, .card-expiry-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+        }
+
+        .card-val {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-main);
+            font-weight: 500;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+
+        /* BACK CONTENT */
+        .card-back {
+            transform: rotateY(180deg);
+            padding: 0;
+            justify-content: flex-start;
+        }
+
+        .magnetic-strip {
+            width: 100%;
+            height: 45px;
+            background: #090a0f;
+            margin-top: 24px;
+            background: linear-gradient(180deg, #151821 0%, #0b0d12 100%);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .signature-section {
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            z-index: 3;
+        }
+
+        .signature-strip-container {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            height: 38px;
+            padding: 0 12px;
+            overflow: hidden;
+        }
+
+        .signature-pattern {
+            flex-grow: 1;
+            height: 100%;
+            background: repeating-linear-gradient( -45deg, #e2e8f0, #e2e8f0 5px, #cbd5e1 5px, #cbd5e1 10px );
+            opacity: 0.7;
+        }
+
+        .cvv-display-box {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #0f172a;
+            letter-spacing: 2px;
+            padding-left: 8px;
+        }
+
+        .back-info-text {
+            padding: 0 24px;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+            letter-spacing: 0.5px;
+        }
+
+        .hologram-badge {
+            width: 38px;
+            height: 28px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #a855f7, #06b6d4, #eab308);
+            margin: 12px 24px 0 auto;
+            opacity: 0.7;
+            box-shadow: inset 0 0 6px rgba(255,255,255,0.8);
+        }
+
+        /* --- FORM STYLING & Z-INDEX LAYERING --- */
+        .glass-form-card {
+            background: var(--glass-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 10;
+            transition: all 0.5s ease;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-gold);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Layering requirement: Active glowing pills on lower z-index (z-index: 1), text on z-index: 2 */
+        .input-glow-pill {
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 48px;
+            background: rgba(4, 6, 10, 0.6);
+            border: none;
+            outline: none;
+            border-radius: 12px;
+            padding: 0 16px 0 44px;
+            font-family: var(--font-family);
+            font-size: 0.95rem;
+            color: var(--text-main);
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 2; /* Text sits above glowing pill */
+            transition: all 0.3s ease;
+        }
+
+        .form-control::placeholder {
+            color: #475569;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: var(--text-muted);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            z-index: 2; /* Icon sits above glowing pill */
+            transition: stroke 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* Input Focus States */
+        .form-control:focus ~ .input-glow-pill {
+            background: rgba(0, 242, 254, 0.05);
+            border-color: var(--glass-border-focus);
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .form-control:focus ~ .input-icon {
+            stroke: var(--cyan-accent);
+        }
+
+        /* --- SUBMIT BUTTON & PHYSICAL ANIMATIONS --- */
+        .submit-container {
+            margin-top: 12px;
+            position: relative;
+        }
+
+        .btn-submit {
+            width: 100%;
+            height: 54px;
+            border: none;
+            border-radius: 14px;
+            background: var(--gold-gradient);
+            color: #04060a;
+            font-family: var(--font-family);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.25);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(212, 175, 55, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .btn-submit:active {
+            transform: translateY(1px);
+        }
+
+        .btn-text {
+            position: relative;
+            z-index: 2;
+            transition: opacity 0.3s ease;
+        }
+
+        /* PROGRESS RING & SPINNER SVG */
+        .btn-progress-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 32px;
+            opacity: 0;
+            z-index: 3;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-progress-ring circle {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .btn-progress-ring .track {
+            stroke: rgba(4, 6, 10, 0.2);
+        }
+
+        .btn-progress-ring .bar {
+            stroke: #04060a;
+            stroke-dasharray: 88;
+            stroke-dashoffset: 88;
+            transform-origin: 50% 50%;
+            transform: rotate(-90deg);
+        }
+
+        /* MULTI-STAGE STATE MACHINE ANIMATIONS */
+
+        /* Stage 2: Processing / Progress */
+        .app-wrapper.state-processing .credit-card {
+            animation: cardPulse 2s infinite ease-in-out;
+        }
+
+        @keyframes cardPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); filter: drop-shadow(0 0 20px rgba(0, 242, 254, 0.4)); }
+            100% { transform: scale(1); }
+        }
+
+        .app-wrapper.state-processing .btn-submit {
+            pointer-events: none;
+            width: 54px;
+            border-radius: 50%;
+            margin: 0 auto;
+        }
+
+        .app-wrapper.state-processing .btn-text {
+            opacity: 0;
+        }
+
+        .app-wrapper.state-processing .btn-progress-ring {
+            opacity: 1;
+        }
+
+        .app-wrapper.state-processing .btn-progress-ring .bar {
+            animation: strokeAnim 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes strokeAnim {
+            0% { stroke-dashoffset: 88; }
+            80% { stroke-dashoffset: 10; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        /* Stage 3: Success Resolution Panel */
+        .success-panel {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 12, 20, 0.95);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .app-wrapper.state-success .success-panel {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+
+        .success-icon-svg {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 20px;
+        }
+
+        .success-icon-svg circle {
+            fill: none;
+            stroke: var(--cyan-accent);
+            stroke-width: 3;
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            transition: stroke-dashoffset 0.8s ease 0.2s;
+        }
+
+        .success-icon-svg path {
+            fill: none;
+            stroke: var(--gold-primary);
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 50;
+            stroke-dashoffset: 50;
+            transition: stroke-dashoffset 0.6s ease 0.8s;
+        }
+
+        .app-wrapper.state-success .success-icon-svg circle,
+        .app-wrapper.state-success .success-icon-svg path {
+            stroke-dashoffset: 0;
+        }
+
+        .success-title {
+            font-size: 1.4rem;
+            color: #fff;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .success-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .transaction-meta {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-gold);
+        }
+
+        .btn-reset {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-family: var(--font-family);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-reset:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold-primary);
+            color: var(--gold-light);
+        }
+
+        /* --- LOGO SVGS (INLINE) --- */
+        .brand-logo-svg {
+            display: none;
+        }
+        .brand-logo-svg.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Particle Background -->
+    <canvas id="particle-canvas"></canvas>
+    <div class="ambient-glow"></div>
+
+    <div class="app-wrapper" id="app">
+        <!-- HEADER -->
+        <div class="header-panel">
+            <div class="brand-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Encrypted Vault
+            </div>
+            <h1>Aura Sovereign Payment</h1>
+        </div>
+
+        <!-- 3D CARD STAGE -->
+        <div class="card-stage" id="cardStage">
+            <div class="credit-card" id="creditCard">
+                <div class="card-shimmer"></div>
+
+                <!-- CARD FRONT -->
+                <div class="card-face card-front">
+                    <div class="card-top-row">
+                        <div class="chip-container">
+                            <div class="emv-chip"></div>
+                            <svg class="contactless-icon" viewBox="0 0 24 24">
+                                <path d="M12 2a10 10 0 0 1 10 10" />
+                                <path d="M12 6a6 6 0 0 1 6 6" />
+                                <path d="M12 10a2 2 0 0 1 2 2" />
+                            </svg>
+                        </div>
+                        <div class="brand-logo-container">
+                            <!-- Visa -->
+                            <svg class="card-brand-svg brand-logo-svg active" id="logo-visa" viewBox="0 0 120 40">
+                                <text x="5" y="32" font-family="Arial, sans-serif" font-weight="900" font-style="italic" font-size="36" fill="#ffffff" letter-spacing="2">VISA</text>
+                            </svg>
+                            <!-- Mastercard -->
+                            <svg class="card-brand-svg brand-logo-svg" id="logo-mastercard" viewBox="0 0 100 60">
+                                <circle cx="35" cy="30" r="22" fill="#eb001b" opacity="0.9"/>
+                                <circle cx="65" cy="30" r="22" fill="#f79e1b" opacity="0.9"/>
+                            </svg>
+                            <!-- Amex -->
+                            <svg class="card-brand-svg brand-logo-svg" id="logo-amex" viewBox="0 0 120 40">
+                                <rect width="120" height="40" rx="4" fill="#0077a6"/>
+                                <text x="10" y="27" font-family="sans-serif" font-weight="bold" font-size="20" fill="#ffffff">AMEX</text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="card-number-display" id="cardNumPreview">•••• •••• •••• ••••</div>
+
+                    <div class="card-bottom-row">
+                        <div class="card-holder-details">
+                            <span class="card-label">Card Holder</span>
+                            <span class="card-val" id="cardHolderPreview">VALUED CARDHOLDER</span>
+                        </div>
+                        <div class="card-expiry-details">
+                            <span class="card-label">Expires</span>
+                            <span class="card-val" id="cardExpiryPreview">MM/YY</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD BACK -->
+                <div class="card-face card-back">
+                    <div class="magnetic-strip"></div>
+                    <div class="signature-section">
+                        <span class="card-label" style="color: #94a3b8;">Authorized Signature / Security Code</span>
+                        <div class="signature-strip-container">
+                            <div class="signature-pattern"></div>
+                            <div class="cvv-display-box" id="cvvPreview">•••</div>
+                        </div>
+                    </div>
+                    <div class="back-info-text">
+                        This card remains property of Aura International Treasury. Issued under high security tokenization protocols. Use subject to account agreement.
+                    </div>
+                    <div class="hologram-badge"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GLASS FORM CONTAINER -->
+        <div class="glass-form-card">
+            <form id="paymentForm" autocomplete="off" onsubmit="handleFormSubmit(event)">
+                
+                <!-- Card Number Input -->
+                <div class="form-group">
+                    <label class="input-label" for="cardNumber">Card Number</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="cardNumber" class="form-control" maxlength="19" placeholder="4532 •••• •••• 8895" inputmode="numeric" required>
+                        <svg class="input-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                        <div class="input-glow-pill"></div>
+                    </div>
+                </div>
+
+                <!-- Cardholder Name Input -->
+                <div class="form-group">
+                    <label class="input-label" for="cardHolder">Cardholder Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="cardHolder" class="form-control" maxlength="26" placeholder="ALEXANDER V. PIERCE" required>
+                        <svg class="input-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <div class="input-glow-pill"></div>
+                    </div>
+                </div>
+
+                <!-- Row: Expiration & CVV -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="input-label" for="cardExpiry">Expiration</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="cardExpiry" class="form-control" maxlength="5" placeholder="MM/YY" inputmode="numeric" required>
+                            <svg class="input-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <div class="input-glow-pill"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="input-label" for="cardCvv">CVV Code</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="cardCvv" class="form-control" maxlength="4" placeholder="•••" inputmode="numeric" required>
+                            <svg class="input-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <div class="input-glow-pill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="submit-container">
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <span class="btn-text">Authorize Payment</span>
+                        <svg class="btn-progress-ring" viewBox="0 0 32 32">
+                            <circle class="track" cx="16" cy="16" r="14"/>
+                            <circle class="bar" cx="16" cy="16" r="14"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+
+            <!-- SUCCESS RESOLUTION OVERLAY -->
+            <div class="success-panel" id="successPanel">
+                <svg class="success-icon-svg" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="30"/>
+                    <path d="M20 32l9 9 16-17"/>
+                </svg>
+                <h2 class="success-title">Payment Authorized</h2>
+                <p class="success-desc">Your transaction has been settled over encrypted channel.</p>
+                <div class="transaction-meta">
+                    <span>Ref ID: #AUR-994208</span>
+                    <span>$ 1,250.00 USD</span>
+                </div>
+                <button class="btn-reset" onclick="resetForm()">New Transaction</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC & PHYSICAL ANIMATIONS -->
+    <script>
+        /* --- STATE MANAGEMENT & DOM REFS --- */
+        const appWrapper = document.getElementById('app');
+        const creditCard = document.getElementById('creditCard');
+        const cardStage = document.getElementById('cardStage');
+
+        // Inputs
+        const inputNum = document.getElementById('cardNumber');
+        const inputHolder = document.getElementById('cardHolder');
+        const inputExpiry = document.getElementById('cardExpiry');
+        const inputCvv = document.getElementById('cardCvv');
+
+        // Card Previews
+        const prevNum = document.getElementById('cardNumPreview');
+        const prevHolder = document.getElementById('cardHolderPreview');
+        const prevExpiry = document.getElementById('cardExpiryPreview');
+        const prevCvv = document.getElementById('cvvPreview');
+
+        // Logos
+        const logoVisa = document.getElementById('logo-visa');
+        const logoMastercard = document.getElementById('logo-mastercard');
+        const logoAmex = document.getElementById('logo-amex');
+
+        /* --- 3D INTERACTIVE TILT EFFECT --- */
+        let isFlipped = false;
+
+        cardStage.addEventListener('mousemove', (e) => {
+            if (isFlipped) return; // Disable tilt when flipped
+            const rect = cardStage.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            const rotateX = (-y / rect.height) * 20;
+            const rotateY = (x / rect.width) * 20;
+
+            creditCard.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        cardStage.addEventListener('mouseleave', () => {
+            if (isFlipped) return;
+            creditCard.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        });
+
+        /* --- REAL-TIME INPUT MIRRORING & FORMATTING --- */
+
+        // Card Brand Detection
+        function updateBrandLogo(number) {
+            const cleanNum = number.replace(/\D/g, '');
+            logoVisa.classList.remove('active');
+            logoMastercard.classList.remove('active');
+            logoAmex.classList.remove('active');
+
+            if (/^3[47]/.test(cleanNum)) {
+                logoAmex.classList.add('active');
+            } else if (/^5[1-5]|^2[2-7]/.test(cleanNum)) {
+                logoMastercard.classList.add('active');
+            } else {
+                logoVisa.classList.add('active'); // Default to Visa
+            }
+        }
+
+        // Format Card Number (Groups of 4)
+        inputNum.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            val = val.substring(0, 16);
+            let formatted = val.match(/.{1,4}/g)?.join(' ') || '';
+            e.target.value = formatted;
+            
+            prevNum.textContent = formatted || '•••• •••• •••• ••••';
+            updateBrandLogo(val);
+        });
+
+        // Format Cardholder Name
+        inputHolder.addEventListener('input', (e) => {
+            let val = e.target.value.toUpperCase();
+            e.target.value = val;
+            prevHolder.textContent = val || 'VALUED CARDHOLDER';
+        });
+
+        // Format Expiry (MM/YY)
+        inputExpiry.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length >= 3) {
+                val = val.substring(0, 2) + '/' + val.substring(2, 4);
+            }
+            e.target.value = val;
+            prevExpiry.textContent = val || 'MM/YY';
+        });
+
+        // CVV Input -> Flip Card Back
+        inputCvv.addEventListener('focus', () => {
+            isFlipped = true;
+            creditCard.classList.add('flipped');
+            creditCard.style.transform = '';
+        });
+
+        inputCvv.addEventListener('blur', () => {
+            isFlipped = false;
+            creditCard.classList.remove('flipped');
+            creditCard.style.transform = '';
+        });
+
+        inputCvv.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            e.target.value = val;
+            prevCvv.textContent = val ? '•'.repeat(val.length) : '•••';
+        });
+
+        /* --- MULTI-STAGE STATE TRANSITIONS & SUBMIT --- */
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            // Switch to Processing State
+            appWrapper.classList.add('state-processing');
+
+            // Trigger burst of micro particles during processing
+            spawnBurstParticles(40);
+
+            // Transition to Success State after simulated authorization delay (2.5s)
+            setTimeout(() => {
+                appWrapper.classList.remove('state-processing');
+                appWrapper.classList.add('state-success');
+                spawnBurstParticles(120); // Massive celebration particle burst
+            }, 2500);
+        }
+
+        function resetForm() {
+            // Reset state machine back to Idle
+            appWrapper.classList.remove('state-success', 'state-processing');
+            document.getElementById('paymentForm').reset();
+            
+            // Reset previews
+            prevNum.textContent = '•••• •••• •••• ••••';
+            prevHolder.textContent = 'VALUED CARDHOLDER';
+            prevExpiry.textContent = 'MM/YY';
+            prevCvv.textContent = '•••';
+            updateBrandLogo('');
+        }
+
+        /* --- BACKGROUND & CELEBRATION PARTICLE PHYSICS ENGINE --- */
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        class Particle {
+            constructor(x, y, isBurst = false) {
+                this.x = x || Math.random() * width;
+                this.y = y || Math.random() * height;
+                this.isBurst = isBurst;
+                
+                if (isBurst) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 8 + 2;
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed;
+                    this.radius = Math.random() * 3 + 1;
+                    this.alpha = 1;
+                    this.decay = Math.random() * 0.02 + 0.015;
+                    this.color = Math.random() > 0.5 ? '#d4af37' : '#00f2fe';
+                } else {
+                    this.vx = (Math.random() - 0.5) * 0.4;
+                    this.vy = (Math.random() - 0.5) * 0.4;
+                    this.radius = Math.random() * 1.5 + 0.5;
+                    this.alpha = Math.random() * 0.5 + 0.1;
+                    this.color = '#d4af37';
+                }
+            }
+
+            update() {
+                if (this.isBurst) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= 0.95; // Friction
+                    this.vy *= 0.95;
+                    this.alpha -= this.decay;
+                } else {
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    if (this.x < 0) this.x = width;
+                    if (this.x > width) this.x = 0;
+                    if (this.y < 0) this.y = height;
+                    if (this.y > height) this.y = 0;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = Array.from({ length: 50 }, () => new Particle());
+
+        function spawnBurstParticles(count) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(centerX, centerY, true));
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+
+                // Remove dead burst particles
+                if (p.isBurst && p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        animateParticles();
+    </script>
+</body>
+</html>

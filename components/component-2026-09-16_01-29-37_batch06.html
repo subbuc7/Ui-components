@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AETHERIA — Cinematic Architectural Overlay</title>
+  <style>
+    /* ==========================================================================
+       1. CORE DESIGN SYSTEM & VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-color: #04060a;
+      --card-bg: rgba(12, 18, 28, 0.55);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --gold-primary: #e2c082;
+      --gold-glow: rgba(226, 192, 130, 0.25);
+      --cyan-accent: #52d1dc;
+      --cyan-glow: rgba(82, 209, 220, 0.2);
+      --text-main: #f4f6f8;
+      --text-muted: #8a99ad;
+      --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      overflow-x: hidden;
+      min-height: 100vh;
+      cursor: default;
+    }
+
+    /* ==========================================================================
+       2. BACKGROUND HERO MAIN VIEW (PAGE CONTENT)
+       ========================================================================== */
+    .hero-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 2rem;
+      background: radial-gradient(circle at 50% 40%, rgba(12, 22, 38, 0.8) 0%, var(--bg-color) 70%);
+      z-index: 1;
+    }
+
+    .hero-title {
+      font-size: clamp(2.5rem, 7vw, 6rem);
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 20%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+      color: var(--gold-primary);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      font-weight: 400;
+      opacity: 0.8;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-prompt {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 28px;
+      border: 1px solid var(--card-border);
+      border-radius: 40px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      font-size: 0.75rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      transition: all 0.4s var(--ease-out-expo);
+    }
+
+    .hero-prompt:hover {
+      border-color: var(--gold-primary);
+      color: var(--text-main);
+      box-shadow: 0 0 25px var(--gold-glow);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--cyan-accent);
+      box-shadow: 0 0 10px var(--cyan-accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.6); opacity: 0.4; }
+    }
+
+    /* ==========================================================================
+       3. NAVIGATION HEADER & TRIGGER TOGGLE
+       ========================================================================== */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 30px 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .app-header * {
+      pointer-events: auto;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border: 1.5px solid var(--gold-primary);
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.6s var(--ease-out-expo);
+    }
+
+    .brand-logo:hover .logo-mark {
+      transform: rotate(225deg);
+    }
+
+    .logo-inner {
+      width: 8px;
+      height: 8px;
+      background: var(--cyan-accent);
+    }
+
+    .logo-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+    }
+
+    /* Menu Toggle Button */
+    .menu-toggle {
+      background: rgba(8, 12, 18, 0.6);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      padding: 10px 22px;
+      border-radius: 30px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--text-main);
+      transition: all 0.4s var(--ease-out-expo);
+      outline: none;
+    }
+
+    .menu-toggle:hover {
+      border-color: rgba(226, 192, 130, 0.4);
+      background: rgba(16, 24, 36, 0.8);
+      box-shadow: 0 0 20px var(--gold-glow);
+    }
+
+    .toggle-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      font-weight: 500;
+      overflow: hidden;
+      height: 14px;
+      position: relative;
+      width: 46px;
+    }
+
+    .label-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.5s var(--ease-out-expo);
+    }
+
+    .label-close {
+      transform: translateY(100%);
+      color: var(--gold-primary);
+    }
+
+    .toggle-icon {
+      width: 20px;
+      height: 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .icon-line {
+      width: 100%;
+      height: 1.5px;
+      background-color: var(--text-main);
+      transform-origin: center;
+      transition: transform 0.5s var(--ease-out-expo), background-color 0.4s ease;
+    }
+
+    /* Active Header State */
+    body.nav-active .label-open {
+      transform: translateY(-100%);
+    }
+
+    body.nav-active .label-close {
+      transform: translateY(0);
+    }
+
+    body.nav-active .icon-line:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
+      background-color: var(--gold-primary);
+    }
+
+    body.nav-active .icon-line:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    body.nav-active .icon-line:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+      background-color: var(--gold-primary);
+    }
+
+    /* ==========================================================================
+       4. CINEMATIC OVERLAY CONTAINER
+       ========================================================================== */
+    .cinematic-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 90;
+      visibility: hidden;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .cinematic-overlay.is-open {
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* Canvas Backdrop */
+    #particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .cinematic-overlay.is-open #particleCanvas {
+      opacity: 0.85;
+    }
+
+    /* Dynamic Unsplash Image Preview Canvas */
+    .bg-preview-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      background-size: cover;
+      background-position: center;
+      filter: brightness(0.25) contrast(1.1) blur(4px);
+      opacity: 0;
+      transform: scale(1.08);
+      transition: transform 1.2s var(--ease-out-expo), opacity 0.8s ease;
+    }
+
+    .bg-preview-layer.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Radial Gradient Vignette */
+    .overlay-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: radial-gradient(circle at 50% 50%, rgba(4, 6, 10, 0.4) 0%, rgba(4, 6, 10, 0.92) 80%);
+      pointer-events: none;
+    }
+
+    /* Overlay Content Grid */
+    .overlay-content {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      padding: 120px 8% 60px 8%;
+    }
+
+    /* Left Column: Primary Staggered Links */
+    .nav-links-wrapper {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .nav-item {
+      position: relative;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+    }
+
+    /* Staggered Entry Delays for Links */
+    .cinematic-overlay.is-open .nav-item:nth-child(1) { transition-delay: 0.15s; opacity: 1; transform: translateY(0); }
+    .cinematic-overlay.is-open .nav-item:nth-child(2) { transition-delay: 0.22s; opacity: 1; transform: translateY(0); }
+    .cinematic-overlay.is-open .nav-item:nth-child(3) { transition-delay: 0.29s; opacity: 1; transform: translateY(0); }
+    .cinematic-overlay.is-open .nav-item:nth-child(4) { transition-delay: 0.36s; opacity: 1; transform: translateY(0); }
+    .cinematic-overlay.is-open .nav-item:nth-child(5) { transition-delay: 0.43s; opacity: 1; transform: translateY(0); }
+
+    .nav-link {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      padding: 12px 28px;
+      border-radius: 12px;
+      overflow: hidden;
+      width: fit-content;
+      transition: transform 0.4s var(--ease-out-expo);
+    }
+
+    /* STRICT LAYER REQUIREMENTS:
+       - Active Indicator Pill: z-index: 1 (Translucent background glow)
+       - Foreground Text & Icons: z-index: 2
+    */
+    .link-glow-pill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(226, 192, 130, 0.15) 0%, rgba(82, 209, 220, 0.05) 100%);
+      border: 1px solid rgba(226, 192, 130, 0.25);
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      z-index: 1;
+      opacity: 0;
+      transform: scaleX(0.85);
+      transform-origin: left center;
+      transition: all 0.4s var(--ease-out-expo);
+    }
+
+    .nav-link:hover .link-glow-pill,
+    .nav-link.active .link-glow-pill {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
+    .link-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: baseline;
+      gap: 20px;
+    }
+
+    .link-number {
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--gold-primary);
+      opacity: 0.7;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .link-text {
+      font-size: clamp(2rem, 3.8vw, 3.4rem);
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--text-main);
+      transition: color 0.3s ease, transform 0.4s var(--ease-out-expo);
+    }
+
+    .link-arrow {
+      position: relative;
+      z-index: 2;
+      width: 20px;
+      height: 20px;
+      margin-left: 15px;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: all 0.4s var(--ease-out-expo);
+      stroke: var(--gold-primary);
+    }
+
+    .nav-link:hover {
+      transform: translateX(10px);
+    }
+
+    .nav-link:hover .link-text {
+      color: #ffffff;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    }
+
+    .nav-link:hover .link-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Right Column: Showcase Card & Secondary Meta */
+    .overlay-sidebar {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 30px;
+      opacity: 0;
+      transform: translateX(40px);
+      transition: opacity 0.8s var(--ease-out-expo) 0.3s, transform 0.8s var(--ease-out-expo) 0.3s;
+    }
+
+    .cinematic-overlay.is-open .overlay-sidebar {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Featured Project Card with Multi-Stage Navigation State Visualizer */
+    .showcase-card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 30px;
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+    }
+
+    .showcase-tag {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--cyan-accent);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .showcase-title {
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .showcase-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Dynamic Action Button inside Card */
+    .action-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+      border-color: var(--gold-primary);
+      background: rgba(226, 192, 130, 0.08);
+    }
+
+    .btn-progress-stroke {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--gold-primary), var(--cyan-accent));
+      transition: width 0.1s linear;
+    }
+
+    /* Meta Info Grid */
+    .sidebar-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .meta-item-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .meta-item-value {
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       5. PHYSICAL STATE TRANSITION / CURTAIN SWEEP LOADER
+       ========================================================================== */
+    .transition-curtain {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      z-index: 200;
+      pointer-events: none;
+      transform: translateY(-100%);
+    }
+
+    .transition-curtain.in-flight {
+      animation: curtainSweep 1.2s var(--ease-out-expo) forwards;
+    }
+
+    @keyframes curtainSweep {
+      0% { transform: translateY(-100%); }
+      40%, 60% { transform: translateY(0%); }
+      100% { transform: translateY(100%); }
+    }
+
+    .status-badge {
+      position: fixed;
+      bottom: 40px;
+      right: 50px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(8, 12, 18, 0.7);
+      border: 1px solid var(--card-border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.4s ease;
+    }
+
+    .status-badge.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 900px) {
+      .overlay-content {
+        grid-template-columns: 1fr;
+        padding-top: 100px;
+      }
+      .overlay-sidebar {
+        display: none; /* Focus strictly on main links on small screens */
+      }
+      .app-header {
+        padding: 20px 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Section -->
+  <header class="app-header">
+    <a href="#" class="brand-logo">
+      <div class="logo-mark"><div class="logo-inner"></div></div>
+      <span class="logo-text">Aetheria</span>
+    </a>
+
+    <div class="header-meta">
+      <span id="locationClock">GENEVA — 00:00 UTC</span>
+      <button id="menuToggle" class="menu-toggle" aria-label="Toggle Navigation">
+        <div class="toggle-label">
+          <span class="label-text label-open">Menu</span>
+          <span class="label-text label-close">Close</span>
+        </div>
+        <div class="toggle-icon">
+          <span class="icon-line"></span>
+          <span class="icon-line"></span>
+          <span class="icon-line"></span>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Base View -->
+  <main class="hero-container">
+    <h1 class="hero-title">Architectural Light</h1>
+    <p class="hero-subtitle">Next-Generation Spatial Experiences</p>
+    <div class="hero-prompt">
+      <span class="pulse-dot"></span>
+      Trigger Overlay Menu Above
+    </div>
+  </main>
+
+  <!-- Full-Screen Cinematic Navigation Overlay -->
+  <div id="cinematicOverlay" class="cinematic-overlay">
+    
+    <!-- Dynamic Background Image Preview Preloaders -->
+    <div class="bg-preview-layer" id="bg-arch" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1800&q=80');"></div>
+    <div class="bg-preview-layer" id="bg-digital" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1800&q=80');"></div>
+    <div class="bg-preview-layer" id="bg-cinema" style="background-image: url('https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1800&q=80');"></div>
+    <div class="bg-preview-layer" id="bg-spatial" style="background-image: url('https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&w=1800&q=80');"></div>
+    <div class="bg-preview-layer" id="bg-agency" style="background-image: url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1800&q=80');"></div>
+
+    <div class="overlay-vignette"></div>
+    
+    <!-- Interactive Particle Physics Canvas -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Overlay Main Content Layout -->
+    <div class="overlay-content">
+      
+      <!-- Primary Staggered Navigation Items -->
+      <nav class="nav-links-wrapper">
+        <ul class="nav-menu">
+          
+          <li class="nav-item">
+            <a href="#architectural" class="nav-link" data-preview="bg-arch">
+              <!-- Glow Pill Behind Content (z-index: 1) -->
+              <div class="link-glow-pill"></div>
+              <!-- Text & Icons Above (z-index: 2) -->
+              <div class="link-content">
+                <span class="link-number">01</span>
+                <span class="link-text">Architectural Design</span>
+              </div>
+              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="#digital-craft" class="nav-link" data-preview="bg-digital">
+              <div class="link-glow-pill"></div>
+              <div class="link-content">
+                <span class="link-number">02</span>
+                <span class="link-text">Digital Craft</span>
+              </div>
+              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="#cinematic-arts" class="nav-link" data-preview="bg-cinema">
+              <div class="link-glow-pill"></div>
+              <div class="link-content">
+                <span class="link-number">03</span>
+                <span class="link-text">Cinematic Arts</span>
+              </div>
+              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="#spatial" class="nav-link" data-preview="bg-spatial">
+              <div class="link-glow-pill"></div>
+              <div class="link-content">
+                <span class="link-number">04</span>
+                <span class="link-text">Spatial Computing</span>
+              </div>
+              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="#agency" class="nav-link" data-preview="bg-agency">
+              <div class="link-glow-pill"></div>
+              <div class="link-content">
+                <span class="link-number">05</span>
+                <span class="link-text">The Agency</span>
+              </div>
+              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+
+      <!-- Right Side Showcase Card / Interactive Context Panel -->
+      <aside class="overlay-sidebar">
+        <div class="showcase-card">
+          <span class="showcase-tag">Featured Monograph</span>
+          <h3 class="showcase-title">The Horizon Pavilion</h3>
+          <p class="showcase-desc">An exploration of light refraction and monolithic minimalism crafted in the Swiss Alps.</p>
+          
+          <button class="action-btn" id="cardActionBtn">
+            <span class="btn-text">Initiate Experience</span>
+            <div class="btn-progress-stroke" id="btnProgress"></div>
+          </button>
+        </div>
+
+        <div class="sidebar-meta-grid">
+          <div>
+            <div class="meta-item-title">Global Headquarters</div>
+            <div class="meta-item-value">Geneva / Zurich</div>
+          </div>
+          <div>
+            <div class="meta-item-title">Inquiries</div>
+            <div class="meta-item-value">contact@aetheria.design</div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- Physical State Transition Elements -->
+  <div class="transition-curtain" id="curtain"></div>
+  
+  <div class="status-badge" id="statusBadge">
+    <span class="pulse-dot"></span>
+    <span id="statusBadgeText">System Idle</span>
+  </div>
+
+  <!-- ==========================================================================
+     6. LOGIC & INTERACTION ENGINE (VANILLA JS)
+     ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const menuToggle = document.getElementById('menuToggle');
+      const overlay = document.getElementById('cinematicOverlay');
+      const body = document.body;
+      const navLinks = document.querySelectorAll('.nav-link');
+      const bgLayers = document.querySelectorAll('.bg-preview-layer');
+      const cardActionBtn = document.getElementById('cardActionBtn');
+      const btnProgress = document.getElementById('btnProgress');
+      const curtain = document.getElementById('curtain');
+      const statusBadge = document.getElementById('statusBadge');
+      const statusBadgeText = document.getElementById('statusBadgeText');
+      const locationClock = document.getElementById('locationClock');
+
+      let isNavOpen = false;
+      let isTransitioning = false;
+
+      /* ------------------------------------------------------------------------
+         1. LIVE CLOCK CONTROLLER
+         ------------------------------------------------------------------------ */
+      function updateClock() {
+        const now = new Date();
+        const hrs = String(now.getUTCHours()).padStart(2, '0');
+        const mins = String(now.getUTCMinutes()).padStart(2, '0');
+        const secs = String(now.getUTCSeconds()).padStart(2, '0');
+        locationClock.textContent = `GENEVA — ${hrs}:${mins}:${secs} UTC`;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      /* ------------------------------------------------------------------------
+         2. MENU TOGGLE STATE MACHINE
+         ------------------------------------------------------------------------ */
+      function toggleMenu(forceState = null) {
+        if (isTransitioning) return;
+        
+        isNavOpen = forceState !== null ? forceState : !isNavOpen;
+
+        if (isNavOpen) {
+          body.classList.add('nav-active');
+          overlay.classList.add('is-open');
+          showStatus('Overlay Active');
+        } else {
+          body.classList.remove('nav-active');
+          overlay.classList.remove('is-open');
+          // Clear active background images on close
+          bgLayers.forEach(layer => layer.classList.remove('active'));
+          hideStatus();
+        }
+      }
+
+      menuToggle.addEventListener('click', () => toggleMenu());
+
+      // Close menu with Escape key
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isNavOpen) toggleMenu(false);
+      });
+
+      /* ------------------------------------------------------------------------
+         3. DYNAMIC HOVER IMAGE PREVIEWS
+         ------------------------------------------------------------------------ */
+      navLinks.forEach(link => {
+        link.addEventListener('mouseenter', () => {
+          const targetBgId = link.getAttribute('data-preview');
+          bgLayers.forEach(layer => {
+            if (layer.id === targetBgId) {
+              layer.classList.add('active');
+            } else {
+              layer.classList.remove('active');
+            }
+          });
+        });
+      });
+
+      /* ------------------------------------------------------------------------
+         4. MULTI-STAGE NAVIGATION PHYSICAL INTERACTION LOADER
+         ------------------------------------------------------------------------ */
+      function triggerNavigationSequence(destinationName) {
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        // Stage 1: Interaction
+        showStatus(`Connecting -> ${destinationName}`);
+        
+        // Stage 2: Progress Loader Simulation
+        let progress = 0;
+        btnProgress.style.width = '0%';
+        
+        const interval = setInterval(() => {
+          progress += 4;
+          btnProgress.style.width = `${progress}%`;
+
+          if (progress >= 100) {
+            clearInterval(interval);
+            
+            // Stage 3: Success Resolution & Physical Transition Sweep
+            showStatus('Resolution Complete');
+            curtain.classList.add('in-flight');
+
+            setTimeout(() => {
+              // Reset navigation menu state behind curtain
+              toggleMenu(false);
+              btnProgress.style.width = '0%';
+            }, 600);
+
+            setTimeout(() => {
+              curtain.classList.remove('in-flight');
+              isTransitioning = false;
+              hideStatus();
+            }, 1200);
+          }
+        }, 16);
+      }
+
+      // Intercept nav links click for simulated multi-stage navigation demo
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const targetName = link.querySelector('.link-text').textContent;
+          triggerNavigationSequence(targetName);
+        });
+      });
+
+      cardActionBtn.addEventListener('click', () => {
+        triggerNavigationSequence('Horizon Pavilion');
+      });
+
+      function showStatus(text) {
+        statusBadgeText.textContent = text;
+        statusBadge.classList.add('visible');
+      }
+
+      function hideStatus() {
+        statusBadge.classList.remove('visible');
+      }
+
+      /* ------------------------------------------------------------------------
+         5. PARTICLE PHYSICS CANVAS ENGINE
+         ------------------------------------------------------------------------ */
+      const canvas = document.getElementById('particleCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      const mouse = { x: width / 2, y: height / 2 };
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+      });
+
+      class Particle {
+        constructor() {
+          this.reset();
+        }
+
+        reset() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.vx = (Math.random() - 0.5) * 0.4;
+          this.vy = (Math.random() - 0.5) * 0.4;
+          this.radius = Math.random() * 1.5 + 0.5;
+          this.alpha = Math.random() * 0.5 + 0.2;
+          this.color = Math.random() > 0.4 ? '#e2c082' : '#52d1dc';
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+
+          // Subtle attraction/repulsion from cursor
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            this.x -= (dx / dist) * 0.6;
+            this.y -= (dy / dist) * 0.6;
+          }
+
+          if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
+            this.reset();
+          }
+        }
+
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = this.alpha;
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      const particleCount = 70;
+      const particles = Array.from({ length: particleCount }, () => new Particle());
+
+      function renderParticles() {
+        ctx.clearRect(0, 0, width, height);
+
+        if (isNavOpen) {
+          // Draw subtle connecting lines
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              if (dist < 100) {
+                ctx.save();
+                ctx.globalAlpha = (1 - dist / 100) * 0.12;
+                ctx.strokeStyle = '#e2c082';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.stroke();
+                ctx.restore();
+              }
+            }
+          }
+
+          particles.forEach(p => {
+            p.update();
+            p.draw();
+          });
+        }
+
+        requestAnimationFrame(renderParticles);
+      }
+
+      renderParticles();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultra-Premium OTP Verification</title>
+  <style>
+    :root {
+      --bg-color: #030508;
+      --card-bg: rgba(10, 14, 23, 0.75);
+      --card-border: rgba(212, 175, 55, 0.18);
+      --gold-primary: #d4af37;
+      --gold-light: #f7e7ad;
+      --gold-dark: #967424;
+      --gold-glow: rgba(212, 175, 55, 0.25);
+      --text-main: #f1f5f9;
+      --text-muted: #8e9bae;
+      --text-gold: #e5c158;
+      --input-bg: rgba(18, 24, 38, 0.6);
+      --input-border: rgba(255, 255, 255, 0.08);
+      --error-red: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.25);
+      --success-green: #10b981;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      color: var(--text-main);
+    }
+
+    /* Background Ambient Lighting */
+    .ambient-bg {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .glow-sphere-1 {
+      position: absolute;
+      top: -10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, rgba(3, 5, 8, 0) 70%);
+      border-radius: 50%;
+    }
+
+    .glow-sphere-2 {
+      position: absolute;
+      bottom: -20%;
+      right: 10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, rgba(3, 5, 8, 0) 70%);
+      border-radius: 50%;
+    }
+
+    /* Particle Canvas Overlay */
+    #particle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Main Container */
+    .app-viewport {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+    }
+
+    /* Glass Card */
+    .verification-card {
+      position: relative;
+      background: var(--card-bg);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 40px 32px;
+      box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.56),
+        0 18px 36px -18px rgba(0, 0, 0, 0.7),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .verification-card.shake {
+      animation: physicalShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes physicalShake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
+      40%, 60% { transform: translate3d(7px, 0, 0); }
+    }
+
+    /* Card Header */
+    .card-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .icon-wrapper {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px auto;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.02) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      position: relative;
+    }
+
+    .shield-icon {
+      width: 30px;
+      height: 30px;
+      color: var(--gold-primary);
+      filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.4));
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .email-highlight {
+      color: var(--text-gold);
+      font-weight: 500;
+    }
+
+    /* OTP Inputs Section */
+    .otp-wrapper {
+      position: relative;
+      margin-bottom: 28px;
+    }
+
+    .otp-inputs-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .otp-divider {
+      width: 8px;
+      height: 2px;
+      background-color: var(--text-muted);
+      opacity: 0.3;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Active Input Glow Pill (Behind fields for layered visibility) */
+    .active-pill-tracker {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.18) 0%, rgba(212, 175, 55, 0.05) 100%);
+      border: 1px solid var(--gold-primary);
+      box-shadow: 0 0 15px var(--gold-glow);
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.25s ease, height 0.25s ease, opacity 0.2s ease;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .otp-field {
+      position: relative;
+      z-index: 2;
+      width: 52px;
+      height: 62px;
+      border-radius: 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+      caret-color: var(--gold-primary);
+      transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+    }
+
+    .otp-field:hover {
+      border-color: rgba(212, 175, 55, 0.3);
+      background: rgba(25, 33, 50, 0.7);
+    }
+
+    .otp-field.filled {
+      border-color: rgba(212, 175, 55, 0.4);
+      background: rgba(25, 33, 50, 0.85);
+      color: var(--gold-light);
+    }
+
+    .otp-field.bounce {
+      transform: scale(1.08);
+    }
+
+    .otp-field.error {
+      border-color: var(--error-red) !important;
+      color: var(--error-red) !important;
+      background: rgba(239, 68, 68, 0.08) !important;
+      box-shadow: 0 0 12px var(--error-glow);
+    }
+
+    /* Dynamic Feedback Line */
+    .feedback-banner {
+      min-height: 20px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    .feedback-banner.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .feedback-banner.error-text {
+      color: var(--error-red);
+    }
+
+    .feedback-banner.success-text {
+      color: var(--success-green);
+    }
+
+    /* Submit Action Button */
+    .submit-container {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .submit-btn {
+      position: relative;
+      width: 100%;
+      height: 54px;
+      border-radius: 16px;
+      border: none;
+      outline: none;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-primary) 50%, var(--gold-dark) 100%);
+      color: #070a10;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+      box-shadow: none;
+    }
+
+    .submit-btn:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(212, 175, 55, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .submit-btn:not(:disabled):active {
+      transform: translateY(1px);
+    }
+
+    /* Button State Transformations */
+    .btn-text {
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .submit-btn.loading {
+      width: 54px;
+      border-radius: 27px;
+      margin: 0 auto;
+      background: rgba(20, 26, 38, 0.9);
+      border: 1px solid var(--gold-primary);
+      box-shadow: 0 0 20px var(--gold-glow);
+    }
+
+    .submit-btn.loading .btn-text {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+
+    .spinner-svg {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      animation: spin 1.2s linear infinite;
+    }
+
+    .submit-btn.loading .spinner-svg {
+      opacity: 1;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .submit-btn.success {
+      width: 54px;
+      border-radius: 27px;
+      margin: 0 auto;
+      background: var(--success-green);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .submit-btn.success .btn-text {
+      opacity: 0;
+    }
+
+    .checkmark-svg {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      stroke: #ffffff;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      opacity: 0;
+    }
+
+    .submit-btn.success .checkmark-svg {
+      opacity: 1;
+      animation: checkmarkDraw 0.5s ease forwards 0.1s;
+    }
+
+    @keyframes checkmarkDraw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Resend Section */
+    .resend-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    .resend-btn {
+      background: none;
+      border: none;
+      color: var(--gold-primary);
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      outline: none;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .resend-btn:disabled {
+      color: var(--text-muted);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .resend-btn:not(:disabled):hover {
+      color: var(--gold-light);
+      background: rgba(212, 175, 55, 0.08);
+    }
+
+    .timer-badge {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    /* Bottom Quick Demo Hints */
+    .demo-helpers {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .demo-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .demo-chip:hover {
+      background: rgba(212, 175, 55, 0.1);
+      border-color: rgba(212, 175, 55, 0.25);
+      color: var(--gold-light);
+    }
+
+    /* Responsiveness */
+    @media (max-width: 440px) {
+      .verification-card {
+        padding: 32px 20px;
+      }
+      .otp-field {
+        width: 44px;
+        height: 54px;
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Lighting -->
+  <div class="ambient-bg">
+    <div class="glow-sphere-1"></div>
+    <div class="glow-sphere-2"></div>
+  </div>
+
+  <!-- Particle Canvas Overlay -->
+  <canvas id="particle-canvas"></canvas>
+
+  <div class="app-viewport">
+    <div class="verification-card" id="card-box">
+      
+      <!-- Card Header -->
+      <div class="card-header">
+        <div class="icon-wrapper">
+          <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1 class="card-title">Security Code</h1>
+        <p class="card-subtitle">Enter the 6-digit verification code sent to <br><span class="email-highlight">a.vance@emerald-capital.com</span></p>
+      </div>
+
+      <!-- OTP Inputs Grid -->
+      <div class="otp-wrapper" id="otp-wrapper">
+        <!-- Dynamic Glow Tracker Element -->
+        <div class="active-pill-tracker" id="pill-tracker"></div>
+
+        <div class="otp-inputs-grid" id="otp-grid">
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-field" data-index="0" autocomplete="off" />
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-field" data-index="1" autocomplete="off" />
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-field" data-index="2" autocomplete="off" />
+          
+          <div class="otp-divider"></div>
+          
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-field" data-index="3" autocomplete="off" />
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-field" data-index="4" autocomplete="off" />
+          <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-field" data-index="5" autocomplete="off" />
+        </div>
+      </div>
+
+      <!-- Feedback Status Message Banner -->
+      <div class="feedback-banner" id="feedback-banner"></div>
+
+      <!-- Action Button -->
+      <div class="submit-container">
+        <button class="submit-btn" id="submit-btn" disabled>
+          <span class="btn-text">Verify &amp; Proceed</span>
+          
+          <!-- Loading Spinner -->
+          <svg class="spinner-svg" viewBox="0 0 50 50">
+            <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="80, 200" stroke-linecap="round" style="stroke: var(--gold-primary);"></circle>
+          </svg>
+
+          <!-- Checkmark Animated SVG -->
+          <svg class="checkmark-svg" viewBox="0 0 52 52">
+            <path d="M14 27 L22 35 L38 17"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Resend Code Timer -->
+      <div class="resend-container">
+        <span>Didn't receive code?</span>
+        <button class="resend-btn" id="resend-btn" disabled>
+          <span id="resend-label">Resend in <span class="timer-badge" id="timer-count">00:30</span></span>
+        </button>
+      </div>
+
+      <!-- Interactive Quick Simulation Helpers -->
+      <div class="demo-helpers">
+        <button type="button" class="demo-chip" id="demo-pass">Auto-fill Correct Code</button>
+        <button type="button" class="demo-chip" id="demo-fail">Auto-fill Invalid Code</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const inputs = Array.from(document.querySelectorAll('.otp-field'));
+      const pillTracker = document.getElementById('pill-tracker');
+      const otpWrapper = document.getElementById('otp-wrapper');
+      const submitBtn = document.getElementById('submit-btn');
+      const feedbackBanner = document.getElementById('feedback-banner');
+      const cardBox = document.getElementById('card-box');
+      const resendBtn = document.getElementById('resend-btn');
+      const resendLabel = document.getElementById('resend-label');
+      const timerCount = document.getElementById('timer-count');
+      const demoPass = document.getElementById('demo-pass');
+      const demoFail = document.getElementById('demo-fail');
+      
+      const CORRECT_CODE = "849201";
+      let timerSeconds = 30;
+      let timerInterval = null;
+      let isProcessing = false;
+
+      // Initial focus
+      inputs[0].focus();
+      updatePillPosition(inputs[0]);
+
+      // --- Micro-Particle Physics System ---
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      class MicroParticle {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 6 + 2;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed - 1.5;
+          this.size = Math.random() * 3.5 + 1.5;
+          this.alpha = 1;
+          this.decay = Math.random() * 0.02 + 0.015;
+          this.gravity = 0.12;
+          this.color = Math.random() > 0.3 ? '#d4af37' : '#f7e7ad';
+        }
+
+        update() {
+          this.vx *= 0.96;
+          this.vy *= 0.96;
+          this.vy += this.gravity;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.alpha -= this.decay;
+        }
+
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, this.alpha);
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function triggerCelebrationParticles() {
+        const btnRect = submitBtn.getBoundingClientRect();
+        const originX = btnRect.left + btnRect.width / 2;
+        const originY = btnRect.top + btnRect.height / 2;
+
+        for (let i = 0; i < 75; i++) {
+          particles.push(new MicroParticle(originX, originY));
+        }
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          particles[i].update();
+          particles[i].draw();
+          if (particles[i].alpha <= 0) {
+            particles.splice(i, 1);
+          }
+        }
+        requestAnimationFrame(animateParticles);
+      }
+      animateParticles();
+
+      // --- Pill Tracker Physics positioning ---
+      function updatePillPosition(targetInput) {
+        if (!targetInput || isProcessing) {
+          pillTracker.style.opacity = '0';
+          return;
+        }
+        const wrapperRect = otpWrapper.getBoundingClientRect();
+        const inputRect = targetInput.getBoundingClientRect();
+
+        const leftOffset = inputRect.left - wrapperRect.left;
+        const topOffset = inputRect.top - wrapperRect.top;
+
+        pillTracker.style.opacity = '1';
+        pillTracker.style.width = `${inputRect.width}px`;
+        pillTracker.style.height = `${inputRect.height}px`;
+        pillTracker.style.transform = `translate(${leftOffset}px, ${topOffset}px)`;
+      }
+
+      window.addEventListener('resize', () => {
+        const active = document.activeElement;
+        if (active && active.classList.contains('otp-field')) {
+          updatePillPosition(active);
+        }
+      });
+
+      // --- Input Event Listeners ---
+      inputs.forEach((input, index) => {
+        input.addEventListener('focus', (e) => {
+          if (isProcessing) return;
+          updatePillPosition(e.target);
+          e.target.select();
+        });
+
+        input.addEventListener('input', (e) => {
+          const val = e.target.value;
+          
+          // Allow numeric only
+          if (!/^\d*$/.test(val)) {
+            e.target.value = '';
+            return;
+          }
+
+          if (val.length > 0) {
+            e.target.classList.add('filled');
+            e.target.classList.remove('error');
+            clearFeedback();
+
+            // Tactile Bounce Effect
+            e.target.classList.add('bounce');
+            setTimeout(() => e.target.classList.remove('bounce'), 150);
+
+            // Auto advance
+            if (index < inputs.length - 1) {
+              inputs[index + 1].focus();
+            } else {
+              e.target.blur();
+              pillTracker.style.opacity = '0';
+            }
+          } else {
+            e.target.classList.remove('filled');
+          }
+
+          checkCompletionStatus();
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (isProcessing) return;
+
+          if (e.key === 'Backspace') {
+            if (!input.value && index > 0) {
+              inputs[index - 1].focus();
+              inputs[index - 1].value = '';
+              inputs[index - 1].classList.remove('filled', 'error');
+              checkCompletionStatus();
+            }
+          } else if (e.key === 'ArrowLeft' && index > 0) {
+            inputs[index - 1].focus();
+          } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          }
+        });
+
+        input.addEventListener('paste', handlePaste);
+      });
+
+      function handlePaste(e) {
+        e.preventDefault();
+        if (isProcessing) return;
+        
+        const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+        const digits = pasteData.replace(/\D/g, '').slice(0, 6);
+
+        if (digits.length > 0) {
+          digits.split('').forEach((char, i) => {
+            if (inputs[i]) {
+              inputs[i].value = char;
+              inputs[i].classList.add('filled');
+              inputs[i].classList.remove('error');
+            }
+          });
+
+          clearFeedback();
+
+          if (digits.length < 6 && inputs[digits.length]) {
+            inputs[digits.length].focus();
+          } else {
+            inputs[5].blur();
+            pillTracker.style.opacity = '0';
+            checkCompletionStatus();
+            if (digits.length === 6) {
+              triggerVerification();
+            }
+          }
+        }
+      }
+
+      function getEnteredCode() {
+        return inputs.map(i => i.value).join('');
+      }
+
+      function checkCompletionStatus() {
+        const code = getEnteredCode();
+        submitBtn.disabled = code.length !== 6 || isProcessing;
+      }
+
+      function showFeedback(text, type) {
+        feedbackBanner.textContent = text;
+        feedbackBanner.className = `feedback-banner show ${type}-text`;
+      }
+
+      function clearFeedback() {
+        feedbackBanner.textContent = '';
+        feedbackBanner.className = 'feedback-banner';
+      }
+
+      // --- Submit & Multi-Stage State Animations ---
+      submitBtn.addEventListener('click', () => {
+        if (!submitBtn.disabled && !isProcessing) {
+          triggerVerification();
+        }
+      });
+
+      function triggerVerification() {
+        isProcessing = true;
+        submitBtn.disabled = true;
+        inputs.forEach(i => i.blur());
+        pillTracker.style.opacity = '0';
+
+        // Stage 1: Transition button to Loading Spinner State
+        submitBtn.classList.add('loading');
+        clearFeedback();
+
+        setTimeout(() => {
+          const userCode = getEnteredCode();
+          
+          if (userCode === CORRECT_CODE) {
+            // Stage 2A: Success State Resolution
+            submitBtn.classList.remove('loading');
+            submitBtn.classList.add('success');
+            
+            showFeedback("Authentication successful. Redirecting...", "success");
+            triggerCelebrationParticles();
+
+            // Highlight filled inputs green
+            inputs.forEach(i => {
+              i.style.borderColor = "rgba(16, 185, 129, 0.6)";
+              i.style.color = "#10b981";
+            });
+
+          } else {
+            // Stage 2B: Error Resolution
+            submitBtn.classList.remove('loading');
+            submitBtn.disabled = false;
+            isProcessing = false;
+
+            // Physical Shake Card
+            cardBox.classList.add('shake');
+            inputs.forEach(i => i.classList.add('error'));
+
+            showFeedback("Invalid security code. Please try again.", "error");
+
+            setTimeout(() => {
+              cardBox.classList.remove('shake');
+            }, 600);
+          }
+        }, 1400);
+      }
+
+      // --- Resend Countdown Timer Logic ---
+      function startResendTimer() {
+        timerSeconds = 30;
+        resendBtn.disabled = true;
+        resendLabel.innerHTML = `Resend in <span class="timer-badge" id="timer-count">00:30</span>`;
+        
+        const countSpan = document.getElementById('timer-count');
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          timerSeconds--;
+          const formattedSec = timerSeconds < 10 ? `0${timerSeconds}` : timerSeconds;
+          if (countSpan) countSpan.textContent = `00:${formattedSec}`;
+
+          if (timerSeconds <= 0) {
+            clearInterval(timerInterval);
+            resendBtn.disabled = false;
+            resendLabel.textContent = "Resend Code";
+          }
+        }, 1000);
+      }
+      startResendTimer();
+
+      resendBtn.addEventListener('click', () => {
+        if (resendBtn.disabled) return;
+
+        // Reset Inputs
+        inputs.forEach(input => {
+          input.value = '';
+          input.classList.remove('filled', 'error');
+          input.style.borderColor = '';
+          input.style.color = '';
+        });
+
+        submitBtn.classList.remove('success', 'loading');
+        submitBtn.disabled = true;
+        isProcessing = false;
+        
+        clearFeedback();
+        showFeedback("A new 6-digit code has been dispatched.", "success");
+        setTimeout(clearFeedback, 3500);
+
+        inputs[0].focus();
+        updatePillPosition(inputs[0]);
+
+        startResendTimer();
+      });
+
+      // --- Demo Chips Logic ---
+      demoPass.addEventListener('click', () => {
+        if (isProcessing) return;
+        CORRECT_CODE.split('').forEach((char, i) => {
+          inputs[i].value = char;
+          inputs[i].classList.add('filled');
+          inputs[i].classList.remove('error');
+        });
+        checkCompletionStatus();
+        triggerVerification();
+      });
+
+      demoFail.addEventListener('click', () => {
+        if (isProcessing) return;
+        "000000".split('').forEach((char, i) => {
+          inputs[i].value = char;
+          inputs[i].classList.add('filled');
+          inputs[i].classList.remove('error');
+        });
+        checkCompletionStatus();
+        triggerVerification();
+      });
+    });
+  </script>
+</body>
+</html>

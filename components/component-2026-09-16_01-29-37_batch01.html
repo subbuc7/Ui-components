@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA APEX // Quantum Neural Engine Bento Grid</title>
+  <style>
+    /* ==========================================================================
+       1. CORE DESIGN SYSTEM & RESET
+       ========================================================================== */
+    :root {
+      --bg-base: #04060a;
+      --card-bg: rgba(12, 16, 26, 0.65);
+      --card-bg-hover: rgba(18, 24, 38, 0.75);
+      --gold-primary: #e5c158;
+      --gold-bright: #fff0a8;
+      --gold-glow: rgba(229, 193, 88, 0.22);
+      --gold-subtle: rgba(229, 193, 88, 0.08);
+      --cyan-accent: #00f2fe;
+      --cyan-glow: rgba(0, 242, 254, 0.2);
+      --green-success: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.25);
+      --text-main: #f0f4f8;
+      --text-muted: #8b9bb4;
+      --text-dim: #4c5a73;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-active: rgba(229, 193, 88, 0.4);
+      --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", "Roboto Mono", Consolas, monospace;
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 10px;
+      --transition-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(229, 193, 88, 0.05) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(0, 242, 254, 0.03) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      background-position: 0 0, 0 0, -1px -1px, -1px -1px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Selection aesthetics */
+    ::selection {
+      background: var(--gold-primary);
+      color: var(--bg-base);
+    }
+
+    /* Typography Utilities */
+    .label-caps {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+
+    /* Container Header */
+    .dashboard-header {
+      width: 100%;
+      max-width: 1320px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .header-title-group h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-title-group p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.35rem;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      padding: 0.4rem 0.8rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--green-success);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--green-success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green-success);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ==========================================================================
+       2. BENTO GRID CONTAINER & SPECULAR CARD SYSTEM
+       ========================================================================== */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: minmax(180px, auto);
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 1320px;
+      perspective: 1200px;
+    }
+
+    /* Specular Glare Card Base Architecture */
+    .bento-card {
+      position: relative;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 1.5rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.4s ease, transform 0.4s var(--transition-smooth), box-shadow 0.4s ease;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .bento-card:hover {
+      border-color: rgba(229, 193, 88, 0.3);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 30px -10px var(--gold-glow);
+    }
+
+    /* Specular Glare Dynamic Overlay - Layering Fix Applied */
+    .bento-card .specular-glare {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1; /* Strictly below interactive elements & text */
+      background: radial-gradient(
+        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.06),
+        transparent 40%
+      );
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      border-radius: inherit;
+    }
+
+    .bento-card .border-shine {
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+      z-index: 1;
+      border-radius: inherit;
+      padding: 1px;
+      background: radial-gradient(
+        400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(229, 193, 88, 0.6),
+        transparent 40%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .bento-card:hover .specular-glare,
+    .bento-card:hover .border-shine {
+      opacity: 1;
+    }
+
+    /* Card Content Container - Ensures content sits above glare layer */
+    .card-content {
+      position: relative;
+      z-index: 2; /* Always above background glows */
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+      margin-top: 0.25rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    /* Grid Span Configurations */
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .row-span-2 { grid-row: span 2; }
+
+    /* Custom Interactive Canvas Layers inside cards */
+    .card-canvas-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ==========================================================================
+       3. WIDGET 1: AUTONOMOUS AI PIPELINE (Flagship Multi-Stage Morph)
+       ========================================================================== */
+    .pipeline-card {
+      min-height: 380px;
+      background: linear-gradient(135deg, rgba(16, 22, 36, 0.8) 0%, rgba(8, 11, 18, 0.9) 100%);
+    }
+
+    .pipeline-display-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      height: 100%;
+      align-items: center;
+    }
+
+    .pipeline-metrics-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0.8rem;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      color: var(--gold-primary);
+      font-weight: 600;
+    }
+
+    /* Morphing Pipeline Visual Box */
+    .pipeline-stage-visualizer {
+      position: relative;
+      height: 200px;
+      background: rgba(4, 6, 10, 0.6);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      text-align: center;
+      overflow: hidden;
+      transition: all 0.5s var(--transition-smooth);
+    }
+
+    /* Multi-Stage Visual Dynamic SVGs */
+    .progress-ring-container {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .progress-ring-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .progress-ring-bg {
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 6;
+      fill: transparent;
+    }
+
+    .progress-ring-circle {
+      stroke: var(--gold-primary);
+      stroke-width: 6;
+      stroke-linecap: round;
+      fill: transparent;
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 0.1s linear, stroke 0.4s ease;
+      filter: drop-shadow(0 0 6px var(--gold-glow));
+    }
+
+    .progress-value-text {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stage-status-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-top: 1rem;
+      color: var(--text-muted);
+      transition: color 0.3s ease;
+    }
+
+    .pipeline-substep-log {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--gold-primary);
+      margin-top: 0.25rem;
+      opacity: 0;
+      height: 16px;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Action Button - Fully Interactive */
+    .btn-action-primary {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.85rem 1.5rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--gold-primary);
+      background: linear-gradient(135deg, rgba(229, 193, 88, 0.15) 0%, rgba(229, 193, 88, 0.02) 100%);
+      color: var(--gold-bright);
+      font-family: var(--font-stack);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      transition: all 0.3s var(--transition-smooth);
+      box-shadow: 0 4px 20px -5px var(--gold-glow);
+    }
+
+    .btn-action-primary:hover {
+      background: linear-gradient(135deg, rgba(229, 193, 88, 0.3) 0%, rgba(229, 193, 88, 0.1) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px -5px var(--gold-glow);
+    }
+
+    .btn-action-primary:active {
+      transform: translateY(0);
+    }
+
+    /* Multi-Stage States for Pipeline Widget */
+    /* State 2: Processing Mode */
+    .bento-card.state-processing .pipeline-stage-visualizer {
+      border-color: var(--gold-primary);
+      box-shadow: inset 0 0 20px var(--gold-subtle);
+    }
+
+    .bento-card.state-processing .pipeline-substep-log {
+      opacity: 1;
+    }
+
+    /* State 3: Success Resolution */
+    .bento-card.state-success .progress-ring-circle {
+      stroke: var(--green-success);
+      filter: drop-shadow(0 0 8px var(--green-glow));
+    }
+
+    .bento-card.state-success .pipeline-stage-visualizer {
+      border-color: var(--green-success);
+      background: rgba(16, 185, 129, 0.04);
+    }
+
+    .bento-card.state-success .btn-action-primary {
+      border-color: var(--green-success);
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      box-shadow: 0 4px 20px -5px var(--green-glow);
+    }
+
+    /* Reset Pill Button */
+    .btn-reset-pill {
+      display: none;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-reset-pill:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .state-success .btn-reset-pill {
+      display: inline-block;
+    }
+
+    /* ==========================================================================
+       4. WIDGET 2: QUANTUM KEY ROTATOR (Interactive Lock Dial)
+       ========================================================================== */
+    .quantum-card {
+      min-height: 380px;
+    }
+
+    .vault-dial-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 1.5rem auto 1rem auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .vault-outer-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px dashed rgba(0, 242, 254, 0.3);
+      transition: transform 1.2s var(--transition-smooth);
+    }
+
+    .vault-inner-ring {
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan-accent);
+      border-top-color: transparent;
+      box-shadow: 0 0 15px var(--cyan-glow);
+      transition: transform 0.8s ease-in-out;
+    }
+
+    .vault-center-key {
+      position: relative;
+      z-index: 2;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(10, 15, 26, 0.9);
+      border: 1px solid rgba(0, 242, 254, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan-accent);
+      cursor: pointer;
+      transition: all 0.3s var(--transition-bounce);
+    }
+
+    .vault-center-key:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+
+    .vault-center-key svg {
+      width: 24px;
+      height: 24px;
+      transition: transform 0.5s ease;
+    }
+
+    .hash-key-display {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--cyan-accent);
+      text-align: center;
+      word-break: break-all;
+      letter-spacing: 0.05em;
+    }
+
+    /* ==========================================================================
+       5. WIDGET 3: DYNAMIC SIGNAL SYNTHESIZER (Interactive Wave Canvas)
+       ========================================================================== */
+    .synth-card {
+      min-height: 280px;
+    }
+
+    .synth-controls {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .slider-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .slider-group label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .slider-group span {
+      font-family: var(--font-mono);
+      color: var(--gold-primary);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--gold-primary);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--gold-glow);
+      transition: transform 0.1s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .wave-canvas-container {
+      position: relative;
+      height: 110px;
+      width: 100%;
+      border-radius: var(--radius-sm);
+      background: rgba(4, 6, 10, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      margin-top: 0.8rem;
+    }
+
+    /* ==========================================================================
+       6. WIDGET 4: GLOBAL EDGE MESH LATENCY (Interactive Node Canvas)
+       ========================================================================== */
+    .mesh-card {
+      min-height: 280px;
+    }
+
+    .node-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .node-pill {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.4rem 0.6rem;
+      border-radius: var(--radius-sm);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .node-pill.active {
+      border-color: var(--cyan-accent);
+      background: rgba(0, 242, 254, 0.08);
+    }
+
+    .node-pill .city {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .node-pill .ping {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .mesh-canvas-container {
+      position: relative;
+      height: 120px;
+      width: 100%;
+      border-radius: var(--radius-sm);
+      background: rgba(4, 6, 10, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 0.75rem;
+      overflow: hidden;
+    }
+
+    /* ==========================================================================
+       7. WIDGET 5: REAL-TIME THROUGHPUT METRICS (Dynamic Interactive Chart)
+       ========================================================================== */
+    .throughput-card {
+      min-height: 280px;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .toggle-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-btn.active {
+      background: var(--gold-subtle);
+      border-color: var(--gold-primary);
+      color: var(--gold-bright);
+    }
+
+    .sparkline-svg-container {
+      position: relative;
+      width: 100%;
+      height: 130px;
+      margin-top: 1rem;
+    }
+
+    .sparkline-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .chart-path-area {
+      fill: url(#chart-gradient);
+      opacity: 0.4;
+    }
+
+    .chart-path-line {
+      fill: none;
+      stroke: var(--gold-primary);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 4px 10px var(--gold-glow));
+    }
+
+    .chart-hover-dot {
+      r: 5;
+      fill: var(--bg-base);
+      stroke: var(--gold-bright);
+      stroke-width: 2.5;
+      transition: all 0.15s ease-out;
+      filter: drop-shadow(0 0 8px var(--gold-primary));
+    }
+
+    .chart-tooltip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: translate(-50%, -120%);
+      background: rgba(12, 16, 26, 0.9);
+      border: 1px solid var(--gold-primary);
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-main);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.8);
+      z-index: 10;
+    }
+
+    /* ==========================================================================
+       8. RESPONSIVE BREAKPOINTS
+       ========================================================================== */
+    @media (max-width: 1100px) {
+      .span-8, .span-7, .span-5, .span-4 { grid-column: span 12; }
+      .row-span-2 { grid-row: span 1; }
+      .pipeline-display-container { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 1.5rem 0.75rem; }
+      .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .bento-grid { gap: 0.85rem; }
+      .bento-card { padding: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dashboard Header Section -->
+  <header class="dashboard-header">
+    <div class="header-title-group">
+      <div class="label-caps">AURA APEX // ARCHITECTURE ENGINE</div>
+      <h1>Neural Cluster v4.9</h1>
+      <p>Interactive bento architecture with real-time physical simulation & telemetry</p>
+    </div>
+    <div class="live-indicator">
+      <span class="live-dot"></span>
+      <span>CLUSTER ONLINE // 100% OPERATIONAL</span>
+    </div>
+  </header>
+
+  <!-- Bento Grid Container -->
+  <main class="bento-grid">
+
+    <!-- WIDGET 1: Flagship Autonomous AI Model Fine-Tuner (Span 7) -->
+    <article class="bento-card span-7 row-span-2 pipeline-card" id="card-pipeline">
+      <div class="specular-glare"></div>
+      <div class="border-shine"></div>
+      <canvas class="card-canvas-bg" id="pipeline-particle-canvas"></canvas>
+      
+      <div class="card-content">
+        <div>
+          <div class="card-header">
+            <div>
+              <span class="label-caps">FLAGSHIP ENGINE</span>
+              <h2 class="card-title">Autonomous Model Deployment</h2>
+              <p class="card-subtitle">Quantized weights fine-tuning & edge compilation</p>
+            </div>
+            <button class="btn-reset-pill" id="reset-pipeline-btn">Reset Engine</button>
+          </div>
+
+          <div class="pipeline-display-container">
+            <!-- Metrics Column -->
+            <div class="pipeline-metrics-list">
+              <div class="metric-row">
+                <span style="color: var(--text-muted)">Target Model</span>
+                <span class="metric-val">Llama-3-70B-Instruct</span>
+              </div>
+              <div class="metric-row">
+                <span style="color: var(--text-muted)">Precision Stage</span>
+                <span class="metric-val">FP8 TensorRT</span>
+              </div>
+              <div class="metric-row">
+                <span style="color: var(--text-muted)">Target Nodes</span>
+                <span class="metric-val">128x H100 SXM5</span>
+              </div>
+              <div class="metric-row">
+                <span style="color: var(--text-muted)">Est. Latency</span>
+                <span class="metric-val" style="color: var(--cyan-accent)">8.4ms / token</span>
+              </div>
+            </div>
+
+            <!-- Morphing Interactive Stage Box -->
+            <div class="pipeline-stage-visualizer" id="pipeline-visualizer">
+              <div class="progress-ring-container">
+                <svg class="progress-ring-svg">
+                  <circle class="progress-ring-bg" cx="45" cy="45" r="40" />
+                  <circle class="progress-ring-circle" id="pipeline-circle" cx="45" cy="45" r="40" />
+                </svg>
+                <div class="progress-value-text" id="pipeline-pct">0%</div>
+              </div>
+              <div class="stage-status-label" id="pipeline-status-text">Ready for Execution</div>
+              <div class="pipeline-substep-log" id="pipeline-substep-log">> Initializing CUDA contexts...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Stage Interaction Controller Button -->
+        <button class="btn-action-primary" id="deploy-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span id="deploy-btn-text">Execute Pipeline Sequence</span>
+        </button>
+      </div>
+    </article>
+
+    <!-- WIDGET 2: Quantum Vault Security Rotator (Span 5) -->
+    <article class="bento-card span-5 quantum-card" id="card-quantum">
+      <div class="specular-glare"></div>
+      <div class="border-shine"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <div>
+            <span class="label-caps" style="color: var(--cyan-accent)">SECURITY MATRIX</span>
+            <h2 class="card-title">Quantum Key Rotator</h2>
+            <p class="card-subtitle">AES-256-GCM / Post-Quantum Lattice Encryption</p>
+          </div>
+        </div>
+
+        <!-- Interactive Vault Rotator -->
+        <div class="vault-dial-container">
+          <div class="vault-outer-ring" id="vault-outer"></div>
+          <div class="vault-inner-ring" id="vault-inner"></div>
+          <button class="vault-center-key" id="rotate-key-btn" title="Click to rotate quantum key">
+            <svg id="vault-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div>
+          <div class="hash-key-display" id="hash-display">0x8F4A...3B92_LATTICE_SECURE</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- WIDGET 3: Dynamic Signal Waveform Synthesizer (Span 5) -->
+    <article class="bento-card span-5 synth-card" id="card-synth">
+      <div class="specular-glare"></div>
+      <div class="border-shine"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <div>
+            <span class="label-caps">SIGNAL TELEMETRY</span>
+            <h2 class="card-title">Neural Audio Synthesizer</h2>
+          </div>
+        </div>
+
+        <!-- Wave Canvas -->
+        <div class="wave-canvas-container">
+          <canvas id="synth-canvas" class="card-canvas-bg"></canvas>
+        </div>
+
+        <!-- Sliders -->
+        <div class="synth-controls">
+          <div class="slider-group">
+            <label>Frequency <span id="freq-val">440Hz</span></label>
+            <input type="range" id="freq-slider" min="100" max="880" value="440">
+          </div>
+          <div class="slider-group">
+            <label>Harmonics <span id="harm-val">2.5</span></label>
+            <input type="range" id="harm-slider" min="1" max="10" step="0.5" value="2.5">
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- WIDGET 4: Edge Mesh Node Latency Map (Span 7) -->
+    <article class="bento-card span-7 mesh-card" id="card-mesh">
+      <div class="specular-glare"></div>
+      <div class="border-shine"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <div>
+            <span class="label-caps" style="color: var(--cyan-accent)">GLOBAL TOPOLOGY</span>
+            <h2 class="card-title">Edge Node Pulse & Latency Matrix</h2>
+          </div>
+        </div>
+
+        <!-- Node Canvas Animation -->
+        <div class="mesh-canvas-container">
+          <canvas id="mesh-canvas" class="card-canvas-bg"></canvas>
+        </div>
+
+        <!-- Interactive Node Selector -->
+        <div class="node-stats-grid">
+          <div class="node-pill active" data-node="tokyo">
+            <span class="city">Tokyo (ap-northeast)</span>
+            <span class="ping" id="ping-tokyo">18 ms</span>
+          </div>
+          <div class="node-pill" data-node="london">
+            <span class="city">London (eu-west)</span>
+            <span class="ping" id="ping-london">42 ms</span>
+          </div>
+          <div class="node-pill" data-node="sf">
+            <span class="city">San Francisco (us-west)</span>
+            <span class="ping" id="ping-sf">12 ms</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- WIDGET 5: Real-Time Throughput Metrics (Span 12) -->
+    <article class="bento-card span-12 throughput-card" id="card-throughput">
+      <div class="specular-glare"></div>
+      <div class="border-shine"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <div>
+            <span class="label-caps">LIVE DATA STREAM</span>
+            <h2 class="card-title">Cluster Ingress & Processing Velocity</h2>
+            <p class="card-subtitle">Real-time throughput metrics (Gigabits / second)</p>
+          </div>
+          <div class="chart-controls">
+            <button class="toggle-btn active" data-range="1h">1H Live</button>
+            <button class="toggle-btn" data-range="24h">24H</button>
+            <button class="toggle-btn" data-range="7d">7D</button>
+          </div>
+        </div>
+
+        <!-- Interactive Sparkline Chart with Specular Hover -->
+        <div class="sparkline-svg-container" id="sparkline-container">
+          <div class="chart-tooltip" id="chart-tooltip">98.4 Gbps</div>
+          <svg class="sparkline-svg" id="sparkline-svg" viewBox="0 0 1000 120" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--gold-primary)" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="var(--gold-primary)" stop-opacity="0.0"/>
+              </linearGradient>
+            </defs>
+            <path class="chart-path-area" id="chart-area" d="" />
+            <path class="chart-path-line" id="chart-line" d="" />
+            <circle class="chart-hover-dot" id="chart-dot" cx="-10" cy="-10" />
+          </svg>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- ==========================================================================
+       9. COMPLETE EMBEDDED JAVASCRIPT ARCHITECTURE
+       ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      /* ------------------------------------------------------------------------
+         A. SPECULAR GLARE & MOUSE TILT PHYSICS SYSTEM
+         ------------------------------------------------------------------------ */
+      const bentoCards = document.querySelectorAll('.bento-card');
+
+      bentoCards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          const px = x / rect.width;
+          const py = y / rect.height;
+
+          // Set CSS custom properties for glare placement
+          card.style.setProperty('--mouse-x', `${x}px`);
+          card.style.setProperty('--mouse-y', `${y}px`);
+
+          // 3D Physical Tilt effect calculation
+          const tiltX = (py - 0.5) * -6; // Rotation X
+          const tiltY = (px - 0.5) * 6;  // Rotation Y
+
+          card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateZ(4px)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px)';
+        });
+      });
+
+      /* ------------------------------------------------------------------------
+         B. WIDGET 1: AUTONOMOUS AI PIPELINE (Multi-Stage State Machine)
+         ------------------------------------------------------------------------ */
+      const deployBtn = document.getElementById('deploy-btn');
+      const deployBtnText = document.getElementById('deploy-btn-text');
+      const pipelineCard = document.getElementById('card-pipeline');
+      const resetPipelineBtn = document.getElementById('reset-pipeline-btn');
+      const circleProgress = document.getElementById('pipeline-circle');
+      const pctText = document.getElementById('pipeline-pct');
+      const statusText = document.getElementById('pipeline-status-text');
+      const substepLog = document.getElementById('pipeline-substep-log');
+      const particleCanvas = document.getElementById('pipeline-particle-canvas');
+
+      let pipelineState = 'idle'; // 'idle' | 'processing' | 'success'
+      let animationFrameId = null;
+      let progressVal = 0;
+
+      // Micro-Particle System for Canvas
+      const pCtx = particleCanvas.getContext('2d');
+      let particles = [];
+
+      function resizeParticleCanvas() {
+        particleCanvas.width = pipelineCard.offsetWidth;
+        particleCanvas.height = pipelineCard.offsetHeight;
+      }
+      resizeParticleCanvas();
+      window.addEventListener('resize', resizeParticleCanvas);
+
+      class Particle {
+        constructor() {
+          this.reset();
+        }
+        reset() {
+          this.x = particleCanvas.width * 0.75;
+          this.y = particleCanvas.height * 0.5;
+          this.vx = (Math.random() - 0.5) * 4;
+          this.vy = (Math.random() - 0.5) * 4;
+          this.radius = Math.random() * 2.5 + 1;
+          this.alpha = 1;
+          this.color = Math.random() > 0.3 ? '#e5c158' : '#00f2fe';
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.alpha -= 0.015;
+          if (this.alpha <= 0) this.reset();
+        }
+        draw() {
+          pCtx.save();
+          pCtx.globalAlpha = Math.max(0, this.alpha);
+          pCtx.beginPath();
+          pCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          pCtx.fillStyle = this.color;
+          pCtx.shadowBlur = 8;
+          pCtx.shadowColor = this.color;
+          pCtx.fill();
+          pCtx.restore();
+        }
+      }
+
+      function initParticles() {
+        particles = Array.from({ length: 35 }, () => new Particle());
+      }
+      initParticles();
+
+      function renderParticles() {
+        pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+        if (pipelineState === 'processing' || pipelineState === 'success') {
+          particles.forEach(p => {
+            p.update();
+            p.draw();
+          });
+        }
+        requestAnimationFrame(renderParticles);
+      }
+      renderParticles();
+
+      const substeps = [
+        "> Initializing CUDA context...",
+        "> Quantizing weights to FP8...",
+        "> Compiling TensorRT engine...",
+        "> Distributing to 128x H100 SXM5...",
+        "> Verifying pipeline integrity..."
+      ];
+
+      deployBtn.addEventListener('click', () => {
+        if (pipelineState !== 'idle') return;
+
+        pipelineState = 'processing';
+        pipelineCard.classList.add('state-processing');
+        deployBtn.disabled = true;
+        deployBtnText.innerText = 'Compiling & Deploying...';
+
+        let duration = 2800; // ms
+        let startTime = null;
+
+        function animateProgress(timestamp) {
+          if (!startTime) startTime = timestamp;
+          let elapsed = timestamp - startTime;
+          let progress = Math.min(elapsed / duration, 1);
+
+          progressVal = Math.floor(progress * 100);
+          
+          // Calculate SVG Dash Offset (251.2 total circumference)
+          let offset = 251.2 - (251.2 * progress);
+          circleProgress.style.strokeDashoffset = offset;
+          pctText.innerText = `${progressVal}%`;
+
+          // Morphing substep text
+          let stepIdx = Math.min(Math.floor(progress * substeps.length), substeps.length - 1);
+          substepLog.innerText = substeps[stepIdx];
+          statusText.innerText = "Optimizing Neural Graph...";
+
+          if (progress < 1) {
+            animationFrameId = requestAnimationFrame(animateProgress);
+          } else {
+            // TRANSITION TO SUCCESS RESOLUTION
+            pipelineState = 'success';
+            pipelineCard.classList.remove('state-processing');
+            pipelineCard.classList.add('state-success');
+            statusText.innerText = "Deployment Successful";
+            statusText.style.color = "var(--green-success)";
+            substepLog.innerText = "> Status: ACTIVE - 100% HEALTH";
+            deployBtnText.innerText = "Model Active & Live";
+          }
+        }
+
+        animationFrameId = requestAnimationFrame(animateProgress);
+      });
+
+      resetPipelineBtn.addEventListener('click', () => {
+        pipelineState = 'idle';
+        pipelineCard.classList.remove('state-processing', 'state-success');
+        circleProgress.style.strokeDashoffset = '251.2';
+        pctText.innerText = '0%';
+        statusText.innerText = 'Ready for Execution';
+        statusText.style.color = 'var(--text-muted)';
+        substepLog.innerText = '> Initializing CUDA contexts...';
+        deployBtnText.innerText = 'Execute Pipeline Sequence';
+        deployBtn.disabled = false;
+      });
+
+
+      /* ------------------------------------------------------------------------
+         C. WIDGET 2: QUANTUM KEY ROTATOR (Lock Physics & Hex Scramble)
+         ------------------------------------------------------------------------ */
+      const rotateKeyBtn = document.getElementById('rotate-key-btn');
+      const vaultOuter = document.getElementById('vault-outer');
+      const vaultInner = document.getElementById('vault-inner');
+      const hashDisplay = document.getElementById('hash-display');
+      let currentRotation = 0;
+
+      const hexChars = "0123456789ABCDEF";
+
+      function scrambleHash() {
+        let iterations = 0;
+        const interval = setInterval(() => {
+          let randomHash = "0x" + Array.from({length: 4}, () => hexChars[Math.floor(Math.random()*16)]).join('') + 
+                           "... " + Array.from({length: 4}, () => hexChars[Math.floor(Math.random()*16)]).join('') + "_SECURE";
+          hashDisplay.innerText = randomHash;
+          iterations++;
+          if (iterations > 12) {
+            clearInterval(interval);
+          }
+        }, 50);
+      }
+
+      rotateKeyBtn.addEventListener('click', () => {
+        currentRotation += 180;
+        vaultOuter.style.transform = `rotate(${currentRotation}deg)`;
+        vaultInner.style.transform = `rotate(${-currentRotation * 1.5}deg)`;
+        scrambleHash();
+      });
+
+
+      /* ------------------------------------------------------------------------
+         D. WIDGET 3: DYNAMIC WAVEFORM SYNTHESIZER (Canvas Renderer)
+         ------------------------------------------------------------------------ */
+      const synthCanvas = document.getElementById('synth-canvas');
+      const sCtx = synthCanvas.getContext('2d');
+      const freqSlider = document.getElementById('freq-slider');
+      const harmSlider = document.getElementById('harm-slider');
+      const freqVal = document.getElementById('freq-val');
+      const harmVal = document.getElementById('harm-val');
+
+      let wavePhase = 0;
+
+      function resizeSynthCanvas() {
+        synthCanvas.width = synthCanvas.parentElement.offsetWidth;
+        synthCanvas.height = synthCanvas.parentElement.offsetHeight;
+      }
+      resizeSynthCanvas();
+      window.addEventListener('resize', resizeSynthCanvas);
+
+      freqSlider.addEventListener('input', (e) => freqVal.innerText = `${e.target.value}Hz`);
+      harmSlider.addEventListener('input', (e) => harmVal.innerText = e.target.value);
+
+      function renderWaveform() {
+        sCtx.clearRect(0, 0, synthCanvas.width, synthCanvas.height);
+
+        const freq = parseFloat(freqSlider.value) / 100;
+        const harm = parseFloat(harmSlider.value);
+        const height = synthCanvas.height;
+        const width = synthCanvas.width;
+
+        sCtx.beginPath();
+        sCtx.lineWidth = 2;
+        sCtx.strokeStyle = '#e5c158';
+
+        for (let x = 0; x < width; x++) {
+          let y = height / 2 + 
+            Math.sin(x * 0.02 * freq + wavePhase) * 20 + 
+            Math.sin(x * 0.05 * harm + wavePhase) * 10;
+          
+          if (x === 0) sCtx.moveTo(x, y);
+          else sCtx.lineTo(x, y);
+        }
+
+        sCtx.shadowBlur = 10;
+        sCtx.shadowColor = 'rgba(229, 193, 88, 0.5)';
+        sCtx.stroke();
+
+        wavePhase += 0.05;
+        requestAnimationFrame(renderWaveform);
+      }
+      renderWaveform();
+
+
+      /* ------------------------------------------------------------------------
+         E. WIDGET 4: GLOBAL MESH LATENCY NODE CANVAS
+         ------------------------------------------------------------------------ */
+      const meshCanvas = document.getElementById('mesh-canvas');
+      const mCtx = meshCanvas.getContext('2d');
+      const nodePills = document.querySelectorAll('.node-pill');
+
+      function resizeMeshCanvas() {
+        meshCanvas.width = meshCanvas.parentElement.offsetWidth;
+        meshCanvas.height = meshCanvas.parentElement.offsetHeight;
+      }
+      resizeMeshCanvas();
+      window.addEventListener('resize', resizeMeshCanvas);
+
+      const nodes = [
+        { id: 'sf', x: 0.2, y: 0.4, label: 'San Francisco' },
+        { id: 'london', x: 0.5, y: 0.3, label: 'London' },
+        { id: 'tokyo', x: 0.8, y: 0.6, label: 'Tokyo' }
+      ];
+
+      let activeNodeId = 'tokyo';
+      let pulseRadius = 0;
+
+      nodePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          nodePills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          activeNodeId = pill.dataset.node;
+          pulseRadius = 0; // Trigger visual burst
+        });
+      });
+
+      function renderMeshMap() {
+        mCtx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
+
+        const w = meshCanvas.width;
+        const h = meshCanvas.height;
+
+        // Draw node connection lines
+        mCtx.beginPath();
+        mCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        mCtx.lineWidth = 1;
+        nodes.forEach((n1, i) => {
+          nodes.forEach((n2, j) => {
+            if (i < j) {
+              mCtx.moveTo(n1.x * w, n1.y * h);
+              mCtx.lineTo(n2.x * w, n2.y * h);
+            }
+          });
+        });
+        mCtx.stroke();
+
+        // Render Nodes
+        nodes.forEach(node => {
+          const nx = node.x * w;
+          const ny = node.y * h;
+          const isActive = node.id === activeNodeId;
+
+          // Pulse circle on active node
+          if (isActive) {
+            pulseRadius = (pulseRadius + 0.4) % 30;
+            mCtx.beginPath();
+            mCtx.arc(nx, ny, pulseRadius, 0, Math.PI * 2);
+            mCtx.strokeStyle = `rgba(0, 242, 254, ${1 - pulseRadius / 30})`;
+            mCtx.lineWidth = 1.5;
+            mCtx.stroke();
+          }
+
+          // Node core dot
+          mCtx.beginPath();
+          mCtx.arc(nx, ny, isActive ? 5 : 3, 0, Math.PI * 2);
+          mCtx.fillStyle = isActive ? 'var(--cyan-accent)' : '#4c5a73';
+          mCtx.shadowBlur = isActive ? 10 : 0;
+          mCtx.shadowColor = 'var(--cyan-accent)';
+          mCtx.fill();
+        });
+
+        requestAnimationFrame(renderMeshMap);
+      }
+      renderMeshMap();
+
+
+      /* ------------------------------------------------------------------------
+         F. WIDGET 5: DYNAMIC SPARKLINE & HOVER TOOLTIP
+         ------------------------------------------------------------------------ */
+      const sparklineContainer = document.getElementById('sparkline-container');
+      const chartLine = document.getElementById('chart-line');
+      const chartArea = document.getElementById('chart-area');
+      const chartDot = document.getElementById('chart-dot');
+      const chartTooltip = document.getElementById('chart-tooltip');
+      const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+      // Sample Telemetry Data Pools
+      const dataPools = {
+        '1h': [42, 58, 45, 78, 62, 89, 74, 95, 88, 102, 94, 115, 108, 124, 118, 135],
+        '24h': [20, 35, 60, 40, 80, 55, 90, 70, 110, 85, 100, 92, 105, 110, 120, 128],
+        '7d': [80, 75, 90, 85, 100, 110, 95, 105, 115, 120, 125, 130, 128, 132, 138, 142]
+      };
+
+      let activeRange = '1h';
+
+      function generatePathSVG(points) {
+        const svgWidth = 1000;
+        const svgHeight = 120;
+        const maxVal = Math.max(...points) * 1.15;
+        const stepX = svgWidth / (points.length - 1);
+
+        let lineD = "";
+        let areaD = "";
+
+        points.forEach((val, idx) => {
+          const x = idx * stepX;
+          const y = svgHeight - (val / maxVal) * svgHeight;
+
+          if (idx === 0) {
+            lineD += `M ${x} ${y}`;
+            areaD += `M ${x} ${svgHeight} L ${x} ${y}`;
+          } else {
+            // Smooth Bézier curve interpolation
+            const prevX = (idx - 1) * stepX;
+            const prevY = svgHeight - (points[idx - 1] / maxVal) * svgHeight;
+            const controlX = (prevX + x) / 2;
+            lineD += ` C ${controlX} ${prevY}, ${controlX} ${y}, ${x} ${y}`;
+            areaD += ` C ${controlX} ${prevY}, ${controlX} ${y}, ${x} ${y}`;
+          }
+
+          if (idx === points.length - 1) {
+            areaD += ` L ${x} ${svgHeight} Z`;
+          }
+        });
+
+        return { lineD, areaD, maxVal, stepX };
+      }
+
+      function updateChart() {
+        const data = dataPools[activeRange];
+        const { lineD, areaD } = generatePathSVG(data);
+        chartLine.setAttribute('d', lineD);
+        chartArea.setAttribute('d', areaD);
+      }
+      updateChart();
+
+      toggleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          toggleBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeRange = btn.dataset.range;
+          updateChart();
+        });
+      });
+
+      // Mouse interactive chart tracking & specular dot
+      sparklineContainer.addEventListener('mousemove', (e) => {
+        const rect = sparklineContainer.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const pctX = Math.max(0, Math.min(1, mouseX / rect.width));
+
+        const data = dataPools[activeRange];
+        const index = Math.round(pctX * (data.length - 1));
+        const val = data[index];
+
+        const { maxVal } = generatePathSVG(data);
+        const svgX = (index / (data.length - 1)) * 1000;
+        const svgY = 120 - (val / maxVal) * 120;
+
+        chartDot.setAttribute('cx', svgX);
+        chartDot.setAttribute('cy', svgY);
+
+        chartTooltip.style.opacity = '1';
+        chartTooltip.style.left = `${mouseX}px`;
+        chartTooltip.style.top = `${(svgY / 120) * rect.height}px`;
+        chartTooltip.innerText = `${val}.2 Gbps`;
+      });
+
+      sparklineContainer.addEventListener('mouseleave', () => {
+        chartTooltip.style.opacity = '0';
+        chartDot.setAttribute('cx', '-10');
+      });
+
+      // Periodically update live jitter for throughput chart
+      setInterval(() => {
+        const liveData = dataPools['1h'];
+        const lastIdx = liveData.length - 1;
+        liveData[lastIdx] = Math.max(100, Math.min(150, liveData[lastIdx] + (Math.random() - 0.5) * 8));
+        if (activeRange === '1h') updateChart();
+      }, 1500);
+
+    });
+  </script>
+</body>
+</html>
